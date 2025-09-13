@@ -1,3 +1,11 @@
+using LetsLearn.Core.Interfaces;
+using LetsLearn.Infrastructure.Data;
+using LetsLearn.Infrastructure.Redis;
+using LetsLearn.Infrastructure.Repository;
+using LetsLearn.Infrastructure.UnitOfWork;
+using Microsoft.EntityFrameworkCore;
+using StackExchange.Redis;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -7,6 +15,20 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
+builder.Services.AddDbContext<LetsLearnContext>(options =>
+        options.UseNpgsql(connectionString)); 
+
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = builder.Configuration.GetConnectionString("Redis");
+    options.InstanceName = "LetsLearn";
+});
+builder.Services.AddScoped(typeof(IRepository<>), typeof(GenericRepository<>));
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped<IRedisCacheService, RedisCacheService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -15,7 +37,13 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
+//Only uncomment this if you want to auto apply migrations in dev environment
+//using (var scope = app.Services.CreateScope())
+//{
+//    var services = scope.ServiceProvider;
+//    var dbContext = services.GetRequiredService<LetsLearnContext>();
+//    dbContext.Database.Migrate();
+//}
 app.UseHttpsRedirection();
 
 app.UseAuthorization();

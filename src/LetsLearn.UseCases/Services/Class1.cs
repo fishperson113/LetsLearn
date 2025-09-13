@@ -1,4 +1,4 @@
-﻿namespace LetsLearn.UseCases
+﻿namespace LetsLearn.UseCases.Services
 {
     public class Class1
     {
