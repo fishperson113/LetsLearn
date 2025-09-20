@@ -36,9 +36,41 @@ builder.Services.AddStackExchangeRedisCache(options =>
 builder.Services.AddScoped(typeof(IRepository<>), typeof(GenericRepository<>));
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IRedisCacheService, RedisCacheService>();
+<<<<<<< HEAD
 builder.Services.AddScoped<ICourseRepository, CourseRepository>();
+<<<<<<< HEAD
 builder.Services.AddAuthorization();
 
+=======
+=======
+
+//DEFAULT JwtBearer
+//var secret = builder.Configuration["Jwt:Secret"] ?? "your-super-secret-key";
+//var key = Encoding.ASCII.GetBytes(secret);
+
+//builder.Services.AddAuthentication(options =>
+//{
+//    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+//    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+//})
+//.AddJwtBearer(options =>
+//{
+//    options.RequireHttpsMetadata = false;
+//    options.SaveToken = true;
+//    options.TokenValidationParameters = new TokenValidationParameters
+//    {
+//        ValidateIssuerSigningKey = true,
+//        IssuerSigningKey = new SymmetricSecurityKey(key),
+//        ValidateIssuer = false,
+//        ValidateAudience = false,
+//        ClockSkew = TimeSpan.Zero
+//    };
+//});
+
+builder.Services.AddAuthorization();
+
+>>>>>>> 2ae7f5f (Add JWT auth system with role-based access control)
+>>>>>>> Add JWT auth system with role-based access control
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
