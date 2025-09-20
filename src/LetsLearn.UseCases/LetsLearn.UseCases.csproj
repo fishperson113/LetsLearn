@@ -12,7 +12,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\LetsLearn.Core\LetsLearn.Core.csproj" />
-    <ProjectReference Include="..\LetsLearn.Infrastructure\LetsLearn.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
