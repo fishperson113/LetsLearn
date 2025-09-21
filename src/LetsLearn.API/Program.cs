@@ -28,7 +28,7 @@ builder.Services.AddStackExchangeRedisCache(options =>
 builder.Services.AddScoped(typeof(IRepository<>), typeof(GenericRepository<>));
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IRedisCacheService, RedisCacheService>();
-
+builder.Services.AddScoped<ICourseRepository, CourseRepository>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

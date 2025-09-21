@@ -35,6 +35,10 @@ namespace LetsLearn.Infrastructure.Data
         public DbSet<Message> Messages { get; set; }
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<Enrollment> Enrollments { get; set; }
+        public DbSet<Question> Questions { get; set; }
+        public DbSet<QuestionChoice> QuestionChoices { get; set; }
+        public DbSet<QuizResponse> QuizResponses { get; set; }
+        public DbSet<QuizResponseAnswer> QuizResponseAnswers { get; set; }
         #endregion
 
         #region OnModelCreating
@@ -164,6 +168,20 @@ namespace LetsLearn.Infrastructure.Data
                 .HasOne<Comment>().WithMany()
                 .HasForeignKey(c => c.RootCommentId)
                 .OnDelete(DeleteBehavior.NoAction);
+
+            // ===== Question -> QuestionChoice =====
+            modelBuilder.Entity<Question>()
+                .HasMany(q => q.Choices)
+                .WithOne()
+                .HasForeignKey(c => c.QuestionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // ===== QuizResponse -> QuizResponseAnswer =====
+            modelBuilder.Entity<QuizResponse>()
+                .HasMany(qr => qr.Answers)
+                .WithOne()
+                .HasForeignKey(a => a.QuizResponseId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             // ===== Unique constraints =====
             modelBuilder.Entity<Course>()

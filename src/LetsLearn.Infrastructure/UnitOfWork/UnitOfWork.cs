@@ -13,13 +13,19 @@ namespace LetsLearn.Infrastructure.UnitOfWork
     public class UnitOfWork : IUnitOfWork
     {
         private readonly LetsLearnContext _context;
+
         public IRepository<WeatherForecast> WeatherForecasts { get; private set; }
 
+        public ICourseRepository Course { get; private set; }
+
+        public IRepository<CloudinaryFile> CloudinaryFiles { get; private set; }
 
         public UnitOfWork(LetsLearnContext context)
         {
             _context = context;
             WeatherForecasts = new GenericRepository<WeatherForecast>(_context);
+            Course = new CourseRepository(_context);
+            CloudinaryFiles = new GenericRepository<CloudinaryFile>(_context);
         }
 
         public async Task<int> CommitAsync() =>
