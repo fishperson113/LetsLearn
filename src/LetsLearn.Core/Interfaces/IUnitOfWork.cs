@@ -9,6 +9,8 @@ namespace LetsLearn.Core.Interfaces
     public interface IUnitOfWork : IAsyncDisposable
     {
         IRepository<WeatherForecast> WeatherForecasts { get; }
+        ICourseRepository Course { get; }
+        IRepository<CloudinaryFile> CloudinaryFiles { get; }
         Task<int> CommitAsync();
     }
 }
