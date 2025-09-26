@@ -15,12 +15,11 @@ namespace LetsLearn.Infrastructure.UnitOfWork
         private readonly LetsLearnContext _context;
 
         public IRepository<WeatherForecast> WeatherForecasts { get; private set; }
-
         public ICourseRepository Course { get; private set; }
-
         public IRepository<CloudinaryFile> CloudinaryFiles { get; private set; }
         public IUserRepository Users { get; private set; }  
         public IRefreshTokenRepository RefreshTokens { get; private set; }
+
 
         public UnitOfWork(LetsLearnContext context)
         {

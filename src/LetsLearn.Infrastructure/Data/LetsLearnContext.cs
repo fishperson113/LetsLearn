@@ -51,7 +51,7 @@ namespace LetsLearn.Infrastructure.Data
             // ===== Enrollment (PK + FK) =====
             modelBuilder.Entity<Enrollment>()
                 .HasKey(e => new { e.StudentId, e.CourseId });
-            //UNCOMMENT THIS AFTER ADD USER ENTITY
+                
             modelBuilder.Entity<Enrollment>()
                 .HasOne<User>().WithMany()
                 .HasForeignKey(e => e.StudentId)
@@ -188,7 +188,6 @@ namespace LetsLearn.Infrastructure.Data
             // ===== Unique constraints =====
             modelBuilder.Entity<Course>()
                 .HasIndex(c => c.Title).IsUnique();
-
             // ===== User =====
             modelBuilder.Entity<User>()
                 .HasKey(u => u.Id);
