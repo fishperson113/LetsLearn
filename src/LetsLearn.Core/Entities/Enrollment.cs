@@ -9,7 +9,7 @@ namespace LetsLearn.Core.Entities
     public class Enrollment
     {
         public Guid StudentId { get; set; }
-        public Guid CourseId { get; set; }
+        public string CourseId { get; set; } = null!;
         public DateTime JoinDate { get; set; }
     }
 }

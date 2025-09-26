@@ -75,12 +75,12 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 //Only uncomment this if you want to auto apply migrations in dev environment
-//using (var scope = app.Services.CreateScope())
-//{
-//    var services = scope.ServiceProvider;
-//    var dbContext = services.GetRequiredService<LetsLearnContext>();
-//    dbContext.Database.Migrate();
-//}
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var dbContext = services.GetRequiredService<LetsLearnContext>();
+    dbContext.Database.EnsureCreated();
+}
 app.UseHttpsRedirection();
 
 app.UseJwtAuth();
