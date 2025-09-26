@@ -1,14 +1,20 @@
+using LetsLearn.API.Middleware;
 using LetsLearn.Core.Interfaces;
+using LetsLearn.UseCases.Services.Auth;
 using LetsLearn.Infrastructure.Data;
 using LetsLearn.Infrastructure.Redis;
 using LetsLearn.Infrastructure.Repository;
 using LetsLearn.Infrastructure.UnitOfWork;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using StackExchange.Redis;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+builder.Services.AddSingleton<TokenService>();
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -25,10 +31,14 @@ builder.Services.AddStackExchangeRedisCache(options =>
     options.Configuration = builder.Configuration.GetConnectionString("Redis");
     options.InstanceName = "LetsLearn";
 });
+builder.Services.AddScoped<RefreshTokenService>();
+builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped(typeof(IRepository<>), typeof(GenericRepository<>));
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IRedisCacheService, RedisCacheService>();
 builder.Services.AddScoped<ICourseRepository, CourseRepository>();
+builder.Services.AddAuthorization();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -38,13 +48,15 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 //Only uncomment this if you want to auto apply migrations in dev environment
-//using (var scope = app.Services.CreateScope())
-//{
-//    var services = scope.ServiceProvider;
-//    var dbContext = services.GetRequiredService<LetsLearnContext>();
-//    dbContext.Database.Migrate();
-//}
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var dbContext = services.GetRequiredService<LetsLearnContext>();
+    dbContext.Database.EnsureCreated();
+}
 app.UseHttpsRedirection();
+
+app.UseJwtAuth();
 
 app.UseAuthorization();
 

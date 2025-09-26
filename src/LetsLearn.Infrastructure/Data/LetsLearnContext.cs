@@ -39,6 +39,8 @@ namespace LetsLearn.Infrastructure.Data
         public DbSet<QuestionChoice> QuestionChoices { get; set; }
         public DbSet<QuizResponse> QuizResponses { get; set; }
         public DbSet<QuizResponseAnswer> QuizResponseAnswers { get; set; }
+        public DbSet<User> Users { get; set; }
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
         #endregion
 
         #region OnModelCreating
@@ -49,11 +51,11 @@ namespace LetsLearn.Infrastructure.Data
             // ===== Enrollment (PK + FK) =====
             modelBuilder.Entity<Enrollment>()
                 .HasKey(e => new { e.StudentId, e.CourseId });
-            //UNCOMMENT THIS AFTER ADD USER ENTITY
-            //modelBuilder.Entity<Enrollment>()
-            //    .HasOne<User>().WithMany()
-            //    .HasForeignKey(e => e.StudentId)
-            //    .OnDelete(DeleteBehavior.Restrict);
+                
+            modelBuilder.Entity<Enrollment>()
+                .HasOne<User>().WithMany()
+                .HasForeignKey(e => e.StudentId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Enrollment>()
                 .HasOne<Course>().WithMany()
@@ -186,6 +188,21 @@ namespace LetsLearn.Infrastructure.Data
             // ===== Unique constraints =====
             modelBuilder.Entity<Course>()
                 .HasIndex(c => c.Title).IsUnique();
+            // ===== User =====
+            modelBuilder.Entity<User>()
+                .HasKey(u => u.Id);
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.Email)
+                .IsUnique();
+
+            // ===== RefreshToken =====
+            modelBuilder.Entity<RefreshToken>()
+                .HasKey(rt => rt.Id);
+            modelBuilder.Entity<RefreshToken>()
+                .HasOne(rt => rt.User)
+                .WithMany()
+                .HasForeignKey(rt => rt.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
 
         #endregion

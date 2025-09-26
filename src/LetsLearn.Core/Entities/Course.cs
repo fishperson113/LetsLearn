@@ -10,7 +10,7 @@ namespace LetsLearn.Core.Entities
     public class Course
     {
         // columns
-        public string Id { get; set; } = null!;       //PK
+        public String Id { get; set; } = null!;        //PK
         public Guid CreatorId { get; set; }          // UUID FK -> users.id
         public string Title { get; set; } = null!;   // UNIQUE
         public string? Description { get; set; }
