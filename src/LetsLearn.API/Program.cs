@@ -1,6 +1,6 @@
 using LetsLearn.API.Middleware;
 using LetsLearn.Core.Interfaces;
-using LetsLearn.Infrastructure.Services.Auth;
+using LetsLearn.UseCases.Services.Auth;
 using LetsLearn.Infrastructure.Data;
 using LetsLearn.Infrastructure.Redis;
 using LetsLearn.Infrastructure.Repository;
@@ -15,8 +15,6 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddSingleton<TokenService>();
-builder.Services.AddSingleton<RefreshTokenService>();
-builder.Services.AddSingleton<AuthService>();
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -33,16 +31,13 @@ builder.Services.AddStackExchangeRedisCache(options =>
     options.Configuration = builder.Configuration.GetConnectionString("Redis");
     options.InstanceName = "LetsLearn";
 });
+builder.Services.AddScoped<RefreshTokenService>();
+builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped(typeof(IRepository<>), typeof(GenericRepository<>));
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IRedisCacheService, RedisCacheService>();
-<<<<<<< HEAD
 builder.Services.AddScoped<ICourseRepository, CourseRepository>();
-<<<<<<< HEAD
 builder.Services.AddAuthorization();
-
-=======
-=======
 
 //DEFAULT JwtBearer
 //var secret = builder.Configuration["Jwt:Secret"] ?? "your-super-secret-key";
@@ -69,8 +64,8 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddAuthorization();
 
->>>>>>> 2ae7f5f (Add JWT auth system with role-based access control)
->>>>>>> Add JWT auth system with role-based access control
+builder.Services.AddAuthorization();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

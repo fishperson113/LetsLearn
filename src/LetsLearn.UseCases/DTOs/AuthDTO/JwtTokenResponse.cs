@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LetsLearn.UseCases.DTOs
+namespace LetsLearn.UseCases.DTOs.AuthDTO
 {
     public class JwtTokenResponse
     {

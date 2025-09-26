@@ -11,6 +11,8 @@ namespace LetsLearn.Core.Interfaces
         IRepository<WeatherForecast> WeatherForecasts { get; }
         ICourseRepository Course { get; }
         IRepository<CloudinaryFile> CloudinaryFiles { get; }
+        IUserRepository Users { get; }
+        IRefreshTokenRepository RefreshTokens { get; }
         Task<int> CommitAsync();
     }
 }

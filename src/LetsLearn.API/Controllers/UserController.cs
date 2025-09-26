@@ -1,9 +1,9 @@
 ﻿using System;
-using LetsLearn.Infrastructure.Services.Auth;
-using LetsLearn.UseCases.DTOs;
+using LetsLearn.UseCases.Services.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using LetsLearn.UseCases.DTOs.AuthDTO;
 
 namespace LetsLearn.API.Controllers
 {
@@ -20,12 +20,12 @@ namespace LetsLearn.API.Controllers
 
         [Authorize]
         [HttpPatch("me/password")]
-        public IActionResult UpdatePassword([FromBody] UpdatePasswordDTO request)
+        public async Task<IActionResult> UpdatePassword([FromBody] UpdatePassword request)
         {
             try
             {
                 var userId = Guid.Parse(User.Claims.First(c => c.Type == "userID").Value);
-                _authService.UpdatePassword(request, userId);
+                await _authService.UpdatePasswordAsync(request, userId);
                 return Ok(new { message = "Password updated successfully" });
             }
             catch (Exception ex)

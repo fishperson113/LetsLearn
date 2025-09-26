@@ -13,5 +13,7 @@ namespace LetsLearn.Core.Entities
         public string Email { get; set; } = default!;
         public string PasswordHash { get; set; } = default!;
         public string Role { get; set; } = default!;
+
+        //public virtual ICollection<Enrollment> Enrollments { get; set; } = new List<Enrollment>();
     }
 }

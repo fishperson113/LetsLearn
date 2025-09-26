@@ -1,9 +1,10 @@
 ﻿using System;
-using LetsLearn.Infrastructure.Services.Auth;
+using LetsLearn.UseCases.Services.Auth;
 using LetsLearn.UseCases.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using LetsLearn.UseCases.DTOs.AuthDTO;
 
 namespace LetsLearn.API.Controllers
 {
@@ -22,27 +23,27 @@ namespace LetsLearn.API.Controllers
 
         [HttpPost("signup")]
         [AllowAnonymous]
-        public IActionResult Register([FromBody] SignUpRequestDTO request)
+        public async Task<IActionResult> Register([FromBody] SignUpRequest request)
         {
-            _authService.Register(request, HttpContext);
-            return Ok(new SuccessResponseDTO("Successfully registered"));
+            await _authService.RegisterAsync(request, HttpContext);
+            return Ok(new { message = "Successfully registered" });
         }
 
         [HttpPost("login")]
         [AllowAnonymous]
-        public IActionResult Login([FromBody] AuthRequestDTO request)
+        public async Task<IActionResult> Login([FromBody] AuthRequest request)
         {
-            var response = _authService.Login(request, HttpContext);
+            var response = await _authService.LoginAsync(request, HttpContext);
             return Ok(response); 
         }
 
         [HttpPost("refresh")]
         [AllowAnonymous]
-        public IActionResult Refresh()
+        public async Task<IActionResult> Refresh()
         {
             try
             {
-                _refreshTokenService.RefreshToken(HttpContext);
+                await _refreshTokenService.RefreshTokenAsync(HttpContext);
                 return Ok(new { message = "Access token refreshed" });
             }
             catch (Exception ex)

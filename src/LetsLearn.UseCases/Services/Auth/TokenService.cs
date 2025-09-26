@@ -10,25 +10,30 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 
-namespace LetsLearn.Infrastructure.Services.Auth
+namespace LetsLearn.UseCases.Services.Auth
 {
     public class TokenService
     {
-        private const string AccessTokenCookie = "ACCESS_TOKEN";
-        private const string RefreshTokenCookie = "REFRESH_TOKEN";
-        private const string AuthPrefix = "Bearer_";
+        private readonly string AccessTokenCookie;
+        private readonly string RefreshTokenCookie;
+        private readonly string AuthPrefix;
 
-        private const int AccessTokenExpireSeconds = 360;              // 6 phút
-        private const int RefreshTokenExpireSeconds = 3600 * 24 * 7;   // 7 ngày
+        private readonly int AccessTokenExpireSeconds;             
+        public readonly int RefreshTokenExpireSeconds;   
 
         private readonly string _issuer;
         private readonly byte[] _secretBytes;
 
         public TokenService(IConfiguration config)
         {
-            _issuer = config["Jwt:Issuer"] ?? "auth0";
-            var secretKey = config["Jwt:Secret"] ?? "your-super-secret-key";
+            _issuer = config["Jwt:Issuer"] ?? throw new ArgumentException("Jwt:Issuer is required");
+            var secretKey = config["Jwt:Secret"] ?? throw new ArgumentException("Jwt:Secret is required");
             _secretBytes = Encoding.UTF8.GetBytes(secretKey);
+            AccessTokenExpireSeconds = int.Parse(config["Jwt:AccessTokenExpireSeconds"] ?? "360");
+            RefreshTokenExpireSeconds = int.Parse(config["Jwt:RefreshTokenExpireSeconds"] ?? "604800");
+            AccessTokenCookie = config["Jwt:AccessTokenCookie"] ?? "ACCESS_TOKEN";
+            RefreshTokenCookie = config["Jwt:RefreshTokenCookie"] ?? "REFRESH_TOKEN";
+            AuthPrefix = config["Jwt:AuthPrefix"] ?? "Bearer_";
         }
 
         public string CreateToken(Guid userId, string role, bool isAccessToken)

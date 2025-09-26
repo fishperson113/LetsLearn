@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LetsLearn.UseCases.DTOs
+namespace LetsLearn.UseCases.DTOs.AuthDTO
 {
-    public class SignUpRequestDTO
+    public class SignUpRequest
     {
         public string Username { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
