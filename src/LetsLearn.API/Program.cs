@@ -1,12 +1,15 @@
 using LetsLearn.API.Middleware;
 using LetsLearn.Core.Interfaces;
-using LetsLearn.UseCases.Services.Auth;
 using LetsLearn.Infrastructure.Data;
 using LetsLearn.Infrastructure.Redis;
 using LetsLearn.Infrastructure.Repository;
 using LetsLearn.Infrastructure.UnitOfWork;
-using Microsoft.EntityFrameworkCore;
+using LetsLearn.UseCases.Services.Auth;
+using LetsLearn.UseCases.Services.User;
+using LetsLearn.UseCases.Services.Users;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using StackExchange.Redis;
 using System.Text;
@@ -31,12 +34,27 @@ builder.Services.AddStackExchangeRedisCache(options =>
     options.Configuration = builder.Configuration.GetConnectionString("Redis");
     options.InstanceName = "LetsLearn";
 });
+
 builder.Services.AddScoped<RefreshTokenService>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped(typeof(IRepository<>), typeof(GenericRepository<>));
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IRedisCacheService, RedisCacheService>();
 builder.Services.AddScoped<ICourseRepository, CourseRepository>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+
+var jwtSettings = builder.Configuration.GetSection("Jwt");
+var key = Encoding.UTF8.GetBytes(jwtSettings["Secret"]);
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = "ManualJwt";
+    options.DefaultChallengeScheme = "ManualJwt";
+    options.DefaultForbidScheme = "ManualJwt";
+})
+.AddScheme<AuthenticationSchemeOptions, JwtAuthHandler>("ManualJwt", null);
+
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
@@ -55,6 +73,8 @@ using (var scope = app.Services.CreateScope())
     dbContext.Database.EnsureCreated();
 }
 app.UseHttpsRedirection();
+
+app.UseAuthentication();
 
 app.UseJwtAuth();
 

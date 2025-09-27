@@ -33,7 +33,7 @@ namespace LetsLearn.UseCases.Services.Auth
             if (existingUser != null)
                 throw new Exception("Email has been registered!");
 
-            var user = new User
+            var user = new Core.Entities.User
             {
                 Id = Guid.NewGuid(),
                 Email = request.Email,

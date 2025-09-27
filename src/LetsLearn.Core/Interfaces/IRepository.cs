@@ -19,5 +19,6 @@ namespace LetsLearn.Core.Interfaces
         Task AddRangeAsync(IEnumerable<T> entities);
         Task DeleteAsync(T entity);
         Task DeleteRangeAsync(IEnumerable<T> entities);
+        void Update(T entity);
     }
 }

@@ -18,5 +18,20 @@ namespace LetsLearn.Infrastructure.Repository
         {
             return await _dbSet.FirstOrDefaultAsync(u => u.Email == email, ct);
         }
+
+        //public async Task<User?> GetUserWithCoursesAsync(Guid userId)
+        //{
+        //    return await _dbSet
+        //        .Include(u => u.Enrollments)
+        //        .ThenInclude(e => e.Course)
+        //        .FirstOrDefaultAsync(u => u.Id == userId);
+        //}
+
+        public async Task<List<User>> GetAllUsersWithRolesAsync()
+        {
+            return await _dbSet.AsNoTracking()
+                .Include(u => u.Role)
+                .ToListAsync();
+        }
     }
 }
