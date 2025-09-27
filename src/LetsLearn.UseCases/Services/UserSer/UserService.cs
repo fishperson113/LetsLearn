@@ -19,7 +19,6 @@ namespace LetsLearn.UseCases.Services.User
             _unitOfWork = unitOfWork;
         }
 
-        // Lấy thông tin user
         public async Task<UserDTO> GetByIdAsync(Guid id)
         {
             var user = await _unitOfWork.Users.GetByIdAsync(id)
@@ -36,18 +35,16 @@ namespace LetsLearn.UseCases.Services.User
             };
         }
 
-        // 🔹 Cập nhật thông tin user
         public async Task<UserDTO> UpdateAsync(Guid id, UpdateUserDTO dto)
         {
             var user = await _unitOfWork.Users.GetByIdAsync(id)
                 ?? throw new KeyNotFoundException("User not found.");
 
             if (!string.IsNullOrWhiteSpace(dto.Username))
-                user.Username = dto.Username;
+                user.Username = dto.Username.Trim();
             if (!string.IsNullOrWhiteSpace(dto.Avatar))
-                user.Avatar = dto.Avatar;
+                user.Avatar = dto.Avatar.Trim();
 
-            _unitOfWork.Users.Update(user);
             await _unitOfWork.CommitAsync();
 
             return new UserDTO
@@ -61,13 +58,11 @@ namespace LetsLearn.UseCases.Services.User
             };
         }
 
-        // Lấy tất cả user trừ bản thân
         public async Task<List<UserDTO>> GetAllAsync(Guid requesterId)
         {
-            var users = await _unitOfWork.Users.GetAllAsync();
+            var users = await _unitOfWork.Users.FindAsync(u => u.Id != requesterId);
 
             return users
-                .Where(u => u.Id != requesterId)
                 .Select(u => new UserDTO
                 {
                     Id = u.Id,
@@ -80,7 +75,6 @@ namespace LetsLearn.UseCases.Services.User
                 .ToList();
         }
 
-        // 🔹 Đổi mật khẩu
         public async Task UpdatePasswordAsync(Guid userId, UpdatePasswordDTO dto)
         {
             var user = await _unitOfWork.Users.GetByIdAsync(userId)
@@ -90,7 +84,6 @@ namespace LetsLearn.UseCases.Services.User
                 throw new UnauthorizedAccessException("Old password is incorrect.");
 
             user.PasswordHash = HashPassword(dto.NewPassword);
-            _unitOfWork.Users.Update(user);
             await _unitOfWork.CommitAsync();
         }
 
@@ -105,7 +98,6 @@ namespace LetsLearn.UseCases.Services.User
             return HashPassword(password) == hash;
         }
 
-        // Lấy công việc của user (topics, bài học...)
         //public async Task<List<TopicDTO>> GetUserWorksAsync(Guid userId, string? type, Guid? courseId, DateTime? start, DateTime? end)
         //{
         //    var user = await _unitOfWork.Users.GetUserWithCoursesAsync(userId)
@@ -149,7 +141,6 @@ namespace LetsLearn.UseCases.Services.User
         //    return topics;
         //}
 
-        // Rời khỏi khóa học
         //public async Task LeaveCourseAsync(Guid userId, Guid courseId)
         //{
         //    await _unitOfWork.EnrollmentDetails.DeleteByStudentIdAndCourseIdAsync(userId, courseId);

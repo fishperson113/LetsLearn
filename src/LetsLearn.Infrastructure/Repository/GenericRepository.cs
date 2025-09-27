@@ -61,8 +61,5 @@ namespace LetsLearn.Infrastructure.Repository
 
         public async Task<bool> ExistsAsync(Expression<Func<T, bool>> predicate, CancellationToken ct = default)
         => await _dbSet.AnyAsync(predicate, ct);
-
-        public void Update(T entity)
-            => _dbSet.Update(entity);
     }
 }
