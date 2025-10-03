@@ -31,7 +31,6 @@ namespace LetsLearn.UseCases.Services.User
                 Username = user.Username,
                 Avatar = user.Avatar,
                 Role = user.Role,
-                IsVerified = user.IsVerified ? "true" : "false"
             };
         }
 
@@ -54,7 +53,6 @@ namespace LetsLearn.UseCases.Services.User
                 Username = user.Username,
                 Avatar = user.Avatar,
                 Role = user.Role,
-                IsVerified = user.IsVerified ? "true" : "false"
             };
         }
 
@@ -70,7 +68,6 @@ namespace LetsLearn.UseCases.Services.User
                     Username = u.Username,
                     Avatar = u.Avatar,
                     Role = u.Role,
-                    IsVerified = u.IsVerified ? "true" : "false"
                 })
                 .ToList();
         }
