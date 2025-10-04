@@ -26,7 +26,7 @@ namespace LetsLearn.UseCases.DTOs
         public string? Role { get; set; }
         public string? Avatar { get; set; }
 
-        public List<CourseDTO>? Courses { get; set; }
+        public List<CourseResponse>? Courses { get; set; }
     }
 
     public class UpdateUserDTO

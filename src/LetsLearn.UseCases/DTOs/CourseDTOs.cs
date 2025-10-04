@@ -7,30 +7,33 @@ using System.Threading.Tasks;
 
 namespace LetsLearn.UseCases.DTOs
 {
-    public class CourseDTO
+    public class CourseRequest
     {
-        [Required]
-        public Guid Id { get; set; }
+        public String Id { get; set; }
+        public Guid CreatorId { get; set; }
 
-        [Required(ErrorMessage = "Title cannot be empty")]
-        public string Title { get; set; } = null!;
-
+        public string? Title { get; set; }
         public string? Description { get; set; }
-
         public string? ImageUrl { get; set; }
-
-        public decimal? Price { get; set; }
-
         public string? Category { get; set; }
-
         public string? Level { get; set; }
+        public decimal? Price { get; set; }
+        public bool? IsPublished { get; set; }
+    }
 
-        public bool IsPublished { get; set; } = false;
+    public class CourseResponse
+    {
+        public String Id { get; set; }
+        public Guid CreatorId { get; set; }
+        public string? Title { get; set; }
+        public string? Description { get; set; }
+        public int TotalJoined { get; set; }
+        public string? ImageUrl { get; set; }
+        public decimal? Price { get; set; }
+        public string? Category { get; set; }
+        public string? Level { get; set; }
+        public bool? IsPublished { get; set; }
 
-        public UserDTO? Creator { get; set; }
-
-        public List<SectionDTO>? Sections { get; set; }
-
-        public List<UserDTO>? Students { get; set; }
+        public List<SectionResponse>? Sections { get; set; }
     }
 }

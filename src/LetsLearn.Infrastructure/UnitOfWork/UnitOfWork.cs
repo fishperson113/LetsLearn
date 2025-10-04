@@ -19,7 +19,8 @@ namespace LetsLearn.Infrastructure.UnitOfWork
         public IRepository<CloudinaryFile> CloudinaryFiles { get; private set; }
         public IUserRepository Users { get; private set; }  
         public IRefreshTokenRepository RefreshTokens { get; private set; }
-
+        public IQuestionRepository Questions { get; }
+        public IQuestionChoiceRepository QuestionChoices { get; }
 
         public UnitOfWork(LetsLearnContext context)
         {
@@ -29,6 +30,8 @@ namespace LetsLearn.Infrastructure.UnitOfWork
             CloudinaryFiles = new GenericRepository<CloudinaryFile>(_context);
             Users = new UserRepository(_context); 
             RefreshTokens = new RefreshTokenRepository(_context);
+            Questions = new QuestionRepository(_context);
+            QuestionChoices = new QuestionChoiceRepository(_context);
         }
 
         public async Task<int> CommitAsync() =>

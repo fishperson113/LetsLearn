@@ -1,6 +1,7 @@
 ﻿using LetsLearn.Core.Entities;
 using LetsLearn.Core.Interfaces;
 using LetsLearn.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,6 +15,11 @@ namespace LetsLearn.Infrastructure.Repository
         public CourseRepository(LetsLearnContext context) : base(context)
         {
         }
+        public async Task<Course?> GetByIdAsync(string id, CancellationToken ct = default)
+        {
+            return await _dbSet.FirstOrDefaultAsync(c => c.Id == id, ct);
+        }
+
         public async Task<bool> ExistByTitle(string title)
         {
             return await ExistsAsync(c => c.Title == title);

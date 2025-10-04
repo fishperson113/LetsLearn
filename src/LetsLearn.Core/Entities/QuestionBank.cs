@@ -24,7 +24,7 @@ namespace LetsLearn.Core.Entities
         public bool Multiple { get; set; }        
         public Guid CreatedById { get; set; }
         public Guid? ModifiedById { get; set; }
-        public Guid CourseId { get; set; }
+        public String CourseId { get; set; }
         public ICollection<QuestionChoice> Choices { get; set; } = new List<QuestionChoice>();
     }
 

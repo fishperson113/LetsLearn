@@ -1,0 +1,211 @@
+﻿using LetsLearn.Core.Entities;
+using LetsLearn.Core.Interfaces;
+using LetsLearn.UseCases.DTOs;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LetsLearn.UseCases.Services.CourseSer
+{
+    public class CourseService : ICourseService
+    {
+        private readonly IUnitOfWork _uow;
+        private static readonly DateTime MIN = DateTime.SpecifyKind(DateTime.MinValue.AddYears(1), DateTimeKind.Utc);
+        private static readonly DateTime MAX = DateTime.SpecifyKind(DateTime.MaxValue.AddYears(-1), DateTimeKind.Utc);
+
+        public CourseService(IUnitOfWork uow)
+        {
+            _uow = uow;
+        }
+
+        // =============== CREATE / UPDATE ===============
+        public async Task<CourseResponse> CreateAsync(CourseRequest dto, CancellationToken ct = default)
+        {
+            if (string.IsNullOrWhiteSpace(dto.Title))
+                throw new ArgumentException("Title is required.");
+
+            var titleExists = await _uow.Course.ExistByTitle(dto.Title!);
+            if (titleExists) 
+                throw new InvalidOperationException("A course with this title already exists. Please choose a different name");
+
+            var idExists = await _uow.Course.ExistsAsync(c => c.Id == dto.Id, ct);
+            if (idExists)
+                throw new InvalidOperationException($"Course ID '{dto.Id}' already exists.");
+
+            var course = new Course
+            {
+                Id = dto.Id,
+                Title = dto.Title,
+                Description = dto.Description,
+                ImageUrl = dto.ImageUrl,
+                Category = dto.Category,
+                Level = dto.Level,
+                Price = dto.Price,
+                IsPublished = dto.IsPublished ?? false,
+                CreatorId = dto.CreatorId,
+                TotalJoined = 0
+            };
+
+            await _uow.Course.AddAsync(course);
+            await _uow.CommitAsync();
+
+            return MapToResponse(course);
+        }
+
+        public async Task<CourseResponse> UpdateAsync(String id, CourseRequest dto, CancellationToken ct = default)
+        {
+            var course = await _uow.Course.GetByIdAsync(id, ct)
+                         ?? throw new KeyNotFoundException("Course not found.");
+
+            course.Title = dto.Title;
+            course.Description = dto.Description;
+            course.ImageUrl = dto.ImageUrl;
+            course.Category = dto.Category;
+            course.Level = dto.Level;
+            course.IsPublished = dto.IsPublished ?? course.IsPublished;
+
+            await _uow.CommitAsync();
+
+            return MapToResponse(course);
+        }
+
+        // ================= READ =================
+        public async Task<List<CourseResponse>> GetAllPublicAsync(CancellationToken ct = default)
+        {
+            var courses = await _uow.Course.GetAllCoursesByIsPublishedTrue();
+            return courses.Where(c => c != null).Select(c => MapToResponse(c!)).ToList();
+        }
+
+        public async Task<List<CourseResponse>> GetAllByUserIdAsync(Guid userId, CancellationToken ct = default)
+        {
+            var userExists = await _uow.Users.ExistsAsync(u => u.Id == userId, ct);
+            if (!userExists) throw new KeyNotFoundException("User not found.");
+
+            var courses = await _uow.Course.GetByCreatorId(userId);
+            return courses.Where(c => c != null).Select(c => MapToResponse(c!)).ToList();
+        }
+
+        public async Task<CourseResponse> GetByIdAsync(String id, CancellationToken ct = default)
+        {
+            var course = await _uow.Course.GetByIdAsync(id, ct)
+                         ?? throw new KeyNotFoundException("Course not found.");
+            return MapToResponse(course);
+        }
+
+        // =============== Helpers (mapping & utils) ===============
+        private static CourseResponse MapToResponse(Course c)
+        {
+            return new CourseResponse
+            {
+                Id = c.Id,
+                CreatorId = c.CreatorId,
+                Title = c.Title,
+                Description = c.Description,
+                TotalJoined = c.TotalJoined,
+                ImageUrl = c.ImageUrl,
+                Price = c.Price,
+                Category = c.Category,
+                Level = c.Level,
+                IsPublished = c.IsPublished,
+                // Sections = null (chưa load)
+            };
+        }
+
+        //private static TopicDTO MapTopicToDto(Topic t)
+        //{
+        //    return new TopicDTO
+        //    {
+        //        Id = t.Id,
+        //        Type = t.Type,
+        //    };
+        //}
+
+        //private static List<SingleQuizReportDTO.StudentInfoAndMark> CalculateAverageStudentScoreForQuizzes(List<SingleQuizReportDTO> singleQuizReports)
+        //{
+        //    var scoreMap = new Dictionary<Guid, List<double>>();
+        //    var latestInfo = new Dictionary<Guid, SingleQuizReportDTO.StudentInfoAndMark>();
+
+        //    foreach (var rep in singleQuizReports)
+        //    {
+        //        if (rep.StudentWithMark == null) continue;
+        //        foreach (var info in rep.StudentWithMark)
+        //        {
+        //            if (info.Student == null || !info.Submitted || info.Mark == null) continue;
+        //            var studentId = info.Student.Id;
+        //            if (!scoreMap.TryGetValue(studentId, out var list))
+        //            {
+        //                list = new List<double>();
+        //                scoreMap[studentId] = list;
+        //            }
+        //            list.Add(info.Mark.Value);
+        //            latestInfo[studentId] = info;
+        //        }
+        //    }
+
+        //    return scoreMap.Select(kv =>
+        //    {
+        //        var studentId = kv.Key;
+        //        var scores = kv.Value;
+        //        var avg = scores.Count > 0 ? scores.Average() : 0.0;
+        //        var src = latestInfo[studentId];
+        //        return new SingleQuizReportDTO.StudentInfoAndMark
+        //        {
+        //            Student = src.Student,
+        //            Submitted = src.Submitted,
+        //            ResponseId = src.ResponseId,
+        //            Mark = avg
+        //        };
+        //    }).ToList();
+        //}
+
+        //private static List<AllAssignmentsReportDTO.StudentInfoWithAverageMark> CalculateAverageStudentScoreForAssignments(List<SingleAssignmentReportDTO> singleAssignmentReports)
+        //{
+        //    var scoreMap = new Dictionary<Guid, List<double>>();
+        //    var latestInfo = new Dictionary<Guid, SingleAssignmentReportDTO.StudentInfoAndMark>();
+
+        //    foreach (var rep in singleAssignmentReports)
+        //    {
+        //        if (rep.StudentMarks == null) continue;
+        //        foreach (var info in rep.StudentMarks)
+        //        {
+        //            if (info.Student == null || !info.Submitted || info.Mark == null) continue;
+        //            var studentId = info.Student.Id;
+        //            if (!scoreMap.TryGetValue(studentId, out var list))
+        //            {
+        //                list = new List<double>();
+        //                scoreMap[studentId] = list;
+        //            }
+        //            list.Add(info.Mark.Value);
+        //            latestInfo[studentId] = info;
+        //        }
+        //    }
+
+        //    return scoreMap.Select(kv =>
+        //    {
+        //        var studentId = kv.Key;
+        //        var scores = kv.Value;
+        //        var avg = scores.Count > 0 ? scores.Average() : 0.0;
+        //        var src = latestInfo[studentId];
+        //        return new AllAssignmentsReportDTO.StudentInfoWithAverageMark(src.Student, avg, src.Submitted);
+        //    }).ToList();
+        //}
+
+        //private static Dictionary<object, object> MergeMarkDistributionCount(List<Dictionary<object, object>> list)
+        //{
+        //    var keys = new object[] { -1, 0, 2, 5, 8 };
+        //    var acc = keys.ToDictionary(k => (object)k, k => (object)0);
+
+        //    foreach (var dict in list.Where(x => x != null))
+        //    {
+        //        foreach (var k in keys)
+        //        {
+        //            var v = dict.TryGetValue(k, out var val) ? Convert.ToInt32(val) : 0;
+        //            acc[k] = Convert.ToInt32(acc[k]) + v;
+        //        }
+        //    }
+        //    return acc;
+        //}
+    }
+}

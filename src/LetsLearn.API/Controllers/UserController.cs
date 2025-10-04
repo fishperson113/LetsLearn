@@ -13,29 +13,11 @@ namespace LetsLearn.API.Controllers
     [Route("user")]
     public class UserController : ControllerBase
     {
-        private readonly AuthService _authService;
         private readonly IUserService _userService;
 
-        public UserController(AuthService authService, IUserService userService)
+        public UserController(IUserService userService)
         {
-            _authService = authService;
             _userService = userService;
-        }
-
-        [Authorize]
-        [HttpPatch("me/password")]
-        public async Task<IActionResult> UpdatePassword([FromBody] UpdatePassword request)
-        {
-            try
-            {
-                var userId = Guid.Parse(User.Claims.First(c => c.Type == "userID").Value);
-                await _authService.UpdatePasswordAsync(request, userId);
-                return Ok(new { message = "Password updated successfully" });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { error = ex.Message });
-            }
         }
 
         [HttpGet("me")]
