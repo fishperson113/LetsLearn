@@ -12,5 +12,6 @@ namespace LetsLearn.Core.Interfaces
     {
         Task<RefreshToken?> GetByUserIdAsync(Guid userId, CancellationToken ct = default);
         Task AddOrUpdateAsync(RefreshToken token, CancellationToken ct = default);
+        Task<RefreshToken?> GetByTokenAsync(string token);
     }
 }

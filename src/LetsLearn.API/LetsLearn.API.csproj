@@ -28,4 +28,8 @@
     <ProjectReference Include="..\LetsLearn.UseCases\LetsLearn.UseCases.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Middleware\" />
+  </ItemGroup>
+
 </Project>

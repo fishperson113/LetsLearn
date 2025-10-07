@@ -1,25 +1,43 @@
-using LetsLearn.API.Middleware;
 using LetsLearn.Core.Interfaces;
 using LetsLearn.Infrastructure.Data;
 using LetsLearn.Infrastructure.Redis;
 using LetsLearn.Infrastructure.Repository;
 using LetsLearn.Infrastructure.UnitOfWork;
 using LetsLearn.UseCases.Services.Auth;
-using LetsLearn.UseCases.Services.CourseSer;
-using LetsLearn.UseCases.Services.QuestionSer;
 using LetsLearn.UseCases.Services.User;
 using LetsLearn.UseCases.Services.Users;
+using LetsLearn.UseCases.Services.MessageService;
+using LetsLearn.UseCases.Services.ConversationService;
+using LetsLearn.UseCases.Services.CourseSer;
+using LetsLearn.UseCases.Services.QuestionSer;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using StackExchange.Redis;
 using System.Text;
+using LetsLearn.UseCases.ServiceInterfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddSingleton<TokenService>();
+
+// Add JWT Authentication
+builder.Services.AddAuthentication("Bearer")
+    .AddJwtBearer("Bearer", options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "auth0",
+            ValidateAudience = false,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.ASCII.GetBytes(builder.Configuration["Jwt:Secret"] ?? "your-super-secret-key")),
+            ClockSkew = TimeSpan.FromMinutes(5)
+        };
+    });
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -29,7 +47,7 @@ builder.Services.AddSwaggerGen();
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
 builder.Services.AddDbContext<LetsLearnContext>(options =>
-        options.UseNpgsql(connectionString)); 
+        options.UseNpgsql(connectionString));
 
 builder.Services.AddStackExchangeRedisCache(options =>
 {
@@ -37,27 +55,27 @@ builder.Services.AddStackExchangeRedisCache(options =>
     options.InstanceName = "LetsLearn";
 });
 
-builder.Services.AddScoped<RefreshTokenService>();
-builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped(typeof(IRepository<>), typeof(GenericRepository<>));
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IRedisCacheService, RedisCacheService>();
+
+// DI for custom repositories
 builder.Services.AddScoped<ICourseRepository, CourseRepository>();
-builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IConversationRepository, ConversationRepository>();
+builder.Services.AddScoped<IMessageRepository, MessageRepository>();
+builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+builder.Services.AddScoped<IQuestionRepository, QuestionRepository>();
+
+//DI for custom services
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IConversationService, ConversationService>();
+builder.Services.AddScoped<IMessageService, MessageService>();
+builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
+builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IQuestionService, QuestionService>();
 builder.Services.AddScoped<ICourseService, CourseService>();
-
-var jwtSettings = builder.Configuration.GetSection("Jwt");
-var key = Encoding.UTF8.GetBytes(jwtSettings["Secret"]);
-
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = "ManualJwt";
-    options.DefaultChallengeScheme = "ManualJwt";
-    options.DefaultForbidScheme = "ManualJwt";
-})
-.AddScheme<AuthenticationSchemeOptions, JwtAuthHandler>("ManualJwt", null);
 
 builder.Services.AddAuthorization();
 
@@ -79,8 +97,6 @@ using (var scope = app.Services.CreateScope())
 app.UseHttpsRedirection();
 
 app.UseAuthentication();
-
-app.UseJwtAuth();
 
 app.UseAuthorization();
 
