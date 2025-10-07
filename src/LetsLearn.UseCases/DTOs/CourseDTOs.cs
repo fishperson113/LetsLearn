@@ -7,11 +7,9 @@ using System.Threading.Tasks;
 
 namespace LetsLearn.UseCases.DTOs
 {
-    public class CourseRequest
+    public class CreateCourseRequest
     {
         public String Id { get; set; }
-        public Guid CreatorId { get; set; }
-
         public string? Title { get; set; }
         public string? Description { get; set; }
         public string? ImageUrl { get; set; }
@@ -21,7 +19,51 @@ namespace LetsLearn.UseCases.DTOs
         public bool? IsPublished { get; set; }
     }
 
-    public class CourseResponse
+    public class UpdateCourseRequest
+    {
+        public String Id { get; set; }
+        public string? Title { get; set; }
+        public string? Description { get; set; }
+        public string? ImageUrl { get; set; }
+        public string? Category { get; set; }
+        public string? Level { get; set; }
+        public decimal? Price { get; set; }
+        public bool? IsPublished { get; set; }
+    }
+
+    public class CreateCourseResponse
+    {
+        public String Id { get; set; }
+        public Guid CreatorId { get; set; }
+        public string? Title { get; set; }
+        public string? Description { get; set; }
+        public int TotalJoined { get; set; }
+        public string? ImageUrl { get; set; }
+        public decimal? Price { get; set; }
+        public string? Category { get; set; }
+        public string? Level { get; set; }
+        public bool? IsPublished { get; set; }
+
+        public List<SectionResponse>? Sections { get; set; }
+    }
+
+    public class UpdateCourseResponse
+    {
+        public String Id { get; set; }
+        public Guid CreatorId { get; set; }
+        public string? Title { get; set; }
+        public string? Description { get; set; }
+        public int TotalJoined { get; set; }
+        public string? ImageUrl { get; set; }
+        public decimal? Price { get; set; }
+        public string? Category { get; set; }
+        public string? Level { get; set; }
+        public bool? IsPublished { get; set; }
+
+        public List<SectionResponse>? Sections { get; set; }
+    }
+
+    public class GetCourseResponse
     {
         public String Id { get; set; }
         public Guid CreatorId { get; set; }

@@ -9,9 +9,9 @@ namespace LetsLearn.UseCases.Services.QuestionSer
 {
     public interface IQuestionService
     {
-        Task<QuestionResponse> CreateAsync(QuestionRequest req, Guid userId, CancellationToken ct = default);
-        Task<QuestionResponse> UpdateAsync(Guid id, QuestionRequest req, Guid userId, CancellationToken ct = default);
-        Task<QuestionResponse> GetByIdAsync(Guid id, CancellationToken ct = default);
-        Task<List<QuestionResponse>> GetByCourseIdAsync(String courseId, CancellationToken ct = default);
+        Task<GetQuestionResponse> CreateAsync(CreateQuestionRequest req, Guid userId, CancellationToken ct = default);
+        Task<GetQuestionResponse> UpdateAsync(UpdateQuestionRequest req, Guid userId, CancellationToken ct = default);
+        Task<GetQuestionResponse> GetByIdAsync(Guid id, CancellationToken ct = default);
+        Task<List<GetQuestionResponse>> GetByCourseIdAsync(String courseId, CancellationToken ct = default);
     }
 }

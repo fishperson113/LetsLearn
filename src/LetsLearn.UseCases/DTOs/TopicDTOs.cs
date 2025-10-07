@@ -26,7 +26,7 @@ namespace LetsLearn.UseCases.DTOs
 
         public string? Response { get; set; }
 
-        public CourseResponse? Course { get; set; }
+        public GetCourseResponse? Course { get; set; }
     }
 
     public class TopicResponse

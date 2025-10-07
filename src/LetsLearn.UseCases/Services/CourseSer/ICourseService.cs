@@ -9,11 +9,11 @@ namespace LetsLearn.UseCases.Services.CourseSer
 {
     public interface ICourseService
     {
-        Task<CourseResponse> CreateAsync(CourseRequest dto, CancellationToken ct = default);
-        Task<CourseResponse> UpdateAsync(String id, CourseRequest dto, CancellationToken ct = default);
-        Task<List<CourseResponse>> GetAllByUserIdAsync(Guid userId, CancellationToken ct = default);
-        Task<List<CourseResponse>> GetAllPublicAsync(CancellationToken ct = default);
-        Task<CourseResponse> GetByIdAsync(String id, CancellationToken ct = default);
+        Task<CreateCourseResponse> CreateAsync(CreateCourseRequest dto, Guid userId, CancellationToken ct = default);
+        Task<UpdateCourseResponse> UpdateAsync(UpdateCourseRequest dto, CancellationToken ct = default);
+        Task<List<GetCourseResponse>> GetAllByUserIdAsync(Guid userId, CancellationToken ct = default);
+        Task<List<GetCourseResponse>> GetAllPublicAsync(CancellationToken ct = default);
+        Task<GetCourseResponse> GetByIdAsync(String id, CancellationToken ct = default);
         //Task<List<TopicResponse>> GetAllWorksOfCourseAndUserAsync(
         //    Guid courseId, Guid userId,
         //    string? type, DateTime? start, DateTime? end,

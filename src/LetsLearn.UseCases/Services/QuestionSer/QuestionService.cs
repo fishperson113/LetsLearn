@@ -18,7 +18,7 @@ namespace LetsLearn.UseCases.Services.QuestionSer
             _uow = uow;
         }
 
-        public async Task<QuestionResponse> CreateAsync(QuestionRequest req, Guid userId, CancellationToken ct = default)
+        public async Task<GetQuestionResponse> CreateAsync(CreateQuestionRequest req, Guid userId, CancellationToken ct = default)
         {
             var question = new Question
             {
@@ -36,7 +36,7 @@ namespace LetsLearn.UseCases.Services.QuestionSer
                 FeedbackOfTrue = req.FeedbackOfTrue,
                 FeedbackOfFalse = req.FeedbackOfFalse,
                 CorrectAnswer = req.CorrectAnswer ?? false,
-                Multiple = req.Multiple ?? false,
+                Multiple = req.Multiple,
 
                 CreatedById = userId,
                 ModifiedById = userId,
@@ -51,7 +51,7 @@ namespace LetsLearn.UseCases.Services.QuestionSer
             {
                 var choicesToAdd = req.Choices.Select(c => new QuestionChoice
                 {
-                    Id = c.Id ?? Guid.NewGuid(),
+                    Id = Guid.NewGuid(),
                     QuestionId = question.Id,
                     Text = c.Content,
                     Feedback = c.Feedback,
@@ -70,9 +70,10 @@ namespace LetsLearn.UseCases.Services.QuestionSer
             return MapToResponse(created);
         }
 
-        public async Task<QuestionResponse> UpdateAsync(Guid id, QuestionRequest req, Guid userId, CancellationToken ct = default)
+        public async Task<GetQuestionResponse> UpdateAsync(UpdateQuestionRequest req, Guid userId, CancellationToken ct = default)
         {
-            var question = await _uow.Questions.GetWithChoicesAsync(id, ct)
+
+            var question = await _uow.Questions.GetWithChoicesAsync(req.Id, ct)
                           ?? throw new KeyNotFoundException("Question not found.");
 
             question.QuestionName = req.QuestionName;
@@ -84,7 +85,6 @@ namespace LetsLearn.UseCases.Services.QuestionSer
             question.FeedbackOfTrue = req.FeedbackOfTrue;
             question.FeedbackOfFalse = req.FeedbackOfFalse;
             if (req.CorrectAnswer.HasValue) question.CorrectAnswer = req.CorrectAnswer.Value;
-            if (req.Multiple.HasValue) question.Multiple = req.Multiple.Value;
             if (!string.IsNullOrWhiteSpace(req.CourseId)) question.CourseId = req.CourseId;
             question.ModifiedById = userId;
             question.UpdatedAt = DateTime.UtcNow;
@@ -93,19 +93,19 @@ namespace LetsLearn.UseCases.Services.QuestionSer
             {
                 var existingById = question.Choices.ToDictionary(x => x.Id, x => x);
 
-                foreach (var c in req.Choices.Where(x => x.Id.HasValue && existingById.ContainsKey(x.Id.Value)))
+                foreach (var c in req.Choices.Where(x => existingById.ContainsKey(x.Id)))
                 {
-                    var ex = existingById[c.Id!.Value];
+                    var ex = existingById[c.Id];
                     ex.Text = c.Content;
                     ex.Feedback = c.Feedback;
                     ex.GradePercent = c.IsCorrect ? 100 : 0;
                 }
 
                 var toAdd = req.Choices
-                    .Where(x => !x.Id.HasValue || !existingById.ContainsKey(x.Id.Value))
+                    .Where(x => !existingById.ContainsKey(x.Id))
                     .Select(x => new QuestionChoice
                     {
-                        Id = x.Id ?? Guid.NewGuid(),
+                        Id = Guid.NewGuid(),
                         QuestionId = question.Id,
                         Text = x.Content,
                         Feedback = x.Feedback,
@@ -119,27 +119,27 @@ namespace LetsLearn.UseCases.Services.QuestionSer
 
             await _uow.CommitAsync();
 
-            var updated = await _uow.Questions.GetWithChoicesAsync(id, ct)
+            var updated = await _uow.Questions.GetWithChoicesAsync(req.Id, ct)
                          ?? throw new Exception("Failed to reload updated question.");
             return MapToResponse(updated);
         }
 
-        public async Task<QuestionResponse> GetByIdAsync(Guid id, CancellationToken ct = default)
+        public async Task<GetQuestionResponse> GetByIdAsync(Guid id, CancellationToken ct = default)
         {
             var q = await _uow.Questions.GetWithChoicesAsync(id, ct)
                     ?? throw new KeyNotFoundException("Question not found.");
             return MapToResponse(q);
         }
 
-        public async Task<List<QuestionResponse>> GetByCourseIdAsync(string courseId, CancellationToken ct = default)
+        public async Task<List<GetQuestionResponse>> GetByCourseIdAsync(string courseId, CancellationToken ct = default)
         {
             var questions = await _uow.Questions.GetAllByCourseIdAsync(courseId, ct);
             return questions.Select(MapToResponse).ToList();
         }
 
-        private static QuestionResponse MapToResponse(Question q)
+        private static GetQuestionResponse MapToResponse(Question q)
         {
-            return new QuestionResponse
+            return new GetQuestionResponse
             {
                 Id = q.Id,
                 CourseId = q.CourseId,
@@ -157,8 +157,7 @@ namespace LetsLearn.UseCases.Services.QuestionSer
                 ModifiedById = q.ModifiedById,
                 CreatedAt = q.CreatedAt,
                 UpdatedAt = q.UpdatedAt,
-                DeletedAt = q.DeletedAt,
-                Choices = q.Choices?.Select(c => new QuestionChoiceResponse
+                Choices = q.Choices?.Select(c => new GetQuestionChoiceResponse
                 {
                     Id = c.Id,
                     QuestionId = c.QuestionId,

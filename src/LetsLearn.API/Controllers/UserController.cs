@@ -1,4 +1,5 @@
-﻿using LetsLearn.UseCases.DTOs;
+﻿using LetsLearn.Core.Shared;
+using LetsLearn.UseCases.DTOs;
 using LetsLearn.UseCases.DTOs.AuthDTO;
 using LetsLearn.UseCases.Services.Auth;
 using LetsLearn.UseCases.Services.Users;
@@ -37,7 +38,7 @@ namespace LetsLearn.API.Controllers
         }
 
         [HttpGet("all")]
-        [Authorize(Roles = "Admin,Teacher")]
+        [Authorize(Roles = $"{AppRoles.Admin},{AppRoles.Teacher}")]
         public async Task<IActionResult> GetAllUsers()
         {
             var userId = Guid.Parse(User.Claims.First(c => c.Type == "userID").Value);

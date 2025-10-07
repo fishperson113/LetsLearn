@@ -21,7 +21,7 @@ namespace LetsLearn.UseCases.Services.CourseSer
         }
 
         // =============== CREATE / UPDATE ===============
-        public async Task<CourseResponse> CreateAsync(CourseRequest dto, CancellationToken ct = default)
+        public async Task<CreateCourseResponse> CreateAsync(CreateCourseRequest dto, Guid userId, CancellationToken ct = default)
         {
             if (string.IsNullOrWhiteSpace(dto.Title))
                 throw new ArgumentException("Title is required.");
@@ -44,22 +44,41 @@ namespace LetsLearn.UseCases.Services.CourseSer
                 Level = dto.Level,
                 Price = dto.Price,
                 IsPublished = dto.IsPublished ?? false,
-                CreatorId = dto.CreatorId,
+                CreatorId = userId,
                 TotalJoined = 0
             };
 
             await _uow.Course.AddAsync(course);
             await _uow.CommitAsync();
 
-            return MapToResponse(course);
+            return new CreateCourseResponse
+            {
+                Id = course.Id,
+                CreatorId = course.CreatorId,
+                Title = course.Title,
+                Description = course.Description,
+                TotalJoined = course.TotalJoined,
+                ImageUrl = course.ImageUrl,
+                Price = course.Price,
+                Category = course.Category,
+                Level = course.Level,
+                IsPublished = course.IsPublished,
+                // Sections = null (chưa load)
+            };
         }
 
-        public async Task<CourseResponse> UpdateAsync(String id, CourseRequest dto, CancellationToken ct = default)
+        public async Task<UpdateCourseResponse> UpdateAsync(UpdateCourseRequest dto, CancellationToken ct = default)
         {
-            var course = await _uow.Course.GetByIdAsync(id, ct)
+            var course = await _uow.Course.GetByIdAsync(dto.Id, ct)
                          ?? throw new KeyNotFoundException("Course not found.");
 
-            course.Title = dto.Title;
+            if (!string.IsNullOrWhiteSpace(dto.Title))
+                course.Title = dto.Title;
+
+            var titleExists = await _uow.Course.ExistByTitle(dto.Title!);
+            if (titleExists)
+                throw new InvalidOperationException("A course with this title already exists. Please choose a different name");
+
             course.Description = dto.Description;
             course.ImageUrl = dto.ImageUrl;
             course.Category = dto.Category;
@@ -68,17 +87,30 @@ namespace LetsLearn.UseCases.Services.CourseSer
 
             await _uow.CommitAsync();
 
-            return MapToResponse(course);
+            return new UpdateCourseResponse
+            {
+                Id = course.Id,
+                CreatorId = course.CreatorId,
+                Title = course.Title,
+                Description = course.Description,
+                TotalJoined = course.TotalJoined,
+                ImageUrl = course.ImageUrl,
+                Price = course.Price,
+                Category = course.Category,
+                Level = course.Level,
+                IsPublished = course.IsPublished,
+                // Sections = null (chưa load)
+            };
         }
 
         // ================= READ =================
-        public async Task<List<CourseResponse>> GetAllPublicAsync(CancellationToken ct = default)
+        public async Task<List<GetCourseResponse>> GetAllPublicAsync(CancellationToken ct = default)
         {
             var courses = await _uow.Course.GetAllCoursesByIsPublishedTrue();
             return courses.Where(c => c != null).Select(c => MapToResponse(c!)).ToList();
         }
 
-        public async Task<List<CourseResponse>> GetAllByUserIdAsync(Guid userId, CancellationToken ct = default)
+        public async Task<List<GetCourseResponse>> GetAllByUserIdAsync(Guid userId, CancellationToken ct = default)
         {
             var userExists = await _uow.Users.ExistsAsync(u => u.Id == userId, ct);
             if (!userExists) throw new KeyNotFoundException("User not found.");
@@ -87,7 +119,7 @@ namespace LetsLearn.UseCases.Services.CourseSer
             return courses.Where(c => c != null).Select(c => MapToResponse(c!)).ToList();
         }
 
-        public async Task<CourseResponse> GetByIdAsync(String id, CancellationToken ct = default)
+        public async Task<GetCourseResponse> GetByIdAsync(String id, CancellationToken ct = default)
         {
             var course = await _uow.Course.GetByIdAsync(id, ct)
                          ?? throw new KeyNotFoundException("Course not found.");
@@ -95,9 +127,9 @@ namespace LetsLearn.UseCases.Services.CourseSer
         }
 
         // =============== Helpers (mapping & utils) ===============
-        private static CourseResponse MapToResponse(Course c)
+        private static GetCourseResponse MapToResponse(Course c)
         {
-            return new CourseResponse
+            return new GetCourseResponse
             {
                 Id = c.Id,
                 CreatorId = c.CreatorId,

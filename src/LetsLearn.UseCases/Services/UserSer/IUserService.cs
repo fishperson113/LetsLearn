@@ -4,9 +4,9 @@ namespace LetsLearn.UseCases.Services.Users
 {
     public interface IUserService
     {
-        Task<UserDTO> GetByIdAsync(Guid id);
-        Task<UserDTO> UpdateAsync(Guid id, UpdateUserDTO dto);
-        Task<List<UserDTO>> GetAllAsync(Guid requesterId);
+        Task<GetUserResponse> GetByIdAsync(Guid id);
+        Task<UpdateUserResponse> UpdateAsync(Guid id, UpdateUserDTO dto);
+        Task<List<GetUserResponse>> GetAllAsync(Guid requesterId);
 
         //Task<List<TopicDTO>> GetUserWorksAsync(Guid userId, string? type, Guid? courseId,
         //                                       DateTime? start, DateTime? end);

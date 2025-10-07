@@ -35,7 +35,7 @@ namespace LetsLearn.API.Controllers
         /// </summary>
         [HttpGet]
         [AllowAnonymous]
-        public async Task<ActionResult<List<CourseResponse>>> Get([FromQuery] Guid? userId, CancellationToken ct)
+        public async Task<ActionResult<List<GetCourseResponse>>> Get([FromQuery] Guid? userId, CancellationToken ct)
         {
             try
             {
@@ -65,7 +65,7 @@ namespace LetsLearn.API.Controllers
         /// </summary>
         [HttpGet("{id}", Name = "GetCourseById")]
         [AllowAnonymous]
-        public async Task<ActionResult<CourseResponse>> GetById(String id, CancellationToken ct)
+        public async Task<ActionResult<GetCourseResponse>> GetById(String id, CancellationToken ct)
         {
             try
             {
@@ -87,17 +87,18 @@ namespace LetsLearn.API.Controllers
         /// Creates a new course.  
         /// </summary>
         [HttpPost]
-        public async Task<ActionResult<CourseResponse>> Create([FromBody] CourseRequest request, CancellationToken ct)
+        public async Task<ActionResult<CreateCourseResponse>> Create([FromBody] CreateCourseRequest request, CancellationToken ct)
         {
             if (!ModelState.IsValid)
                 return ValidationProblem(ModelState);
 
-            if (request.CreatorId == Guid.Empty)
+            var userId = Guid.Parse(User.Claims.First(c => c.Type == "userID").Value);
+            if (userId == Guid.Empty)
                 return Unauthorized(new { message = "Invalid or missing user identity." });
 
             try
             {
-                var created = await _courseService.CreateAsync(request, ct);
+                var created = await _courseService.CreateAsync(request, userId, ct);
 
                 return Ok(created);
                 //return CreatedAtRoute("GetCourseById", new { id = created.Id }, created);
@@ -117,22 +118,18 @@ namespace LetsLearn.API.Controllers
         }
 
         /// <summary>
-        /// PUT /api/course/{id}
+        /// PUT /api/course
         /// Updates an existing course.
         /// </summary>
-        [HttpPut("{id}")]
-        public async Task<ActionResult<CourseResponse>> Update(String id, [FromBody] CourseRequest request, CancellationToken ct)
+        [HttpPut]
+        public async Task<ActionResult<UpdateCourseResponse>> Update([FromBody] UpdateCourseRequest request, CancellationToken ct)
         {
             if (!ModelState.IsValid)
                 return ValidationProblem(ModelState);
 
-            var userId = Guid.Parse(User.Claims.First(c => c.Type == "userID").Value);
-            if (userId == Guid.Empty)
-                return Unauthorized(new { message = "Invalid or missing user identity." });
-
             try
             {
-                var updated = await _courseService.UpdateAsync(id, request, ct);
+                var updated = await _courseService.UpdateAsync(request, ct);
                 return Ok(updated);
             }
             catch (KeyNotFoundException knfEx)

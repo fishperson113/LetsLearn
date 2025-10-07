@@ -19,12 +19,12 @@ namespace LetsLearn.UseCases.Services.User
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<UserDTO> GetByIdAsync(Guid id)
+        public async Task<GetUserResponse> GetByIdAsync(Guid id)
         {
             var user = await _unitOfWork.Users.GetByIdAsync(id)
                 ?? throw new KeyNotFoundException("User not found.");
 
-            return new UserDTO
+            return new GetUserResponse
             {
                 Id = user.Id,
                 Email = user.Email,
@@ -34,7 +34,7 @@ namespace LetsLearn.UseCases.Services.User
             };
         }
 
-        public async Task<UserDTO> UpdateAsync(Guid id, UpdateUserDTO dto)
+        public async Task<UpdateUserResponse> UpdateAsync(Guid id, UpdateUserDTO dto)
         {
             var user = await _unitOfWork.Users.GetByIdAsync(id)
                 ?? throw new KeyNotFoundException("User not found.");
@@ -46,7 +46,7 @@ namespace LetsLearn.UseCases.Services.User
 
             await _unitOfWork.CommitAsync();
 
-            return new UserDTO
+            return new UpdateUserResponse
             {
                 Id = user.Id,
                 Email = user.Email,
@@ -56,12 +56,12 @@ namespace LetsLearn.UseCases.Services.User
             };
         }
 
-        public async Task<List<UserDTO>> GetAllAsync(Guid requesterId)
+        public async Task<List<GetUserResponse>> GetAllAsync(Guid requesterId)
         {
             var users = await _unitOfWork.Users.FindAsync(u => u.Id != requesterId);
 
             return users
-                .Select(u => new UserDTO
+                .Select(u => new GetUserResponse
                 {
                     Id = u.Id,
                     Email = u.Email,
@@ -70,29 +70,6 @@ namespace LetsLearn.UseCases.Services.User
                     Role = u.Role,
                 })
                 .ToList();
-        }
-
-        public async Task UpdatePasswordAsync(Guid userId, UpdatePasswordDTO dto)
-        {
-            var user = await _unitOfWork.Users.GetByIdAsync(userId)
-                ?? throw new KeyNotFoundException("User not found.");
-
-            if (!VerifyPassword(dto.OldPassword, user.PasswordHash))
-                throw new UnauthorizedAccessException("Old password is incorrect.");
-
-            user.PasswordHash = HashPassword(dto.NewPassword);
-            await _unitOfWork.CommitAsync();
-        }
-
-        private static string HashPassword(string password)
-        {
-            using var sha256 = SHA256.Create();
-            return Convert.ToBase64String(sha256.ComputeHash(Encoding.UTF8.GetBytes(password)));
-        }
-
-        private static bool VerifyPassword(string password, string hash)
-        {
-            return HashPassword(password) == hash;
         }
 
         //public async Task<List<TopicDTO>> GetUserWorksAsync(Guid userId, string? type, Guid? courseId, DateTime? start, DateTime? end)

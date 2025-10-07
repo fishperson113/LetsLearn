@@ -24,8 +24,8 @@ namespace LetsLearn.WebApi.Controllers
 
         // POST: api/question
         [HttpPost]
-        public async Task<ActionResult<QuestionResponse>> Create(
-            [FromBody] QuestionRequest request,
+        public async Task<ActionResult<GetQuestionResponse>> Create(
+            [FromBody] CreateQuestionRequest request,
             CancellationToken ct)
         {
             if (!ModelState.IsValid)
@@ -51,7 +51,7 @@ namespace LetsLearn.WebApi.Controllers
         // GET: api/question/{id}
         [HttpGet("{id:guid}")]
         [AllowAnonymous]
-        public async Task<ActionResult<QuestionResponse>> GetById(Guid id, CancellationToken ct)
+        public async Task<ActionResult<GetQuestionResponse>> GetById(Guid id, CancellationToken ct)
         {
             try
             {
@@ -71,7 +71,7 @@ namespace LetsLearn.WebApi.Controllers
         // GET: api/question/by-course/{courseId}
         [HttpGet("by-course/{courseId}")]
         [AllowAnonymous]
-        public async Task<ActionResult<List<QuestionResponse>>> GetByCourse(String courseId, CancellationToken ct)
+        public async Task<ActionResult<List<GetQuestionResponse>>> GetByCourse(String courseId, CancellationToken ct)
         {
             try
             {
@@ -84,11 +84,10 @@ namespace LetsLearn.WebApi.Controllers
             }
         }
 
-        // PUT: api/question/{id}
-        [HttpPut("{id:guid}")]
-        public async Task<ActionResult<QuestionResponse>> Update(
-            Guid id,
-            [FromBody] QuestionRequest request,
+        // PUT: api/question
+        [HttpPut]
+        public async Task<ActionResult<GetQuestionResponse>> Update(
+            [FromBody] UpdateQuestionRequest request,
             CancellationToken ct)
         {
             if (!ModelState.IsValid)
@@ -100,7 +99,7 @@ namespace LetsLearn.WebApi.Controllers
 
             try
             {
-                var updated = await _service.UpdateAsync(id, request, userId, ct);
+                var updated = await _service.UpdateAsync(request, userId, ct);
                 return Ok(updated);
             }
             catch (KeyNotFoundException)
