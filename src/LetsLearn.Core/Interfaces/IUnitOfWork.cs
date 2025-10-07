@@ -13,6 +13,8 @@ namespace LetsLearn.Core.Interfaces
         IRepository<CloudinaryFile> CloudinaryFiles { get; }
         IUserRepository Users { get; }
         IRefreshTokenRepository RefreshTokens { get; }
+        IMessageRepository Messages { get; }
+        IConversationRepository Conversations { get; }
         Task<int> CommitAsync();
     }
 }

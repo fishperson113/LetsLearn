@@ -33,5 +33,10 @@ namespace LetsLearn.Infrastructure.Repository
                 await AddAsync(token);
             }
         }
+
+        public async Task<RefreshToken?> GetByTokenAsync(string token) 
+        {
+            return await _dbSet.FirstOrDefaultAsync(r => r.Token == token);
+        }
     }
 }

@@ -15,12 +15,14 @@ namespace LetsLearn.Infrastructure.UnitOfWork
         private readonly LetsLearnContext _context;
 
         public IRepository<WeatherForecast> WeatherForecasts { get; private set; }
+
         public ICourseRepository Course { get; private set; }
+
         public IRepository<CloudinaryFile> CloudinaryFiles { get; private set; }
         public IUserRepository Users { get; private set; }  
         public IRefreshTokenRepository RefreshTokens { get; private set; }
-
-
+        public IMessageRepository Messages { get; private set; }
+        public IConversationRepository Conversations { get; private set; }
         public UnitOfWork(LetsLearnContext context)
         {
             _context = context;
@@ -29,6 +31,9 @@ namespace LetsLearn.Infrastructure.UnitOfWork
             CloudinaryFiles = new GenericRepository<CloudinaryFile>(_context);
             Users = new UserRepository(_context); 
             RefreshTokens = new RefreshTokenRepository(_context);
+            Messages = new MessageRepository(_context);
+            Conversations = new ConversationRepository(_context);
+
         }
 
         public async Task<int> CommitAsync() =>
