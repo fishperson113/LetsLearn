@@ -1,4 +1,5 @@
-﻿using System;
+﻿using LetsLearn.Core.Entities;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -7,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace LetsLearn.UseCases.DTOs
 {
-    public class UserDTO
+    public class UserResponse
     {
         [Required]
         public Guid Id { get; set; }
@@ -26,7 +27,29 @@ namespace LetsLearn.UseCases.DTOs
         public string? Role { get; set; }
         public string? Avatar { get; set; }
 
-        public List<CourseDTO>? Courses { get; set; }
+        public List<GetCourseResponse>? Courses { get; set; }
+    }
+
+    public class GetUserResponse
+    {
+        public Guid Id { get; set; }
+        public string Email { get; set; } = null!;
+        public string? Password { get; set; }
+        public string Username { get; set; } = null!;
+        public string? Role { get; set; }
+        public string? Avatar { get; set; }
+        public List<Enrollment>? Enrollments { get; set; }
+    }
+
+    public class UpdateUserResponse
+    {
+        public Guid Id { get; set; }
+        public string Email { get; set; } = null!;
+        public string? Password { get; set; }
+        public string Username { get; set; } = null!;
+        public string? Role { get; set; }
+        public string? Avatar { get; set; }
+        public List<Enrollment>? Enrollments { get; set; }
     }
 
     public class UpdateUserDTO

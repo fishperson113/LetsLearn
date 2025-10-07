@@ -26,6 +26,14 @@ namespace LetsLearn.UseCases.DTOs
 
         public string? Response { get; set; }
 
-        public CourseDTO? Course { get; set; }
+        public GetCourseResponse? Course { get; set; }
+    }
+
+    public class TopicResponse
+    {
+        public Guid Id { get; set; }
+        public string? Name { get; set; }
+        public string? Type { get; set; }   // quiz / assignment / meeting
+        public string? Data { get; set; }
     }
 }

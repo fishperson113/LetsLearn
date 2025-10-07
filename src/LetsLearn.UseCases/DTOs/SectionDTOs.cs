@@ -23,4 +23,11 @@ namespace LetsLearn.UseCases.DTOs
 
         public List<TopicDTO>? Topics { get; set; }
     }
+
+    public class SectionResponse
+    {
+        public Guid Id { get; set; }
+        public string? Title { get; set; }
+        public List<TopicResponse>? Topics { get; set; }
+    }
 }

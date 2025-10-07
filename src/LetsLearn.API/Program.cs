@@ -5,6 +5,8 @@ using LetsLearn.Infrastructure.Redis;
 using LetsLearn.Infrastructure.Repository;
 using LetsLearn.Infrastructure.UnitOfWork;
 using LetsLearn.UseCases.Services.Auth;
+using LetsLearn.UseCases.Services.CourseSer;
+using LetsLearn.UseCases.Services.QuestionSer;
 using LetsLearn.UseCases.Services.User;
 using LetsLearn.UseCases.Services.Users;
 using Microsoft.AspNetCore.Authentication;
@@ -43,6 +45,8 @@ builder.Services.AddScoped<IRedisCacheService, RedisCacheService>();
 builder.Services.AddScoped<ICourseRepository, CourseRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IQuestionService, QuestionService>();
+builder.Services.AddScoped<ICourseService, CourseService>();
 
 var jwtSettings = builder.Configuration.GetSection("Jwt");
 var key = Encoding.UTF8.GetBytes(jwtSettings["Secret"]);

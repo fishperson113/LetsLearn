@@ -1,4 +1,5 @@
-﻿using LetsLearn.UseCases.DTOs;
+﻿using LetsLearn.Core.Shared;
+using LetsLearn.UseCases.DTOs;
 using LetsLearn.UseCases.DTOs.AuthDTO;
 using LetsLearn.UseCases.Services.Auth;
 using LetsLearn.UseCases.Services.Users;
@@ -13,29 +14,11 @@ namespace LetsLearn.API.Controllers
     [Route("user")]
     public class UserController : ControllerBase
     {
-        private readonly AuthService _authService;
         private readonly IUserService _userService;
 
-        public UserController(AuthService authService, IUserService userService)
+        public UserController(IUserService userService)
         {
-            _authService = authService;
             _userService = userService;
-        }
-
-        [Authorize]
-        [HttpPatch("me/password")]
-        public async Task<IActionResult> UpdatePassword([FromBody] UpdatePassword request)
-        {
-            try
-            {
-                var userId = Guid.Parse(User.Claims.First(c => c.Type == "userID").Value);
-                await _authService.UpdatePasswordAsync(request, userId);
-                return Ok(new { message = "Password updated successfully" });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { error = ex.Message });
-            }
         }
 
         [HttpGet("me")]
@@ -55,7 +38,7 @@ namespace LetsLearn.API.Controllers
         }
 
         [HttpGet("all")]
-        [Authorize(Roles = "Admin,Teacher")]
+        [Authorize(Roles = $"{AppRoles.Admin},{AppRoles.Teacher}")]
         public async Task<IActionResult> GetAllUsers()
         {
             var userId = Guid.Parse(User.Claims.First(c => c.Type == "userID").Value);

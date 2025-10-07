@@ -9,7 +9,8 @@ namespace LetsLearn.Core.Interfaces
 {
     public interface ICourseRepository : IRepository<Course>
     {
-        Task <IEnumerable<Course?>> GetAllCoursesByIsPublishedTrue();
+        Task<Course?> GetByIdAsync(string id, CancellationToken ct = default);
+        Task<IEnumerable<Course?>> GetAllCoursesByIsPublishedTrue();
         Task <IEnumerable<Course?>> GetByCreatorId(Guid Id);
         Task<bool> ExistByTitle(string title);
     }
