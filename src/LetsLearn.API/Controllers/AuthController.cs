@@ -1,10 +1,9 @@
 ﻿using System;
-using LetsLearn.UseCases.Services.Auth;
+using LetsLearn.UseCases.ServiceInterfaces;
 using LetsLearn.UseCases.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
-using LetsLearn.UseCases.DTOs.AuthDTO;
 
 namespace LetsLearn.API.Controllers
 {
@@ -12,25 +11,21 @@ namespace LetsLearn.API.Controllers
     [Route("auth")]
     public class AuthController : ControllerBase
     {
-        private readonly AuthService _authService;
-        private readonly RefreshTokenService _refreshTokenService;
+        private readonly IAuthService _authService;
 
-        public AuthController(AuthService authService, RefreshTokenService refreshTokenService)
+        public AuthController(IAuthService authService)
         {
             _authService = authService;
-            _refreshTokenService = refreshTokenService;
         }
 
         [HttpPost("signup")]
-        [AllowAnonymous]
         public async Task<IActionResult> Register([FromBody] SignUpRequest request)
         {
-            await _authService.RegisterAsync(request, HttpContext);
-            return Ok(new { message = "Successfully registered" });
+            var result = await _authService.RegisterAsync(request, HttpContext);
+            return Ok(result);
         }
 
         [HttpPost("login")]
-        [AllowAnonymous]
         public async Task<IActionResult> Login([FromBody] AuthRequest request)
         {
             var response = await _authService.LoginAsync(request, HttpContext);
@@ -38,39 +33,35 @@ namespace LetsLearn.API.Controllers
         }
 
         [HttpPost("refresh")]
-        [AllowAnonymous]
         public async Task<IActionResult> Refresh()
+        {
+                var response = await _authService.RefreshAsync(HttpContext);
+                return Ok(response);
+        }
+
+        [HttpPost("logout")]
+        [Authorize]
+        public async Task<IActionResult> Logout()
+        {
+            var userId = Guid.Parse(User.Claims.First(c => c.Type == "userID").Value);
+            await _authService.LogoutAsync(HttpContext,userId);
+            return Ok("Logged out successfully");
+        }
+
+        [HttpPatch("me/password")]
+        [Authorize]
+        public async Task<IActionResult> UpdatePassword([FromBody] UpdatePassword request)
         {
             try
             {
-                await _refreshTokenService.RefreshTokenAsync(HttpContext);
-                return Ok(new { message = "Access token refreshed" });
+                var userId = Guid.Parse(User.Claims.First(c => c.Type == "userID").Value);
+                await _authService.UpdatePasswordAsync(request, userId);
+                return Ok(new { message = "Password updated successfully" });
             }
             catch (Exception ex)
             {
-                return Unauthorized(new { message = ex.Message });
+                return BadRequest(new { error = ex.Message });
             }
-        }
-
-        [HttpGet("logout")]
-        public IActionResult Logout()
-        {
-            _authService.Logout(HttpContext);
-            return NoContent();
-        }
-
-        [HttpGet("admin-only")]
-        [Authorize(Roles = "Admin")]
-        public IActionResult AdminOnly()
-        {
-            return Ok("You are an Admin!");
-        }
-
-        [HttpGet("student-only")]
-        [Authorize(Roles = "Student")]
-        public IActionResult StudentOnly()
-        {
-            return Ok("You are a Student!");
         }
     }
 }

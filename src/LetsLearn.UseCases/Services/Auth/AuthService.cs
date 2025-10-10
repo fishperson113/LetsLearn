@@ -1,4 +1,4 @@
-﻿using LetsLearn.UseCases.DTOs.AuthDTO;
+﻿using LetsLearn.UseCases.DTOs;
 using LetsLearn.Core.Interfaces;
 using LetsLearn.Core.Entities;
 using LetsLearn.Infrastructure.Repository;
@@ -11,23 +11,24 @@ using System.Threading.Tasks;
 using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Http;
+using LetsLearn.UseCases.ServiceInterfaces;
 
 namespace LetsLearn.UseCases.Services.Auth
 {
-    public class AuthService
+    public class AuthService : IAuthService
     {
-        private readonly TokenService _tokenService;
-        private readonly RefreshTokenService _refreshTokenService;
+        private readonly ITokenService _tokenService;
+        private readonly IRefreshTokenService _refreshTokenService;
         private readonly IUnitOfWork _unitOfWork;
 
-        public AuthService(TokenService tokenService, RefreshTokenService refreshTokenService, IUnitOfWork unitOfWork)
+        public AuthService(ITokenService tokenService, IRefreshTokenService refreshTokenService, IUnitOfWork unitOfWork)
         {
             _tokenService = tokenService;
             _refreshTokenService = refreshTokenService;
             _unitOfWork = unitOfWork;
         }
 
-        public async Task RegisterAsync(SignUpRequest request, HttpContext context)
+        public async Task<JwtTokenResponse> RegisterAsync(SignUpRequest request, HttpContext context)
         {
             var existingUser = await _unitOfWork.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
             if (existingUser != null)
@@ -46,14 +47,18 @@ namespace LetsLearn.UseCases.Services.Auth
             await _unitOfWork.CommitAsync();
 
             var accessToken = _tokenService.CreateAccessToken(user.Id, user.Role);
-            var refreshToken = await _refreshTokenService.CreateAndStoreRefreshTokenAsync(user.Id, user.Role);  
+            var refreshToken = await _refreshTokenService.CreateAndStoreRefreshTokenAsync(user.Id, user.Role);
 
-            _tokenService.SetTokenCookies(context, accessToken, refreshToken);
+            return new JwtTokenResponse
+            {
+                AccessToken = accessToken,
+                RefreshToken = refreshToken
+            };
         }
 
         public async Task<JwtTokenResponse> LoginAsync(AuthRequest request, HttpContext context)
         {
-            var user = await ((UserRepository)_unitOfWork.Users).GetByEmailAsync(request.Email); 
+            var user = await ((UserRepository)_unitOfWork.Users).GetByEmailAsync(request.Email);
             if (user == null)
                 throw new Exception("Email not found!");
 
@@ -63,13 +68,16 @@ namespace LetsLearn.UseCases.Services.Auth
             var accessToken = _tokenService.CreateAccessToken(user.Id, user.Role);
             var refreshToken = await _refreshTokenService.CreateAndStoreRefreshTokenAsync(user.Id, user.Role);
 
-            _tokenService.SetTokenCookies(context, accessToken, refreshToken);
-
             return new JwtTokenResponse
             {
                 AccessToken = accessToken,
                 RefreshToken = refreshToken
             };
+        }
+
+        public async Task<JwtTokenResponse> RefreshAsync(HttpContext httpContext)
+        {
+            return await _refreshTokenService.RefreshTokenAsync(httpContext);
         }
 
         public async Task UpdatePasswordAsync(UpdatePassword request, Guid userId)
@@ -85,10 +93,18 @@ namespace LetsLearn.UseCases.Services.Auth
             await _unitOfWork.CommitAsync();  
         }
 
-        public void Logout(HttpContext context)
+        public async Task LogoutAsync(HttpContext context, Guid userId)
         {
-            _tokenService.RemoveAllTokens(context);
-        }
+            if (userId != Guid.Empty)
+            {
+                var storedToken = await _unitOfWork.RefreshTokens.GetByUserIdAsync(userId);
+                if (storedToken != null)
+                {
+                    await _unitOfWork.RefreshTokens.DeleteAsync(storedToken);
+                    await _unitOfWork.CommitAsync();
+                }
+            }
+        } 
 
         private static string HashPassword(string password)
         {

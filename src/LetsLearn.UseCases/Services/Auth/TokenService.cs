@@ -9,17 +9,14 @@ using LetsLearn.Core.Entities;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
+using LetsLearn.UseCases.ServiceInterfaces;
 
 namespace LetsLearn.UseCases.Services.Auth
 {
-    public class TokenService
+    public class TokenService : ITokenService
     {
-        private readonly string AccessTokenCookie;
-        private readonly string RefreshTokenCookie;
-        private readonly string AuthPrefix;
-
         private readonly int AccessTokenExpireSeconds;             
-        public readonly int RefreshTokenExpireSeconds;   
+        private readonly int RefreshTokenExpireSeconds;   
 
         private readonly string _issuer;
         private readonly byte[] _secretBytes;
@@ -29,11 +26,8 @@ namespace LetsLearn.UseCases.Services.Auth
             _issuer = config["Jwt:Issuer"] ?? throw new ArgumentException("Jwt:Issuer is required");
             var secretKey = config["Jwt:Secret"] ?? throw new ArgumentException("Jwt:Secret is required");
             _secretBytes = Encoding.UTF8.GetBytes(secretKey);
-            AccessTokenExpireSeconds = int.Parse(config["Jwt:AccessTokenExpireSeconds"] ?? "360");
+            AccessTokenExpireSeconds = int.Parse(config["Jwt:AccessTokenExpireSeconds"] ?? "3600");
             RefreshTokenExpireSeconds = int.Parse(config["Jwt:RefreshTokenExpireSeconds"] ?? "604800");
-            AccessTokenCookie = config["Jwt:AccessTokenCookie"] ?? "ACCESS_TOKEN";
-            RefreshTokenCookie = config["Jwt:RefreshTokenCookie"] ?? "REFRESH_TOKEN";
-            AuthPrefix = config["Jwt:AuthPrefix"] ?? "Bearer_";
         }
 
         public string CreateToken(Guid userId, string role, bool isAccessToken)
@@ -65,43 +59,6 @@ namespace LetsLearn.UseCases.Services.Auth
         public string CreateRefreshToken(Guid userId, string role)
             => CreateToken(userId, role, false);
 
-        public void SetTokenCookies(HttpContext context, string accessToken, string refreshToken)
-        {
-            context.Response.Cookies.Append(AccessTokenCookie, AuthPrefix + accessToken, new CookieOptions
-            {
-                HttpOnly = true,
-                Secure = true,
-                Path = "/",
-                Expires = DateTime.UtcNow.AddSeconds(AccessTokenExpireSeconds)
-            });
-
-            context.Response.Cookies.Append(RefreshTokenCookie, AuthPrefix + refreshToken, new CookieOptions
-            {
-                HttpOnly = true,
-                Secure = true,
-                Path = "/",
-                Expires = DateTime.UtcNow.AddSeconds(RefreshTokenExpireSeconds)
-            });
-        }
-
-        public void RemoveAllTokens(HttpContext context)
-        {
-            context.Response.Cookies.Delete(AccessTokenCookie);
-            context.Response.Cookies.Delete(RefreshTokenCookie);
-        }
-
-        public string? GetToken(HttpContext context, bool isAccessToken)
-        {
-            var cookieName = isAccessToken ? AccessTokenCookie : RefreshTokenCookie;
-            if (!context.Request.Cookies.TryGetValue(cookieName, out var cookieValue))
-                throw new Exception("No authorization cookie!");
-
-            if (!cookieValue.StartsWith(AuthPrefix))
-                throw new Exception("Authorization cookie must start with '" + AuthPrefix + "'.");
-
-            return cookieValue.Substring(AuthPrefix.Length);
-        }
-
         public ClaimsPrincipal ValidateToken(string token, bool isAccessToken)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
@@ -117,6 +74,11 @@ namespace LetsLearn.UseCases.Services.Auth
             };
 
             return tokenHandler.ValidateToken(token, validationParameters, out _);
+        }
+
+        public int GetRefreshTokenExpireSeconds()
+        {
+            return RefreshTokenExpireSeconds;
         }
     }
 }
