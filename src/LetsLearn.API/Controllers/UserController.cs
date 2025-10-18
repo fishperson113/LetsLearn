@@ -1,6 +1,5 @@
 ﻿using LetsLearn.Core.Shared;
 using LetsLearn.UseCases.DTOs;
-using LetsLearn.UseCases.DTOs.AuthDTO;
 using LetsLearn.UseCases.Services.Auth;
 using LetsLearn.UseCases.Services.Users;
 using Microsoft.AspNetCore.Authorization;
@@ -32,7 +31,15 @@ namespace LetsLearn.API.Controllers
         [HttpPut("me")]
         public async Task<IActionResult> UpdateUserInformation([FromBody] UpdateUserDTO dto)
         {
-            var userId = Guid.Parse(User.Claims.First(c => c.Type == "userID").Value);
+            var userIdClaim = User.FindFirst("uid")
+                                  ?? User.FindFirst(ClaimTypes.NameIdentifier)
+                                  ?? User.FindFirst("sub");
+
+            if (userIdClaim is null)
+                return Unauthorized(new { error = "Missing user id claim (token not present or invalid)." });
+
+            if (!Guid.TryParse(userIdClaim.Value, out var userId))
+                return BadRequest(new { error = "Invalid user id format in claims." });
             var updated = await _userService.UpdateAsync(userId, dto);
             return Ok(updated);
         }

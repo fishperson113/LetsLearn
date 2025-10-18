@@ -18,7 +18,6 @@ namespace LetsLearn.UseCases.DTOs
 
         public string? Description { get; set; }
 
-        // Nếu PK của Course bên chị là string, đổi Guid -> string cho phù hợp.
         public Guid CourseId { get; set; }
 
         public List<TopicDTO>? Topics { get; set; }
@@ -27,7 +26,27 @@ namespace LetsLearn.UseCases.DTOs
     public class SectionResponse
     {
         public Guid Id { get; set; }
+        public string CourseId { get; set; } = null!;
+        public int? Position { get; set; }
         public string? Title { get; set; }
-        public List<TopicResponse>? Topics { get; set; }
+        public string? Description { get; set; }
+        public List<TopicDTO> Topics { get; set; } = new();
+    }
+
+    public class CreateSectionRequest
+    {
+        public string CourseId { get; set; } = null!;
+        public int? Position { get; set; }
+        public string? Title { get; set; }
+        public string? Description { get; set; }
+    }
+
+    public class UpdateSectionRequest
+    {
+        public Guid Id { get; set; }
+        public int? Position { get; set; }
+        public string? Title { get; set; }
+        public string? Description { get; set; }
+        public List<TopicUpsertDTO>? Topics { get; set; }
     }
 }
