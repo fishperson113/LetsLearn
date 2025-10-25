@@ -10,6 +10,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using LetsLearn.UseCases.ServiceInterfaces;
+using System.Security.Cryptography;
 
 namespace LetsLearn.UseCases.Services.Auth
 {
@@ -30,6 +31,10 @@ namespace LetsLearn.UseCases.Services.Auth
             RefreshTokenExpireSeconds = int.Parse(config["Jwt:RefreshTokenExpireSeconds"] ?? "604800");
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - Pure token creation, no branching: +0
+        // D = 0 => Minimum Test Cases = D + 1 = 1
         public string CreateToken(Guid userId, string role, bool isAccessToken)
         {
             var claims = new List<Claim>
@@ -53,29 +58,61 @@ namespace LetsLearn.UseCases.Services.Auth
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - Delegates to CreateToken: +0
+        // D = 0 => Minimum Test Cases = D + 1 = 1
         public string CreateAccessToken(Guid userId, string role)
             => CreateToken(userId, role, true);
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - Delegates to CreateToken: +0
+        // D = 0 => Minimum Test Cases = D + 1 = 1
         public string CreateRefreshToken(Guid userId, string role)
             => CreateToken(userId, role, false);
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - catch (SecurityTokenException): +1
+        // - catch (ArgumentException/CryptographicException): +1
+        // D = 2 => Minimum Test Cases = D + 1 = 3
         public ClaimsPrincipal ValidateToken(string token, bool isAccessToken)
         {
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var validationParameters = new TokenValidationParameters
+            try
             {
-                ValidateIssuer = true,
-                ValidIssuer = _issuer,
-                ValidateAudience = false,
-                IssuerSigningKey = new SymmetricSecurityKey(_secretBytes),
-                ValidateIssuerSigningKey = true,
-                ValidateLifetime = true,
-                ClockSkew = TimeSpan.Zero
-            };
+                var tokenHandler = new JwtSecurityTokenHandler();
+                var validationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidIssuer = _issuer,
+                    ValidateAudience = false,
+                    IssuerSigningKey = new SymmetricSecurityKey(_secretBytes),
+                    ValidateIssuerSigningKey = true,
+                    ValidateLifetime = true,
+                    ClockSkew = TimeSpan.Zero
+                };
 
-            return tokenHandler.ValidateToken(token, validationParameters, out _);
+                return tokenHandler.ValidateToken(token, validationParameters, out _);
+            }
+            catch (SecurityTokenException)
+            {
+                throw;
+            }
+            catch (ArgumentException ex)
+            {
+                throw new SecurityTokenException("Invalid token.", ex);
+            }
+            catch (CryptographicException ex)
+            {
+                throw new SecurityTokenException("Invalid token signature.", ex);
+            }
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - Simple getter: +0
+        // D = 0 => Minimum Test Cases = D + 1 = 1
         public int GetRefreshTokenExpireSeconds()
         {
             return RefreshTokenExpireSeconds;

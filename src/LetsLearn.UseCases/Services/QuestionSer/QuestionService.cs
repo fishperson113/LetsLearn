@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 
 namespace LetsLearn.UseCases.Services.QuestionSer
 {
@@ -18,6 +19,12 @@ namespace LetsLearn.UseCases.Services.QuestionSer
             _uow = uow;
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - if Choices provided (req.Choices Count > 0): +1
+        // - if choicesToAdd.Count > 0: +1
+        // - Null-coalesce throw on reload created question: +1
+        // D = 3 => Minimum Test Cases = D + 1 = 4
         public async Task<GetQuestionResponse> CreateAsync(CreateQuestionRequest req, Guid userId, CancellationToken ct = default)
         {
             var question = new Question
@@ -45,7 +52,14 @@ namespace LetsLearn.UseCases.Services.QuestionSer
             };
 
             await _uow.Questions.AddAsync(question);
-            await _uow.CommitAsync();
+            try
+            {
+                await _uow.CommitAsync();
+            }
+            catch (DbUpdateException ex)
+            {
+                throw new InvalidOperationException("Failed to create question.", ex);
+            }
 
             if (req.Choices is { Count: > 0 })
             {
@@ -58,21 +72,36 @@ namespace LetsLearn.UseCases.Services.QuestionSer
                     GradePercent = c.IsCorrect ? 100 : 0
                 }).ToList();
 
-                if (choicesToAdd.Count > 0)
-                {
-                    await _uow.QuestionChoices.AddRangeAsync(choicesToAdd);
-                    await _uow.CommitAsync();
-                }
+                    if (choicesToAdd.Count > 0)
+                    {
+                        await _uow.QuestionChoices.AddRangeAsync(choicesToAdd);
+                        try
+                        {
+                            await _uow.CommitAsync();
+                        }
+                        catch (DbUpdateException ex)
+                        {
+                            throw new InvalidOperationException("Failed to save question choices.", ex);
+                        }
+                    }
             }
 
             var created = await _uow.Questions.GetWithChoicesAsync(question.Id, ct)
-                          ?? throw new Exception("Failed to reload created question.");
+                          ?? throw new InvalidOperationException("Failed to reload created question.");
             return MapToResponse(created);
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - Null-coalesce throw when question not found: +1
+        // - if CorrectAnswer.HasValue: +1
+        // - if CourseId provided: +1
+        // - if Choices provided (req.Choices Count > 0): +1
+        // - if toAdd.Count > 0: +1
+        // - Null-coalesce throw on reload updated question: +1
+        // D = 6 => Minimum Test Cases = D + 1 = 7
         public async Task<GetQuestionResponse> UpdateAsync(UpdateQuestionRequest req, Guid userId, CancellationToken ct = default)
         {
-
             var question = await _uow.Questions.GetWithChoicesAsync(req.Id, ct)
                           ?? throw new KeyNotFoundException("Question not found.");
 
@@ -114,16 +143,29 @@ namespace LetsLearn.UseCases.Services.QuestionSer
                     .ToList();
 
                 if (toAdd.Count > 0)
+                {
                     await _uow.QuestionChoices.AddRangeAsync(toAdd);
+                }
             }
 
-            await _uow.CommitAsync();
+            try
+            {
+                await _uow.CommitAsync();
+            }
+            catch (DbUpdateException ex)
+            {
+                throw new InvalidOperationException("Failed to update question.", ex);
+            }
 
             var updated = await _uow.Questions.GetWithChoicesAsync(req.Id, ct)
-                         ?? throw new Exception("Failed to reload updated question.");
+                         ?? throw new InvalidOperationException("Failed to reload updated question.");
             return MapToResponse(updated);
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - Null-coalesce throw when question not found: +1
+        // D = 1 => Minimum Test Cases = D + 1 = 2
         public async Task<GetQuestionResponse> GetByIdAsync(Guid id, CancellationToken ct = default)
         {
             var q = await _uow.Questions.GetWithChoicesAsync(id, ct)
@@ -131,12 +173,20 @@ namespace LetsLearn.UseCases.Services.QuestionSer
             return MapToResponse(q);
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - No branching here: +0
+        // D = 0 => Minimum Test Cases = D + 1 = 1
         public async Task<List<GetQuestionResponse>> GetByCourseIdAsync(string courseId, CancellationToken ct = default)
         {
             var questions = await _uow.Questions.GetAllByCourseIdAsync(courseId, ct);
             return questions.Select(MapToResponse).ToList();
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - Pure mapping, no branching: +0
+        // D = 0 => Minimum Test Cases = D + 1 = 1 (basic happy-path mapping)
         private static GetQuestionResponse MapToResponse(Question q)
         {
             return new GetQuestionResponse

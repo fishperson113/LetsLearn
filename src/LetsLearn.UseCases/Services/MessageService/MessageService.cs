@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using LetsLearn.UseCases.ServiceInterfaces;
+using Microsoft.EntityFrameworkCore;
 
 namespace LetsLearn.UseCases.Services.MessageService
 {
@@ -20,18 +21,23 @@ namespace LetsLearn.UseCases.Services.MessageService
             _unitOfWork = unitOfWork;
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - if conversation == null: +1
+        // - if !userExists: +1
+        // D = 2 => Minimum Test Cases = D + 1 = 3
         public async Task CreateMessageAsync(CreateMessageRequest dto, Guid SenderId)
         {
             var conversation = await _unitOfWork.Conversations.GetByIdAsync(dto.ConversationId);
             if (conversation == null)
             {
-                throw new Exception("Conversation not found");
+                throw new KeyNotFoundException("Conversation not found");
             }
 
             var userExists = await _unitOfWork.Users.ExistsAsync(u => u.Id == SenderId);
             if (!userExists)
             {
-                throw new Exception("Sender not found");
+                throw new KeyNotFoundException("Sender not found");
             }
 
             var message = new Message
@@ -44,12 +50,30 @@ namespace LetsLearn.UseCases.Services.MessageService
             };
 
             await _unitOfWork.Messages.AddAsync(message);
-            await _unitOfWork.CommitAsync();
+            try
+            {
+                await _unitOfWork.CommitAsync();
+            }
+            catch (DbUpdateException ex)
+            {
+                throw new InvalidOperationException("Failed to create message.", ex);
+            }
 
             conversation.UpdatedAt = DateTime.UtcNow;
-            await _unitOfWork.CommitAsync();
+            try
+            {
+                await _unitOfWork.CommitAsync();
+            }
+            catch (DbUpdateException ex)
+            {
+                throw new InvalidOperationException("Failed to update conversation timestamp.", ex);
+            }
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - No branching here: +0
+        // D = 0 => Minimum Test Cases = D + 1 = 1
         public async Task<IEnumerable<GetMessageResponse>> GetMessagesByConversationIdAsync(Guid conversationId)
         {
             var messages = await _unitOfWork.Messages.GetMessagesByConversationIdAsync(conversationId);
@@ -68,6 +92,11 @@ namespace LetsLearn.UseCases.Services.MessageService
             return dtos;
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - if conversation == null: +1
+        // - logical operator (||) in membership check: +1
+        // D = 2 => Minimum Test Cases = D + 1 = 3
         public async Task<bool> IsUserInConversationAsync(Guid userId, Guid conversationId)
         {
             var conversation = await _unitOfWork.Conversations.GetByIdAsync(conversationId);

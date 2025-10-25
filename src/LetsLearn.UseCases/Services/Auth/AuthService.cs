@@ -12,6 +12,7 @@ using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Http;
 using LetsLearn.UseCases.ServiceInterfaces;
+using Microsoft.EntityFrameworkCore;
 
 namespace LetsLearn.UseCases.Services.Auth
 {
@@ -28,11 +29,15 @@ namespace LetsLearn.UseCases.Services.Auth
             _unitOfWork = unitOfWork;
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - if existingUser != null: +1
+        // D = 1 => Minimum Test Cases = D + 1 = 2
         public async Task<JwtTokenResponse> RegisterAsync(SignUpRequest request, HttpContext context)
         {
             var existingUser = await _unitOfWork.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
             if (existingUser != null)
-                throw new Exception("Email has been registered!");
+                throw new InvalidOperationException("Email has been registered!");
 
             var user = new Core.Entities.User
             {
@@ -44,7 +49,14 @@ namespace LetsLearn.UseCases.Services.Auth
             };
 
             await _unitOfWork.Users.AddAsync(user);
-            await _unitOfWork.CommitAsync();
+            try
+            {
+                await _unitOfWork.CommitAsync();
+            }
+            catch (DbUpdateException ex)
+            {
+                throw new InvalidOperationException("Failed to register user.", ex);
+            }
 
             var accessToken = _tokenService.CreateAccessToken(user.Id, user.Role);
             var refreshToken = await _refreshTokenService.CreateAndStoreRefreshTokenAsync(user.Id, user.Role);
@@ -56,14 +68,19 @@ namespace LetsLearn.UseCases.Services.Auth
             };
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - if user == null: +1
+        // - if !VerifyPassword: +1
+        // D = 2 => Minimum Test Cases = D + 1 = 3
         public async Task<JwtTokenResponse> LoginAsync(AuthRequest request, HttpContext context)
         {
             var user = await ((UserRepository)_unitOfWork.Users).GetByEmailAsync(request.Email);
             if (user == null)
-                throw new Exception("Email not found!");
+                throw new KeyNotFoundException("Email not found!");
 
             if (!VerifyPassword(request.Password, user.PasswordHash))
-                throw new Exception("Incorrect email or password!");
+                throw new UnauthorizedAccessException("Incorrect email or password!");
 
             var accessToken = _tokenService.CreateAccessToken(user.Id, user.Role);
             var refreshToken = await _refreshTokenService.CreateAndStoreRefreshTokenAsync(user.Id, user.Role);
@@ -75,24 +92,45 @@ namespace LetsLearn.UseCases.Services.Auth
             };
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - Delegates to refresh service, no branching here: +0
+        // D = 0 => Minimum Test Cases = D + 1 = 1
         public async Task<JwtTokenResponse> RefreshAsync(HttpContext httpContext)
         {
             return await _refreshTokenService.RefreshTokenAsync(httpContext);
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - if user == null: +1
+        // - if !VerifyPassword(old): +1
+        // D = 2 => Minimum Test Cases = D + 1 = 3
         public async Task UpdatePasswordAsync(UpdatePassword request, Guid userId)
         {
             var user = await _unitOfWork.Users.GetByIdAsync(userId);
             if (user == null)
-                throw new Exception("User not found!");
+                throw new KeyNotFoundException("User not found!");
 
             if (!VerifyPassword(request.OldPassword, user.PasswordHash))
-                throw new Exception("Old password is not correct!");
+                throw new UnauthorizedAccessException("Old password is not correct!");
 
             user.PasswordHash = HashPassword(request.NewPassword);
-            await _unitOfWork.CommitAsync();  
+            try
+            {
+                await _unitOfWork.CommitAsync();
+            }
+            catch (DbUpdateException ex)
+            {
+                throw new InvalidOperationException("Failed to update password.", ex);
+            }
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - if userId != Guid.Empty: +1
+        // - if storedToken != null: +1
+        // D = 2 => Minimum Test Cases = D + 1 = 3
         public async Task LogoutAsync(HttpContext context, Guid userId)
         {
             if (userId != Guid.Empty)
@@ -101,7 +139,14 @@ namespace LetsLearn.UseCases.Services.Auth
                 if (storedToken != null)
                 {
                     await _unitOfWork.RefreshTokens.DeleteAsync(storedToken);
-                    await _unitOfWork.CommitAsync();
+                    try
+                    {
+                        await _unitOfWork.CommitAsync();
+                    }
+                    catch (DbUpdateException ex)
+                    {
+                        throw new InvalidOperationException("Failed to logout user.", ex);
+                    }
                 }
             }
         } 

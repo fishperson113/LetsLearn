@@ -14,6 +14,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using LetsLearn.Infrastructure.Repository;
 using LetsLearn.UseCases.ServiceInterfaces;
+using Microsoft.EntityFrameworkCore;
 
 namespace LetsLearn.UseCases.Services.Auth
 {
@@ -28,6 +29,10 @@ namespace LetsLearn.UseCases.Services.Auth
             _unitOfWork = unitOfWork;
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - Pure repo operations without branching: +0
+        // D = 0 => Minimum Test Cases = D + 1 = 1
         public async Task<string> CreateAndStoreRefreshTokenAsync(Guid userId, string role)
         {
             var refreshToken = _tokenService.CreateRefreshToken(userId, role);
@@ -45,12 +50,18 @@ namespace LetsLearn.UseCases.Services.Auth
             return refreshToken;
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - if header missing or invalid (with ||): if +1, logical operator || +1
+        // - catch (inner) around ValidateToken: +1
+        // - if stored token invalid/expired (with two ||): if +1, two logical operators || +2
+        // D = 6 => Minimum Test Cases = D + 1 = 7
         public async Task<JwtTokenResponse> RefreshTokenAsync(HttpContext context)
         {
             var authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
             if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
             {
-                throw new Exception("Refresh token is missing or invalid!");
+                throw new SecurityTokenException("Refresh token is missing or invalid!");
             }
 
             var refreshToken = authHeader.Substring("Bearer ".Length).Trim();
@@ -61,17 +72,27 @@ namespace LetsLearn.UseCases.Services.Auth
             {
                 userPrincipal = _tokenService.ValidateToken(refreshToken, isAccessToken: false);
             }
-            catch
+            catch (Microsoft.IdentityModel.Tokens.SecurityTokenException ex)
             {
-                throw new Exception("Invalid refresh token format!");
+                throw new Microsoft.IdentityModel.Tokens.SecurityTokenException("Invalid refresh token format!", ex);
             }
-            var userId = Guid.Parse(userPrincipal.Claims.First(c => c.Type == "userID").Value);
-            var role = userPrincipal.Claims.First(c => c.Type == ClaimTypes.Role).Value;
+            catch (ArgumentException ex)
+            {
+                throw new Microsoft.IdentityModel.Tokens.SecurityTokenException("Invalid refresh token format!", ex);
+            }
+            var idClaim = userPrincipal.Claims.FirstOrDefault(c => c.Type == "userID");
+            var roleClaim = userPrincipal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role);
+            if (idClaim == null || roleClaim == null)
+            {
+                throw new SecurityTokenException("Required claims are missing in refresh token.");
+            }
+            var userId = Guid.Parse(idClaim.Value);
+            var role = roleClaim.Value;
 
             var storedToken = await _unitOfWork.RefreshTokens.GetByTokenAsync(refreshToken);
             if (storedToken == null || storedToken.Token != refreshToken || storedToken.ExpiryDate < DateTime.UtcNow)
             {
-                throw new Exception("Invalid or expired refresh token!");
+                throw new SecurityTokenException("Invalid or expired refresh token!");
             }
 
             await _unitOfWork.RefreshTokens.DeleteAsync(storedToken);
@@ -79,7 +100,14 @@ namespace LetsLearn.UseCases.Services.Auth
             var newAccessToken = _tokenService.CreateAccessToken(userId, role);
             var newRefreshToken = await CreateAndStoreRefreshTokenAsync(userId, role);
 
-            await _unitOfWork.CommitAsync();
+            try
+            {
+                await _unitOfWork.CommitAsync();
+            }
+            catch (DbUpdateException ex)
+            {
+                throw new InvalidOperationException("Failed to persist refreshed tokens.", ex);
+            }
 
             return new JwtTokenResponse
             {

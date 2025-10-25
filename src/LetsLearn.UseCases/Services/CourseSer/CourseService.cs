@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 
 namespace LetsLearn.UseCases.Services.CourseSer
 {
@@ -21,6 +22,12 @@ namespace LetsLearn.UseCases.Services.CourseSer
         }
 
         // =============== CREATE / UPDATE ===============
+        // Test Case Estimation:
+        // Decision points (D):
+        // - if Title is null/whitespace: +1
+        // - if titleExists: +1
+        // - if idExists: +1
+        // D = 3 => Minimum Test Cases = D + 1 = 4
         public async Task<CreateCourseResponse> CreateAsync(CreateCourseRequest dto, Guid userId, CancellationToken ct = default)
         {
             if (string.IsNullOrWhiteSpace(dto.Title))
@@ -49,7 +56,14 @@ namespace LetsLearn.UseCases.Services.CourseSer
             };
 
             await _uow.Course.AddAsync(course);
-            await _uow.CommitAsync();
+            try
+            {
+                await _uow.CommitAsync();
+            }
+            catch (DbUpdateException ex)
+            {
+                throw new InvalidOperationException("Failed to create course.", ex);
+            }
 
             return new CreateCourseResponse
             {
@@ -67,6 +81,12 @@ namespace LetsLearn.UseCases.Services.CourseSer
             };
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - Null-coalesce throw when course not found: +1
+        // - if Title provided: +1
+        // - if titleExists: +1
+        // D = 3 => Minimum Test Cases = D + 1 = 4
         public async Task<UpdateCourseResponse> UpdateAsync(UpdateCourseRequest dto, CancellationToken ct = default)
         {
             var course = await _uow.Course.GetByIdAsync(dto.Id, ct)
@@ -85,7 +105,14 @@ namespace LetsLearn.UseCases.Services.CourseSer
             course.Level = dto.Level;
             course.IsPublished = dto.IsPublished ?? course.IsPublished;
 
-            await _uow.CommitAsync();
+            try
+            {
+                await _uow.CommitAsync();
+            }
+            catch (DbUpdateException ex)
+            {
+                throw new InvalidOperationException("Failed to update course.", ex);
+            }
 
             return new UpdateCourseResponse
             {
@@ -104,12 +131,20 @@ namespace LetsLearn.UseCases.Services.CourseSer
         }
 
         // ================= READ =================
+        // Test Case Estimation:
+        // Decision points (D):
+        // - Pure retrieval/filtering in repository: +0
+        // D = 0 => Minimum Test Cases = D + 1 = 1
         public async Task<List<GetCourseResponse>> GetAllPublicAsync(CancellationToken ct = default)
         {
             var courses = await _uow.Course.GetAllCoursesByIsPublishedTrue();
             return courses.Where(c => c != null).Select(c => MapToResponse(c!)).ToList();
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - if userExists is false: +1
+        // D = 1 => Minimum Test Cases = D + 1 = 2
         public async Task<List<GetCourseResponse>> GetAllByUserIdAsync(Guid userId, CancellationToken ct = default)
         {
             var userExists = await _uow.Users.ExistsAsync(u => u.Id == userId, ct);
@@ -119,6 +154,10 @@ namespace LetsLearn.UseCases.Services.CourseSer
             return courses.Where(c => c != null).Select(c => MapToResponse(c!)).ToList();
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - Null-coalesce throw when course not found: +1
+        // D = 1 => Minimum Test Cases = D + 1 = 2
         public async Task<GetCourseResponse> GetByIdAsync(String id, CancellationToken ct = default)
         {
             var course = await _uow.Course.GetByIdAsync(id, ct)
@@ -127,6 +166,10 @@ namespace LetsLearn.UseCases.Services.CourseSer
         }
 
         // =============== Helpers (mapping & utils) ===============
+        // Test Case Estimation:
+        // Decision points (D):
+        // - Pure mapping, no branching: +0
+        // D = 0 => Minimum Test Cases = D + 1 = 1 (basic mapping)
         private static GetCourseResponse MapToResponse(Course c)
         {
             return new GetCourseResponse

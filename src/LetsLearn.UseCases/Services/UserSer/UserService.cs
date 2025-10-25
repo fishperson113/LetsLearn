@@ -7,6 +7,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 
 namespace LetsLearn.UseCases.Services.User
 {
@@ -19,6 +20,10 @@ namespace LetsLearn.UseCases.Services.User
             _unitOfWork = unitOfWork;
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - Null-coalesce throw when user not found: +1
+        // D = 1 => Minimum Test Cases = D + 1 = 2
         public async Task<GetUserResponse> GetByIdAsync(Guid id)
         {
             var user = await _unitOfWork.Users.GetByIdAsync(id)
@@ -34,6 +39,12 @@ namespace LetsLearn.UseCases.Services.User
             };
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - Null-coalesce throw when user not found: +1
+        // - if Username provided: +1
+        // - if Avatar provided: +1
+        // D = 3 => Minimum Test Cases = D + 1 = 4
         public async Task<UpdateUserResponse> UpdateAsync(Guid id, UpdateUserDTO dto)
         {
             var user = await _unitOfWork.Users.GetByIdAsync(id)
@@ -44,7 +55,14 @@ namespace LetsLearn.UseCases.Services.User
             if (!string.IsNullOrWhiteSpace(dto.Avatar))
                 user.Avatar = dto.Avatar.Trim();
 
-            await _unitOfWork.CommitAsync();
+            try
+            {
+                await _unitOfWork.CommitAsync();
+            }
+            catch (DbUpdateException ex)
+            {
+                throw new InvalidOperationException("Failed to persist user changes.", ex);
+            }
 
             return new UpdateUserResponse
             {
@@ -56,6 +74,10 @@ namespace LetsLearn.UseCases.Services.User
             };
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - No branching here: +0
+        // D = 0 => Minimum Test Cases = D + 1 = 1
         public async Task<List<GetUserResponse>> GetAllAsync(Guid requesterId)
         {
             var users = await _unitOfWork.Users.FindAsync(u => u.Id != requesterId);

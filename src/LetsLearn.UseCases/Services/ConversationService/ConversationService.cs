@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using LetsLearn.UseCases.ServiceInterfaces;
 using LetsLearn.UseCases.DTOs;
 using LetsLearn.Infrastructure.Repository;
+using Microsoft.EntityFrameworkCore;
 
 namespace LetsLearn.UseCases.Services.ConversationService
 {
@@ -20,6 +21,11 @@ namespace LetsLearn.UseCases.Services.ConversationService
             _unitOfWork = unitOfWork;
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - if user1 or user2 missing (with ||): if +1, logical operator || +1
+        // - if existingConversation != null: +1
+        // D = 3 => Minimum Test Cases = D + 1 = 4
         public async Task<ConversationDTO> GetOrCreateConversationAsync(Guid user1Id, Guid user2Id)
         {
             var user1 = await _unitOfWork.Users.GetByIdAsync(user1Id);
@@ -44,10 +50,21 @@ namespace LetsLearn.UseCases.Services.ConversationService
             };
 
             await _unitOfWork.Conversations.AddAsync(conversation);
-            await _unitOfWork.CommitAsync();
+            try
+            {
+                await _unitOfWork.CommitAsync();
+            }
+            catch (DbUpdateException ex)
+            {
+                throw new InvalidOperationException("Failed to create conversation.", ex);
+            }
             return MapToDTO(conversation);
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - if user not found (ExistsAsync false): +1
+        // D = 1 => Minimum Test Cases = D + 1 = 2
         public async Task<List<ConversationDTO>> GetAllByUserIdAsync(Guid userId)
         {
             if (!await _unitOfWork.Conversations.ExistsAsync(u => u.Id == userId))
