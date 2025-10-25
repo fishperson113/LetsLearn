@@ -17,6 +17,9 @@ namespace LetsLearn.Core.Interfaces
         IConversationRepository Conversations { get; }
         IQuestionRepository Questions { get; }
         IQuestionChoiceRepository QuestionChoices { get; }
+        ISectionRepository Sections { get; }
+        ITopicRepository Topics { get; }
+
         Task<int> CommitAsync();
     }
 }

@@ -25,6 +25,8 @@ namespace LetsLearn.Infrastructure.UnitOfWork
         public IConversationRepository Conversations { get; private set; }
         public IQuestionRepository Questions { get; }
         public IQuestionChoiceRepository QuestionChoices { get; }
+        public ISectionRepository Sections { get; private set; }
+        public ITopicRepository Topics { get; private set; }
 
         public UnitOfWork(LetsLearnContext context)
         {
@@ -36,7 +38,8 @@ namespace LetsLearn.Infrastructure.UnitOfWork
             RefreshTokens = new RefreshTokenRepository(_context);
             Messages = new MessageRepository(_context);
             Conversations = new ConversationRepository(_context);
-
+            Sections = new SectionRepository(_context);
+            Topics = new TopicRepository(_context);
             Questions = new QuestionRepository(_context);
             QuestionChoices = new QuestionChoiceRepository(_context);
         }
