@@ -1,0 +1,197 @@
+﻿using LetsLearn.UseCases.DTOs;
+using LetsLearn.UseCases.ServiceInterfaces;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Linq;
+using System.Security.Claims;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace LetsLearn.API.Controllers
+{
+    [ApiController]
+    [Route("api/[controller]")]
+    [Authorize]
+    public class TopicController : ControllerBase
+    {
+        private readonly ITopicService _topicService;
+        private readonly ILogger<TopicController> _logger;
+
+        public TopicController(ITopicService topicService, ILogger<TopicController> logger)
+        {
+            _topicService = topicService;
+            _logger = logger;
+        }
+
+        // POST /course/{courseId}/topic
+        [HttpPost]
+        [ProducesResponseType(typeof(TopicResponse), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<TopicResponse>> CreateTopic(
+            [FromBody] CreateTopicRequest request,
+            CancellationToken ct)
+        {
+            try
+            {
+                _logger.LogInformation("Creating topic for section {SectionId}", request.SectionId);
+
+                var created = await _topicService.CreateTopicAsync(request, ct);
+                _logger.LogInformation("Topic {TopicId} created successfully for section {SectionId}", created.Id, request.SectionId);
+
+                return CreatedAtAction(nameof(GetTopicById), new { id = created.Id }, created);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating topic for section {SectionId}", request.SectionId);
+                return StatusCode(StatusCodes.Status500InternalServerError, "Failed to create topic");
+            }
+        }
+
+        // PUT /course/{courseId}/topic/{id}
+        [HttpPut]
+        [ProducesResponseType(typeof(TopicResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<TopicResponse>> UpdateTopic(
+            [FromBody] UpdateTopicRequest request,
+            CancellationToken ct)
+        {
+            try
+            {
+                _logger.LogInformation("Updating topic {TopicId}", request.Id);
+
+                var updated = await _topicService.UpdateTopicAsync(request, ct);
+                if (updated is null)
+                {
+                    _logger.LogWarning("Topic {TopicId} not found", request.Id);
+                    return NotFound();
+                }
+
+                _logger.LogInformation("Topic {TopicId} updated successfully", request.Id);
+                return Ok(updated);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating topic {TopicId}", request.Id);
+                return StatusCode(StatusCodes.Status500InternalServerError, "Failed to update topic");
+            }
+        }
+
+        // DELETE /course/{courseId}/topic/{id}
+        [HttpDelete("{id:guid}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> DeleteTopic(
+            [FromRoute] Guid id,
+            CancellationToken ct)
+        {
+            try
+            {
+                _logger.LogInformation("Deleting topic {TopicId}", id);
+
+                var deleted = await _topicService.DeleteTopicAsync(id, ct);
+                if (!deleted)
+                {
+                    _logger.LogWarning("Topic {TopicId} not found", id);
+                    return NotFound();
+                }
+
+                _logger.LogInformation("Topic {TopicId} deleted successfully", id);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting topic {TopicId}", id);
+                return StatusCode(StatusCodes.Status500InternalServerError, "Failed to delete topic");
+            }
+        }
+
+        // GET /course/{courseId}/topic/{id}
+        [HttpGet("{id:guid}")]
+        [ProducesResponseType(typeof(TopicResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<TopicResponse>> GetTopicById(
+            [FromRoute] Guid id,
+            CancellationToken ct)
+        {
+            try
+            {
+                var dto = await _topicService.GetTopicByIdAsync(id, ct);
+                if (dto is null)
+                {
+                    _logger.LogWarning("Topic {TopicId} not found", id);
+                    return NotFound();
+                }
+
+                _logger.LogInformation("Topic {TopicId} fetched successfully", id);
+                return Ok(dto);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching topic {TopicId}", id);
+                return StatusCode(StatusCodes.Status500InternalServerError, "Failed to fetch topic");
+            }
+        }
+
+        //// GET /course/{courseId}/topic/{id}/quiz-report
+        //[HttpGet("{id:guid}/quiz-report")]
+        //[ProducesResponseType(typeof(SingleQuizReportDTO), StatusCodes.Status200OK)]
+        //[ProducesResponseType(StatusCodes.Status404NotFound)]
+        //public async Task<ActionResult<SingleQuizReportDTO>> GetQuizReport(
+        //    [FromRoute] Guid courseId,
+        //    [FromRoute] Guid id,
+        //    CancellationToken ct)
+        //{
+        //    try
+        //    {
+        //        _logger.LogInformation("Fetching quiz report for topic {TopicId} in course {CourseId}", id, courseId);
+
+        //        var report = await _topicService.GetSingleQuizReportAsync(courseId, id, ct);
+        //        if (report is null)
+        //        {
+        //            _logger.LogWarning("Quiz report not found for topic {TopicId}", id);
+        //            return NotFound();
+        //        }
+
+        //        _logger.LogInformation("Quiz report for topic {TopicId} retrieved successfully", id);
+        //        return Ok(report);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _logger.LogError(ex, "Error fetching quiz report for topic {TopicId}", id);
+        //        return StatusCode(StatusCodes.Status500InternalServerError, "Failed to fetch quiz report");
+        //    }
+        //}
+
+        //// GET /course/{courseId}/topic/{id}/assignment-report
+        //[HttpGet("{id:guid}/assignment-report")]
+        //[ProducesResponseType(typeof(SingleAssignmentReportDTO), StatusCodes.Status200OK)]
+        //[ProducesResponseType(StatusCodes.Status404NotFound)]
+        //public async Task<ActionResult<SingleAssignmentReportDTO>> GetAssignmentReport(
+        //    [FromRoute] Guid courseId,
+        //    [FromRoute] Guid id,
+        //    CancellationToken ct)
+        //{
+        //    try
+        //    {
+        //        _logger.LogInformation("Fetching assignment report for topic {TopicId} in course {CourseId}", id, courseId);
+
+        //        var report = await _topicService.GetSingleAssignmentReportAsync(courseId, id, ct);
+        //        if (report is null)
+        //        {
+        //            _logger.LogWarning("Assignment report not found for topic {TopicId}", id);
+        //            return NotFound();
+        //        }
+
+        //        _logger.LogInformation("Assignment report for topic {TopicId} retrieved successfully", id);
+        //        return Ok(report);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _logger.LogError(ex, "Error fetching assignment report for topic {TopicId}", id);
+        //        return StatusCode(StatusCodes.Status500InternalServerError, "Failed to fetch assignment report");
+        //    }
+        //}
+    }
+}

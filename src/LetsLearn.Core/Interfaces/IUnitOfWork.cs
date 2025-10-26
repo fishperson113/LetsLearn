@@ -19,7 +19,14 @@ namespace LetsLearn.Core.Interfaces
         IQuestionChoiceRepository QuestionChoices { get; }
         ISectionRepository Sections { get; }
         ITopicRepository Topics { get; }
-
+        ITopicPageRepository TopicPages { get; }
+        ITopicFileRepository TopicFiles { get; }
+        ITopicLinkRepository TopicLinks { get; }
+        ITopicQuizRepository TopicQuizzes { get; }
+        ITopicAssignmentRepository TopicAssignments { get; }
+        IRepository<AssignmentResponse> AssignmentResponses { get; }
+        IRepository<TopicQuizQuestion> TopicQuizQuestions { get; }
+        IRepository<TopicQuizQuestionChoice> TopicQuizQuestionChoices { get; }
         Task<int> CommitAsync();
     }
 }
