@@ -11,6 +11,7 @@ using LetsLearn.UseCases.Services.ConversationService;
 using LetsLearn.UseCases.Services.CourseSer;
 using LetsLearn.UseCases.Services.QuestionSer;
 using LetsLearn.UseCases.Services.SectionSer;
+using LetsLearn.UseCases.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -111,6 +112,7 @@ builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IQuestionService, QuestionService>();
 builder.Services.AddScoped<ICourseService, CourseService>();
 builder.Services.AddScoped<ISectionService, SectionService>();
+builder.Services.AddScoped<ITopicService, TopicService>();
 
 
 builder.Services.AddAuthorization();

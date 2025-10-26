@@ -17,7 +17,8 @@ namespace LetsLearn.Infrastructure.Repository
         }
         public async Task<Course?> GetByIdAsync(string id, CancellationToken ct = default)
         {
-            return await _dbSet.FirstOrDefaultAsync(c => c.Id == id, ct);
+            return await _dbSet.Include(c => c.Sections)
+                               .FirstOrDefaultAsync(c => c.Id == id, ct);
         }
 
         public async Task<bool> ExistByTitle(string title)

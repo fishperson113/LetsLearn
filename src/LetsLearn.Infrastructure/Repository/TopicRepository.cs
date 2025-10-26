@@ -24,5 +24,11 @@ namespace LetsLearn.Infrastructure.Repository
 
         public async Task<Topic?> GetTrackedByIdAsync(Guid id, CancellationToken ct = default)
             => await _dbSet.FirstOrDefaultAsync(t => t.Id == id, ct);
+
+        public async Task UpdateAsync(Topic topic)
+        {
+            _context.Entry(topic).State = EntityState.Modified;
+            await _context.SaveChangesAsync();
+        }
     }
 }
