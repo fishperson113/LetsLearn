@@ -146,7 +146,6 @@ namespace LetsLearn.UseCases.Services
                             {
                                 TopicId = topic.Id,
                                 Description = fileReq?.Description,
-                                //FileUrl = fileReq?.FileUrl
                             };
 
                             await _unitOfWork.TopicFiles.AddAsync(file);
@@ -507,7 +506,7 @@ namespace LetsLearn.UseCases.Services
                                         Choices = q.Choices.Select(c => new TopicQuizQuestionChoice
                                         {
                                             Id = Guid.NewGuid(),
-                                            QuizQuestionId = Guid.Empty, // sẽ gán sau khi insert
+                                            QuizQuestionId = Guid.Empty,
                                             Text = c.Text,
                                             GradePercent = c.GradePercent,
                                             Feedback = c.Feedback

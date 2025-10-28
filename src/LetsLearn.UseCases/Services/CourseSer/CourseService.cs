@@ -52,10 +52,26 @@ namespace LetsLearn.UseCases.Services.CourseSer
                 Price = dto.Price,
                 IsPublished = dto.IsPublished ?? false,
                 CreatorId = userId,
-                TotalJoined = 0
+                TotalJoined = 1
             };
 
             await _uow.Course.AddAsync(course);
+
+            DateTime utcNow = DateTime.UtcNow;
+
+            TimeZoneInfo gmtPlus7 = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+
+            DateTime gmtPlus7Time = TimeZoneInfo.ConvertTimeFromUtc(utcNow, gmtPlus7);
+
+            var enrollment = new Enrollment
+            {
+                StudentId = userId,
+                CourseId = course.Id,
+                JoinDate = DateTime.SpecifyKind(gmtPlus7Time, DateTimeKind.Utc)
+            };
+
+            await _uow.Enrollments.AddAsync(enrollment);
+
             try
             {
                 await _uow.CommitAsync();
@@ -76,8 +92,7 @@ namespace LetsLearn.UseCases.Services.CourseSer
                 Price = course.Price,
                 Category = course.Category,
                 Level = course.Level,
-                IsPublished = course.IsPublished,
-                // Sections = null (chưa load)
+                IsPublished = course.IsPublished
             };
         }
 
@@ -184,7 +199,21 @@ namespace LetsLearn.UseCases.Services.CourseSer
                 Category = c.Category,
                 Level = c.Level,
                 IsPublished = c.IsPublished,
-                // Sections = null (chưa load)
+                Sections = c.Sections?.Select(s => new SectionResponse
+                {
+                    Id = s.Id,
+                    CourseId = c.Id,
+                    Position = s.Position,
+                    Title = s.Title,
+                    Description = s.Description,
+                    Topics = s.Topics?.Select(t => new TopicResponse
+                    {
+                        Id = t.Id,
+                        Title = t.Title,
+                        SectionId = t.SectionId,
+                        Type = t.Type
+                    }).ToList()
+                }).ToList()
             };
         }
 

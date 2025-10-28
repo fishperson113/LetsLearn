@@ -24,9 +24,9 @@ namespace LetsLearn.UseCases.Services.User
         // Decision points (D):
         // - Null-coalesce throw when user not found: +1
         // D = 1 => Minimum Test Cases = D + 1 = 2
-        public async Task<GetUserResponse> GetByIdAsync(Guid id)
+        public async Task<GetUserResponse> GetByIdAsync(Guid id, CancellationToken ct = default)
         {
-            var user = await _unitOfWork.Users.GetByIdAsync(id)
+            var user = await _unitOfWork.Users.GetByIdWithEnrollmentsAsync(id, ct)
                 ?? throw new KeyNotFoundException("User not found.");
 
             return new GetUserResponse
@@ -36,6 +36,14 @@ namespace LetsLearn.UseCases.Services.User
                 Username = user.Username,
                 Avatar = user.Avatar,
                 Role = user.Role,
+                Enrollments = user.Enrollments?
+                                              .Select(e => new EnrollmentDTO
+                                              {
+                                                  StudentId = e.StudentId,
+                                                  CourseId = e.CourseId,
+                                                  JoinDate = e.JoinDate
+                                              })
+                                              .ToList()
             };
         }
 

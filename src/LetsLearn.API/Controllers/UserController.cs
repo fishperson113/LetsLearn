@@ -54,9 +54,9 @@ namespace LetsLearn.API.Controllers
         }
 
         [HttpGet("{id:guid}")]
-        public async Task<IActionResult> GetUserInformation(Guid id)
+        public async Task<IActionResult> GetUserInformation(Guid id, CancellationToken ct)
         {
-            var user = await _userService.GetByIdAsync(id);
+            var user = await _userService.GetByIdAsync(id, ct);
             return Ok(user);
         }
     }

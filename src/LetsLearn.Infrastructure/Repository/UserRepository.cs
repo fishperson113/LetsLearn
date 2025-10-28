@@ -16,22 +16,23 @@ namespace LetsLearn.Infrastructure.Repository
 
         public async Task<User?> GetByEmailAsync(string email, CancellationToken ct = default)
         {
-            return await _dbSet.FirstOrDefaultAsync(u => u.Email == email, ct);
+            return await _dbSet.Include(u => u.Enrollments)
+                               .FirstOrDefaultAsync(u => u.Email == email, ct);
         }
-
-        //public async Task<User?> GetUserWithCoursesAsync(Guid userId)
-        //{
-        //    return await _dbSet
-        //        .Include(u => u.Enrollments)
-        //        .ThenInclude(e => e.Course)
-        //        .FirstOrDefaultAsync(u => u.Id == userId);
-        //}
 
         public async Task<List<User>> GetAllUsersWithRolesAsync()
         {
             return await _dbSet.AsNoTracking()
-                .Include(u => u.Role)
-                .ToListAsync();
+                               .Include(u => u.Role)
+                               .Include(u => u.Enrollments)
+                               .ToListAsync();
+        }
+
+        public async Task<User?> GetByIdWithEnrollmentsAsync(Guid id, CancellationToken ct = default)
+        {
+            return await _dbSet
+                .Include(u => u.Enrollments)
+                .FirstOrDefaultAsync(u => u.Id == id, ct);
         }
     }
 }

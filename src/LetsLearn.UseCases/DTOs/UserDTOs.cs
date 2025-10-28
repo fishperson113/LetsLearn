@@ -30,6 +30,13 @@ namespace LetsLearn.UseCases.DTOs
         public List<GetCourseResponse>? Courses { get; set; }
     }
 
+    public class EnrollmentDTO
+    {
+        public Guid StudentId { get; set; }
+        public string CourseId { get; set; } = null!;
+        public DateTime JoinDate { get; set; }
+    }
+
     public class GetUserResponse
     {
         public Guid Id { get; set; }
@@ -38,7 +45,7 @@ namespace LetsLearn.UseCases.DTOs
         public string Username { get; set; } = null!;
         public string? Role { get; set; }
         public string? Avatar { get; set; }
-        public List<Enrollment>? Enrollments { get; set; }
+        public List<EnrollmentDTO>? Enrollments { get; set; }
     }
 
     public class UpdateUserResponse

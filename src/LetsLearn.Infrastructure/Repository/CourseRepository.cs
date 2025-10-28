@@ -28,12 +28,16 @@ namespace LetsLearn.Infrastructure.Repository
 
         public async Task<IEnumerable<Course?>> GetAllCoursesByIsPublishedTrue()
         {
-            return await FindAsync(c => c.IsPublished == true);
+            return await _dbSet.Include(c => c.Sections)
+                               .Where(c => c.IsPublished == true)
+                               .ToListAsync();
         }
 
         public async Task<IEnumerable<Course?>> GetByCreatorId(Guid id)
         {
-            return await FindAsync(c => c.CreatorId == id);
+            return await _dbSet.Include(c => c.Sections)
+                               .Where(c => c.CreatorId == id)
+                               .ToListAsync();
         }
     }
 }

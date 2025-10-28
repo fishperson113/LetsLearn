@@ -4,7 +4,7 @@ namespace LetsLearn.UseCases.Services.Users
 {
     public interface IUserService
     {
-        Task<GetUserResponse> GetByIdAsync(Guid id);
+        Task<GetUserResponse> GetByIdAsync(Guid id, CancellationToken ct = default);
         Task<UpdateUserResponse> UpdateAsync(Guid id, UpdateUserDTO dto);
         Task<List<GetUserResponse>> GetAllAsync(Guid requesterId);
 

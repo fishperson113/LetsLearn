@@ -43,8 +43,6 @@ namespace LetsLearn.UseCases.DTOs
         public string? Category { get; set; }
         public string? Level { get; set; }
         public bool? IsPublished { get; set; }
-
-        public List<SectionResponse>? Sections { get; set; }
     }
 
     public class UpdateCourseResponse
@@ -74,7 +72,7 @@ namespace LetsLearn.UseCases.DTOs
         public decimal? Price { get; set; }
         public string? Category { get; set; }
         public string? Level { get; set; }
-        public bool? IsPublished { get; set; }
+        public bool IsPublished { get; set; }
 
         public List<SectionResponse>? Sections { get; set; }
     }
