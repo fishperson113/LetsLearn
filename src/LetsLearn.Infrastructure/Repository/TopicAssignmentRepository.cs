@@ -18,5 +18,15 @@ namespace LetsLearn.Infrastructure.Repository
             _context.Entry(topic).State = EntityState.Modified;
             await _context.SaveChangesAsync();
         }
+
+        public async Task<List<TopicAssignment>> GetAssignmentsByCourseIdAndDateRangeAsync(Guid courseId, DateTime startTime, DateTime endTime, CancellationToken ct = default)
+        {
+            var assignments = await _context.TopicAssignments
+                .Where(a => a.Open >= startTime &&
+                            a.Close <= endTime)
+                .ToListAsync(ct);
+
+            return assignments;
+        }
     }
 }

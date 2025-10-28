@@ -15,7 +15,7 @@ namespace LetsLearn.UseCases.Services.SectionSer
     public class SectionService : ISectionService
     {
         private readonly IUnitOfWork _uow;
-        private readonly ITopicService _topicService;
+        //private readonly ITopicService _topicService;
 
         public SectionService(IUnitOfWork uow)
         {

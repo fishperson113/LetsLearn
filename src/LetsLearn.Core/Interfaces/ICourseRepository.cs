@@ -13,5 +13,6 @@ namespace LetsLearn.Core.Interfaces
         Task<IEnumerable<Course?>> GetAllCoursesByIsPublishedTrue();
         Task <IEnumerable<Course?>> GetByCreatorId(Guid Id);
         Task<bool> ExistByTitle(string title);
+        Task<List<Course>> GetByIdsAsync(IEnumerable<string> courseIds, CancellationToken ct = default);
     }
 }

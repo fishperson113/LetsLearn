@@ -18,6 +18,7 @@ namespace LetsLearn.Infrastructure.Repository
         public async Task<Course?> GetByIdAsync(string id, CancellationToken ct = default)
         {
             return await _dbSet.Include(c => c.Sections)
+                               .ThenInclude(s => s.Topics)
                                .FirstOrDefaultAsync(c => c.Id == id, ct);
         }
 
@@ -29,6 +30,7 @@ namespace LetsLearn.Infrastructure.Repository
         public async Task<IEnumerable<Course?>> GetAllCoursesByIsPublishedTrue()
         {
             return await _dbSet.Include(c => c.Sections)
+                               .ThenInclude(s => s.Topics)
                                .Where(c => c.IsPublished == true)
                                .ToListAsync();
         }
@@ -36,8 +38,18 @@ namespace LetsLearn.Infrastructure.Repository
         public async Task<IEnumerable<Course?>> GetByCreatorId(Guid id)
         {
             return await _dbSet.Include(c => c.Sections)
+                               .ThenInclude(s => s.Topics)
                                .Where(c => c.CreatorId == id)
                                .ToListAsync();
+        }
+
+        public async Task<List<Course>> GetByIdsAsync(IEnumerable<string> courseIds, CancellationToken ct = default)
+        {
+            return await _context.Courses
+                                 .Include(c => c.Sections)
+                                 .ThenInclude(s => s.Topics)
+                                 .Where(c => courseIds.Contains(c.Id))
+                                 .ToListAsync(ct);
         }
     }
 }

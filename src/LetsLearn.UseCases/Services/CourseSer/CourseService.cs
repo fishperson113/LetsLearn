@@ -1,24 +1,31 @@
 ﻿using LetsLearn.Core.Entities;
 using LetsLearn.Core.Interfaces;
+using LetsLearn.Infrastructure.UnitOfWork;
 using LetsLearn.UseCases.DTOs;
+using LetsLearn.UseCases.ServiceInterfaces;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
 
 namespace LetsLearn.UseCases.Services.CourseSer
 {
     public class CourseService : ICourseService
     {
         private readonly IUnitOfWork _uow;
+        private readonly ITopicService _topicService;
+
         private static readonly DateTime MIN = DateTime.SpecifyKind(DateTime.MinValue.AddYears(1), DateTimeKind.Utc);
         private static readonly DateTime MAX = DateTime.SpecifyKind(DateTime.MaxValue.AddYears(-1), DateTimeKind.Utc);
 
-        public CourseService(IUnitOfWork uow)
+        public CourseService(IUnitOfWork uow, ITopicService topicService)
         {
             _uow = uow;
+            _topicService = topicService;
         }
 
         // =============== CREATE / UPDATE ===============
@@ -165,7 +172,12 @@ namespace LetsLearn.UseCases.Services.CourseSer
             var userExists = await _uow.Users.ExistsAsync(u => u.Id == userId, ct);
             if (!userExists) throw new KeyNotFoundException("User not found.");
 
-            var courses = await _uow.Course.GetByCreatorId(userId);
+            var enrollments = await _uow.Enrollments.GetByStudentId(userId, ct);
+
+            var courseIds = enrollments.Select(e => e.CourseId).Distinct();
+
+            var courses = await _uow.Course.GetByIdsAsync(courseIds);
+
             return courses.Where(c => c != null).Select(c => MapToResponse(c!)).ToList();
         }
 
@@ -178,6 +190,139 @@ namespace LetsLearn.UseCases.Services.CourseSer
             var course = await _uow.Course.GetByIdAsync(id, ct)
                          ?? throw new KeyNotFoundException("Course not found.");
             return MapToResponse(course);
+        }
+
+        public async Task AddUserToCourseAsync(String courseId, Guid userId, CancellationToken ct = default)
+        {
+            var course = await _uow.Course.GetByIdAsync(courseId, ct)
+                             ?? throw new KeyNotFoundException("Course not found.");
+
+            var user = await _uow.Users.GetByIdAsync(userId, ct)
+                            ?? throw new KeyNotFoundException("User not found.");
+
+            var enrollmentExists = await _uow.Enrollments.ExistsAsync(e => e.CourseId == courseId && e.StudentId == userId, ct);
+            if (enrollmentExists)
+                throw new InvalidOperationException("User is already enrolled in this course.");
+
+            var enrollment = new Enrollment
+            {
+                StudentId = userId,
+                CourseId = courseId,
+                JoinDate = DateTime.UtcNow
+            };
+
+            await _uow.Enrollments.AddAsync(enrollment);
+
+            course.TotalJoined += 1;
+
+            try
+            {
+                await _uow.CommitAsync();
+            }
+            catch (DbUpdateException ex)
+            {
+                throw new InvalidOperationException("Failed to add user to course.", ex);
+            }
+        }
+
+        public async Task<List<TopicDTO>> GetAllWorksOfCourseAndUserAsync(String courseId, Guid userId, string type, DateTime? start, DateTime? end, CancellationToken ct = default)
+        {
+            // Kiểm tra nếu chỉ có start hoặc end được cung cấp
+            if ((start != null || end != null) && (start == null || end == null))
+            {
+                throw new ArgumentException("Provide start and end time!");
+            }
+
+            // Kiểm tra nếu start sau end
+            if (start != null && start > end)
+            {
+                throw new ArgumentException("Start time must be after end time");
+            }
+
+            // Lấy thông tin khóa học
+            var course = await _uow.Course.GetByIdAsync(courseId, ct);
+            if (course == null)
+            {
+                throw new KeyNotFoundException("Course not found");
+            }
+
+            var result = new List<TopicDTO>();
+
+            // Duyệt qua tất cả các sections trong khóa học
+            foreach (var courseSection in course.Sections)
+            {
+                // Duyệt qua các topics trong từng section
+                foreach (var topicSection in courseSection.Topics)
+                {
+                    if (string.IsNullOrEmpty(type) || type.Equals(topicSection.Type, StringComparison.OrdinalIgnoreCase))
+                    {
+                        object? topicData = await GetTopicDataByTypeAsync(topicSection.Id, userId, type, start, end, ct);
+                        if (topicData != null)
+                        {
+                            var topicDTO = ToDTO(topicSection);
+                            topicDTO.Data = JsonSerializer.Serialize(topicData);
+                            result.Add(topicDTO);
+                        }
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        public async Task<object?> GetTopicDataByTypeAsync(Guid topicId, Guid userId, string? type, DateTime? start, DateTime? end, CancellationToken ct = default)
+        {
+            // Lấy thông tin topic theo loại
+            var topic = await _uow.Topics.GetByIdAsync(topicId, ct);
+            if (topic == null)
+            {
+                throw new KeyNotFoundException("Topic not found");
+            }
+
+            object? topicData = null;
+
+            switch (topic.Type.ToLower())
+            {
+                case "quiz":
+                    var quiz = await _uow.TopicQuizzes.GetWithQuestionsAsync(topicId);
+                    if (quiz != null && (end == null || quiz.Close < end))
+                    {
+                        //var responses = await _uow.QuizResponses.GetByTopicIdAndStudentIdAsync(quiz.TopicId, userId, ct);
+                        //topicData = new { quiz, responses };
+                        topicData = new { quiz };
+                    }
+                    break;
+
+                case "assignment":
+                    var assignment = (await _uow.TopicAssignments.FindAsync(a => a.TopicId == topicId, ct)).FirstOrDefault();
+                    if (assignment != null && (end == null || assignment.Close < end))
+                    {
+                        //var response = await _uow.AssignmentResponse.GetByTopicIdAndStudentIdAsync(assignment.TopicId, userId, ct);
+                        //topicData = new { assignment, response };
+                        topicData = new { assignment };
+                    }
+                    break;
+
+                case "meeting":
+                    //var meeting = await _uow.TopicMeetings.GetByTopicIdAsync(topicId, ct);
+                    //if (meeting != null && (start == null || DateTime.Parse(meeting.Open) > start))
+                    //{
+                    //    topicData = meeting;
+                    //}
+                    //break;
+
+                // Các loại khác có thể bỏ qua hoặc xử lý thêm tùy theo yêu cầu
+                case "file":
+                case "link":
+                case "page":
+                    // Không xử lý các loại này
+                    break;
+
+                default:
+                    throw new NotSupportedException($"Topic type {topic.Type} is not supported.");
+            }
+
+            return topicData;
         }
 
         // =============== Helpers (mapping & utils) ===============
@@ -212,8 +357,20 @@ namespace LetsLearn.UseCases.Services.CourseSer
                         Title = t.Title,
                         SectionId = t.SectionId,
                         Type = t.Type
-                    }).ToList()
+                    }).ToList() ?? new List<TopicResponse>()
                 }).ToList()
+            };
+        }
+
+        public static TopicDTO ToDTO(Topic topic)
+        {
+            return new TopicDTO
+            {
+                Id = topic.Id,
+                Title = topic.Title,
+                Type = topic.Type,
+                SectionId = topic.SectionId,
+                // Add any other properties of Topic to map to TopicDTO
             };
         }
 

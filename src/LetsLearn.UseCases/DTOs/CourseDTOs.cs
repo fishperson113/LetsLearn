@@ -9,7 +9,7 @@ namespace LetsLearn.UseCases.DTOs
 {
     public class CreateCourseRequest
     {
-        public String Id { get; set; }
+        public required String Id { get; set; }
         public string? Title { get; set; }
         public string? Description { get; set; }
         public string? ImageUrl { get; set; }
@@ -21,7 +21,7 @@ namespace LetsLearn.UseCases.DTOs
 
     public class UpdateCourseRequest
     {
-        public String Id { get; set; }
+        public required String Id { get; set; }
         public string? Title { get; set; }
         public string? Description { get; set; }
         public string? ImageUrl { get; set; }
@@ -33,7 +33,7 @@ namespace LetsLearn.UseCases.DTOs
 
     public class CreateCourseResponse
     {
-        public String Id { get; set; }
+        public required String Id { get; set; }
         public Guid CreatorId { get; set; }
         public string? Title { get; set; }
         public string? Description { get; set; }
@@ -47,7 +47,7 @@ namespace LetsLearn.UseCases.DTOs
 
     public class UpdateCourseResponse
     {
-        public String Id { get; set; }
+        public required String Id { get; set; }
         public Guid CreatorId { get; set; }
         public string? Title { get; set; }
         public string? Description { get; set; }
@@ -63,7 +63,7 @@ namespace LetsLearn.UseCases.DTOs
 
     public class GetCourseResponse
     {
-        public String Id { get; set; }
+        public required String Id { get; set; }
         public Guid CreatorId { get; set; }
         public string? Title { get; set; }
         public string? Description { get; set; }

@@ -63,5 +63,12 @@ namespace LetsLearn.Infrastructure.Repository
                 _dbSet.Remove(enrollment);
             }
         }
+
+        public async Task<List<Enrollment>> GetByStudentId(Guid studentId, CancellationToken ct = default)
+        {
+            return await _context.Enrollments
+                                 .Where(e => e.StudentId == studentId)
+                                 .ToListAsync(ct);
+        }
     }
 }

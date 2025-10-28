@@ -35,7 +35,7 @@ namespace LetsLearn.Infrastructure.UnitOfWork
         public IRepository<AssignmentResponse> AssignmentResponses { get; private set; }
         public IRepository<TopicQuizQuestion> TopicQuizQuestions { get; private set; }
         public IRepository<TopicQuizQuestionChoice> TopicQuizQuestionChoices { get; private set; }
-        public IRepository<Enrollment> Enrollments { get; private set; }
+        public IEnrollmentRepository Enrollments { get; private set; }
         public UnitOfWork(LetsLearnContext context)
         {
             _context = context;
@@ -56,7 +56,7 @@ namespace LetsLearn.Infrastructure.UnitOfWork
             Questions = new QuestionRepository(_context);
             QuestionChoices = new QuestionChoiceRepository(_context);
             AssignmentResponses = new GenericRepository<AssignmentResponse>(_context);
-            Enrollments = new GenericRepository<Enrollment>(_context);
+            Enrollments = new EnrollmentRepository(_context);
         }
 
         public async Task<int> CommitAsync() =>

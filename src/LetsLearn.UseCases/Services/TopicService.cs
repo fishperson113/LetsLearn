@@ -17,7 +17,6 @@ namespace LetsLearn.UseCases.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<TopicService> _logger;
-        private readonly JsonSerializerOptions _jsonOptions;
 
         public TopicService(IUnitOfWork unitOfWork, ILogger<TopicService> logger)
         {
@@ -45,79 +44,6 @@ namespace LetsLearn.UseCases.Services
                 await _unitOfWork.Topics.AddAsync(topic);
 
                 object? topicData = null;
-
-                // Bước 2: Xử lý từng kiểu cụ thể
-                //switch (request)
-                //{
-                //    case CreateTopicPageRequest pageReq:
-                //        var page = new TopicPage
-                //        {
-                //            TopicId = topic.Id,
-                //            Description = pageReq.Description,
-                //            Content = pageReq.Content
-                //        };
-                //        await _unitOfWork.TopicPages.AddAsync(page);
-                //        topicData = page;
-                //        break;
-
-                //    case CreateTopicFileRequest fileReq:
-                //        var file = new TopicFile
-                //        {
-                //            TopicId = topic.Id,
-                //            Description = fileReq.Description
-                //        };
-                //        await _unitOfWork.TopicFiles.AddAsync(file);
-                //        topicData = file;
-                //        break;
-
-                //    case CreateTopicLinkRequest linkReq:
-                //        var link = new TopicLink
-                //        {
-                //            TopicId = topic.Id,
-                //            Description = linkReq.Description,
-                //            Url = linkReq.Url
-                //        };
-                //        await _unitOfWork.TopicLinks.AddAsync(link);
-                //        topicData = link;
-                //        break;
-
-                //    case CreateTopicQuizRequest quizReq:
-                //        var quiz = new TopicQuiz
-                //        {
-                //            TopicId = topic.Id,
-                //            Description = quizReq.Description,
-                //            Open = quizReq.Open,
-                //            Close = quizReq.Close,
-                //            TimeLimit = quizReq.TimeLimit,
-                //            TimeLimitUnit = quizReq.TimeLimitUnit,
-                //            GradeToPass = quizReq.GradeToPass,
-                //            GradingMethod = quizReq.GradingMethod,
-                //            AttemptAllowed = quizReq.AttemptAllowed,
-                //            Questions = quizReq.Questions.Select(q => new TopicQuizQuestion
-                //            {
-                //                QuestionName = q.QuestionName,
-                //                QuestionText = q.QuestionText,
-                //                Type = q.Type,
-                //                DefaultMark = q.DefaultMark,
-                //                FeedbackOfTrue = q.FeedbackOfTrue,
-                //                FeedbackOfFalse = q.FeedbackOfFalse,
-                //                CorrectAnswer = q.CorrectAnswer,
-                //                Multiple = q.Multiple,
-                //                Choices = q.Choices.Select(c => new TopicQuizQuestionChoice
-                //                {
-                //                    Text = c.Text,
-                //                    GradePercent = c.GradePercent,
-                //                    Feedback = c.Feedback
-                //                }).ToList()
-                //            }).ToList()
-                //        };
-                //        await _unitOfWork.TopicQuizzes.AddAsync(quiz);
-                //        topicData = quiz;
-                //        break;
-
-                //    default:
-                //        throw new NotSupportedException($"Unsupported topic type: {request.Type}");
-                //}
 
                 // Bước 2: Deserialize Data và xử lý theo Type
                 switch (request.Type.ToLower())
@@ -219,8 +145,8 @@ namespace LetsLearn.UseCases.Services
                                         Text = c.Text,
                                         GradePercent = c.GradePercent,
                                         Feedback = c.Feedback
-                                    }).ToList()
-                                }).ToList()
+                                    }).ToList() ?? new List<TopicQuizQuestionChoice>()
+                                }).ToList() ?? new List<TopicQuizQuestion>()
                             };
 
                             await _unitOfWork.TopicQuizzes.AddAsync(quiz);
@@ -273,98 +199,6 @@ namespace LetsLearn.UseCases.Services
 
             object? topicData = null;
 
-            //// Xử lý cập nhật chi tiết theo từng kiểu
-            //switch (request)
-            //{
-            //    case UpdateTopicPageRequest pageReq:
-            //        var page = (await _unitOfWork.TopicPages.FindAsync(p => p.TopicId == topic.Id)).FirstOrDefault();
-            //        if (page == null)
-            //        {
-            //            _logger.LogWarning("TopicPage not found for topic {TopicId}", topic.Id);
-            //            throw new KeyNotFoundException("TopicPage not found.");
-            //        }
-
-            //        page.Description = pageReq.Description ?? page.Description;
-            //        page.Content = pageReq.Content ?? page.Content;
-            //        await _unitOfWork.TopicPages.UpdateAsync(page);
-            //        topicData = page;
-            //        break;
-
-            //    case UpdateTopicFileRequest fileReq:
-            //        var file = (await _unitOfWork.TopicFiles.FindAsync(f => f.TopicId == topic.Id, ct)).FirstOrDefault();
-            //        if (file == null)
-            //        {
-            //            _logger.LogWarning("TopicFile not found for topic {TopicId}", topic.Id);
-            //            throw new KeyNotFoundException("TopicFile not found.");
-            //        }
-
-            //        file.Description = fileReq.Description ?? file.Description;
-            //        await _unitOfWork.TopicFiles.UpdateAsync(file);
-            //        topicData = file;
-            //        break;
-
-
-            //    case UpdateTopicLinkRequest linkReq:
-            //        var link = (await _unitOfWork.TopicLinks.FindAsync(l => l.TopicId == topic.Id, ct)).FirstOrDefault();
-            //        if (link == null)
-            //        {
-            //            _logger.LogWarning("TopicLink not found for topic {TopicId}", topic.Id);
-            //            throw new KeyNotFoundException("TopicLink not found.");
-            //        }
-
-            //        link.Description = linkReq.Description ?? link.Description;
-            //        link.Url = linkReq.Url ?? link.Url;
-            //        await _unitOfWork.TopicLinks.UpdateAsync(link);
-            //        topicData = link;
-            //        break;
-
-            //    case UpdateTopicQuizRequest quizReq:
-            //        var quiz = (await _unitOfWork.TopicQuizzes.FindAsync(q => q.TopicId == topic.Id, ct)).FirstOrDefault();
-            //        if (quiz == null)
-            //        {
-            //            _logger.LogWarning("TopicQuiz not found for topic {TopicId}", topic.Id);
-            //            throw new KeyNotFoundException("TopicQuiz not found.");
-            //        }
-
-            //        quiz.Description = quizReq.Description ?? quiz.Description;
-            //        quiz.Open = quizReq.Open ?? quiz.Open;
-            //        quiz.Close = quizReq.Close ?? quiz.Close;
-            //        quiz.TimeLimit = quizReq.TimeLimit ?? quiz.TimeLimit;
-            //        quiz.TimeLimitUnit = quizReq.TimeLimitUnit ?? quiz.TimeLimitUnit;
-            //        quiz.GradeToPass = quizReq.GradeToPass ?? quiz.GradeToPass;
-            //        quiz.GradingMethod = quizReq.GradingMethod ?? quiz.GradingMethod;
-            //        quiz.AttemptAllowed = quizReq.AttemptAllowed ?? quiz.AttemptAllowed;
-
-            //        if (quizReq.Questions != null && quizReq.Questions.Any())
-            //        {
-            //            quiz.Questions = quizReq.Questions.Select(q => new TopicQuizQuestion
-            //            {
-            //                QuestionName = q.QuestionName,
-            //                QuestionText = q.QuestionText,
-            //                Type = q.Type,
-            //                DefaultMark = q.DefaultMark,
-            //                FeedbackOfTrue = q.FeedbackOfTrue,
-            //                FeedbackOfFalse = q.FeedbackOfFalse,
-            //                CorrectAnswer = q.CorrectAnswer,
-            //                Multiple = q.Multiple,
-            //                Choices = q.Choices.Select(c => new TopicQuizQuestionChoice
-            //                {
-            //                    Text = c.Text,
-            //                    GradePercent = c.GradePercent,
-            //                    Feedback = c.Feedback
-            //                }).ToList()
-            //            }).ToList();
-            //        }
-
-            //        await _unitOfWork.TopicQuizzes.UpdateAsync(quiz);
-            //        topicData = quiz;
-            //        break;
-
-            //    default:
-            //        _logger.LogError("Unsupported topic type for update: {Type}", request.GetType().Name);
-            //        throw new NotSupportedException($"Unsupported topic type: {request.GetType().Name}");
-            //}
-
             // Chuyển đổi dựa vào type do người dùng truyền
             switch (request.Type?.ToLower())
             {
@@ -396,7 +230,7 @@ namespace LetsLearn.UseCases.Services
                         var linkReq = JsonSerializer.Deserialize<UpdateTopicLinkRequest>(request.Data!.Value.GetRawText(), new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                         var link = (await _unitOfWork.TopicLinks.FindAsync(l => l.TopicId == topic.Id, ct)).FirstOrDefault()
                                    ?? throw new KeyNotFoundException("TopicLink not found.");
-                        link.Description = linkReq.Description ?? link.Description;
+                            link.Description = linkReq.Description ?? link.Description;
                         link.Url = linkReq.Url ?? link.Url;
                         await _unitOfWork.TopicLinks.UpdateAsync(link);
                         topicData = link;
