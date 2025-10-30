@@ -16,14 +16,11 @@ namespace LetsLearn.UseCases.Services.CourseSer
         Task<GetCourseResponse> GetByIdAsync(String id, CancellationToken ct = default);
         Task AddUserToCourseAsync(String courseId, Guid userId, CancellationToken ct = default);
         Task<List<TopicDTO>> GetAllWorksOfCourseAndUserAsync(String courseId, Guid userId, string type, DateTime? start, DateTime? end, CancellationToken ct = default);
+        Task<object?> GetTopicDataByTypeAsync(Guid topicId, Guid userId, DateTime? start, DateTime? end, CancellationToken ct = default);
 
 
 
-            //Task<List<TopicResponse>> GetAllWorksOfCourseAndUserAsync(
-            //    Guid courseId, Guid userId,
-            //    string? type, DateTime? start, DateTime? end,
-            //    CancellationToken ct = default);
-            //Task AddUserToCourseAsync(Guid courseId, Guid userId, CancellationToken ct = default);
+         
             //Task<AllQuizzesReportDTO> GetQuizzesReportAsync(Guid courseId, DateTime? start, DateTime? end, CancellationToken ct = default);
             //Task<AllAssignmentsReportDTO> GetAssignmentsReportAsync(Guid courseId, DateTime? start, DateTime? end, CancellationToken ct = default);
 

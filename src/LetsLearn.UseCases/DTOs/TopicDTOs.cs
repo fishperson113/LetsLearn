@@ -292,4 +292,11 @@ namespace LetsLearn.UseCases.DTOs
         public int MultipleChoiceQuestionCount { get; set; }
         public int ShortAnswerQuestionCount { get; set; }
     }
+
+    public class TopicDataDTO
+    {
+        public object? Item { get; set; }       // quiz or assignment
+        public object? Response { get; set; }   // response
+    }
+
 }

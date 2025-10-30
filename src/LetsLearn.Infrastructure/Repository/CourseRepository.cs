@@ -35,12 +35,12 @@ namespace LetsLearn.Infrastructure.Repository
                                .ToListAsync();
         }
 
-        public async Task<IEnumerable<Course?>> GetByCreatorId(Guid id)
+        public async Task<IEnumerable<Course?>> GetByCreatorId(Guid id, CancellationToken ct = default)
         {
             return await _dbSet.Include(c => c.Sections)
                                .ThenInclude(s => s.Topics)
                                .Where(c => c.CreatorId == id)
-                               .ToListAsync();
+                               .ToListAsync(ct);
         }
 
         public async Task<List<Course>> GetByIdsAsync(IEnumerable<string> courseIds, CancellationToken ct = default)

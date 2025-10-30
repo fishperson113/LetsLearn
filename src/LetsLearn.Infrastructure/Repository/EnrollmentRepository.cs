@@ -55,7 +55,7 @@ namespace LetsLearn.Infrastructure.Repository
                 .ToListAsync(ct);
         }
 
-        public async Task DeleteByIdsAsync(Guid studentId, string courseId, CancellationToken ct = default)
+        public async Task DeleteByStudentIdAndCourseIdAsync(Guid studentId, string courseId, CancellationToken ct = default)
         {
             var enrollment = await GetByIdsAsync(studentId, courseId, ct);
             if (enrollment != null)

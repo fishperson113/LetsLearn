@@ -21,7 +21,7 @@ namespace LetsLearn.Core.Interfaces
         
         Task<List<Enrollment>> GetByStudentIdAndJoinDateLessThanEqualAsync(Guid studentId, DateTime date, CancellationToken ct = default);
 
-        Task DeleteByIdsAsync(Guid studentId, String courseId, CancellationToken ct = default);
+        Task DeleteByStudentIdAndCourseIdAsync(Guid studentId, String courseId, CancellationToken ct = default);
 
         Task<List<Enrollment>> GetByStudentId(Guid studentId, CancellationToken ct = default);
     }

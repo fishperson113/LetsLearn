@@ -256,11 +256,13 @@ namespace LetsLearn.UseCases.Services.CourseSer
                 {
                     if (string.IsNullOrEmpty(type) || type.Equals(topicSection.Type, StringComparison.OrdinalIgnoreCase))
                     {
-                        object? topicData = await GetTopicDataByTypeAsync(topicSection.Id, userId, start, end, ct);
+                        var topicData = await GetTopicDataByTypeAsync(topicSection.Id, userId, start, end, ct);
                         if (topicData != null)
                         {
                             var topicDTO = ToDTO(topicSection);
                             topicDTO.Data = topicData;
+                            //topicDTO.Data = topicData.Item;
+                            //topicDTO.Response = topicData.Response;
                             result.Add(topicDTO);
                         }
                     }
@@ -270,7 +272,7 @@ namespace LetsLearn.UseCases.Services.CourseSer
             return result;
         }
 
-        public async Task<object?> GetTopicDataByTypeAsync(Guid topicId, Guid userId, DateTime? start, DateTime? end, CancellationToken ct = default)
+        public async Task<object?> GetTopicDataByTypeAsync(Guid topicId, Guid userId, DateTime? start, DateTime? end, CancellationToken ct = default) //TopicDataDTO
         {
             // Lấy thông tin topic theo loại
             var topic = await _uow.Topics.GetByIdAsync(topicId, ct);
@@ -278,6 +280,8 @@ namespace LetsLearn.UseCases.Services.CourseSer
             {
                 throw new KeyNotFoundException("Topic not found");
             }
+
+            // TopicDataDTO? topicData = null;
 
             object? topicData = null;
 
@@ -288,7 +292,11 @@ namespace LetsLearn.UseCases.Services.CourseSer
                     if (quiz != null && (end == null || quiz.Close < end))
                     {
                         //var responses = await _uow.QuizResponses.GetByTopicIdAndStudentIdAsync(quiz.TopicId, userId, ct);
-                        //topicData = new { quiz, responses };
+                        //topicData = new TopicDataDTO
+                        //{
+                        //    Item = quiz,
+                        //    Response = responses
+                        //};
                         topicData = new { quiz };
                     }
                     break;
@@ -298,20 +306,16 @@ namespace LetsLearn.UseCases.Services.CourseSer
                     if (assignment != null && (end == null || assignment.Close < end))
                     {
                         //var response = await _uow.AssignmentResponse.GetByTopicIdAndStudentIdAsync(assignment.TopicId, userId, ct);
-                        //topicData = new { assignment, response };
+                        //topicData = new TopicDataDTO
+                        //{
+                        //    Item = assignment,
+                        //    Response = response
+                        //};
                         topicData = new { assignment };
                     }
                     break;
 
                 case "meeting":
-                    //var meeting = await _uow.TopicMeetings.GetByTopicIdAsync(topicId, ct);
-                    //if (meeting != null && (start == null || DateTime.Parse(meeting.Open) > start))
-                    //{
-                    //    topicData = meeting;
-                    //}
-                    //break;
-
-                // Các loại khác có thể bỏ qua hoặc xử lý thêm tùy theo yêu cầu
                 case "file":
                 case "link":
                 case "page":
@@ -373,100 +377,5 @@ namespace LetsLearn.UseCases.Services.CourseSer
                 // Add any other properties of Topic to map to TopicDTO
             };
         }
-
-        //private static TopicDTO MapTopicToDto(Topic t)
-        //{
-        //    return new TopicDTO
-        //    {
-        //        Id = t.Id,
-        //        Type = t.Type,
-        //    };
-        //}
-
-        //private static List<SingleQuizReportDTO.StudentInfoAndMark> CalculateAverageStudentScoreForQuizzes(List<SingleQuizReportDTO> singleQuizReports)
-        //{
-        //    var scoreMap = new Dictionary<Guid, List<double>>();
-        //    var latestInfo = new Dictionary<Guid, SingleQuizReportDTO.StudentInfoAndMark>();
-
-        //    foreach (var rep in singleQuizReports)
-        //    {
-        //        if (rep.StudentWithMark == null) continue;
-        //        foreach (var info in rep.StudentWithMark)
-        //        {
-        //            if (info.Student == null || !info.Submitted || info.Mark == null) continue;
-        //            var studentId = info.Student.Id;
-        //            if (!scoreMap.TryGetValue(studentId, out var list))
-        //            {
-        //                list = new List<double>();
-        //                scoreMap[studentId] = list;
-        //            }
-        //            list.Add(info.Mark.Value);
-        //            latestInfo[studentId] = info;
-        //        }
-        //    }
-
-        //    return scoreMap.Select(kv =>
-        //    {
-        //        var studentId = kv.Key;
-        //        var scores = kv.Value;
-        //        var avg = scores.Count > 0 ? scores.Average() : 0.0;
-        //        var src = latestInfo[studentId];
-        //        return new SingleQuizReportDTO.StudentInfoAndMark
-        //        {
-        //            Student = src.Student,
-        //            Submitted = src.Submitted,
-        //            ResponseId = src.ResponseId,
-        //            Mark = avg
-        //        };
-        //    }).ToList();
-        //}
-
-        //private static List<AllAssignmentsReportDTO.StudentInfoWithAverageMark> CalculateAverageStudentScoreForAssignments(List<SingleAssignmentReportDTO> singleAssignmentReports)
-        //{
-        //    var scoreMap = new Dictionary<Guid, List<double>>();
-        //    var latestInfo = new Dictionary<Guid, SingleAssignmentReportDTO.StudentInfoAndMark>();
-
-        //    foreach (var rep in singleAssignmentReports)
-        //    {
-        //        if (rep.StudentMarks == null) continue;
-        //        foreach (var info in rep.StudentMarks)
-        //        {
-        //            if (info.Student == null || !info.Submitted || info.Mark == null) continue;
-        //            var studentId = info.Student.Id;
-        //            if (!scoreMap.TryGetValue(studentId, out var list))
-        //            {
-        //                list = new List<double>();
-        //                scoreMap[studentId] = list;
-        //            }
-        //            list.Add(info.Mark.Value);
-        //            latestInfo[studentId] = info;
-        //        }
-        //    }
-
-        //    return scoreMap.Select(kv =>
-        //    {
-        //        var studentId = kv.Key;
-        //        var scores = kv.Value;
-        //        var avg = scores.Count > 0 ? scores.Average() : 0.0;
-        //        var src = latestInfo[studentId];
-        //        return new AllAssignmentsReportDTO.StudentInfoWithAverageMark(src.Student, avg, src.Submitted);
-        //    }).ToList();
-        //}
-
-        //private static Dictionary<object, object> MergeMarkDistributionCount(List<Dictionary<object, object>> list)
-        //{
-        //    var keys = new object[] { -1, 0, 2, 5, 8 };
-        //    var acc = keys.ToDictionary(k => (object)k, k => (object)0);
-
-        //    foreach (var dict in list.Where(x => x != null))
-        //    {
-        //        foreach (var k in keys)
-        //        {
-        //            var v = dict.TryGetValue(k, out var val) ? Convert.ToInt32(val) : 0;
-        //            acc[k] = Convert.ToInt32(acc[k]) + v;
-        //        }
-        //    }
-        //    return acc;
-        //}
     }
 }
