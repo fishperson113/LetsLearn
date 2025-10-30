@@ -228,13 +228,13 @@ namespace LetsLearn.UseCases.Services.CourseSer
         public async Task<List<TopicDTO>> GetAllWorksOfCourseAndUserAsync(String courseId, Guid userId, string type, DateTime? start, DateTime? end, CancellationToken ct = default)
         {
             // Kiểm tra nếu chỉ có start hoặc end được cung cấp
-            if ((start != null || end != null) && (start == null || end == null))
+            if (start.HasValue ^ end.HasValue) // XOR
             {
                 throw new ArgumentException("Provide start and end time!");
             }
 
             // Kiểm tra nếu start sau end
-            if (start != null && start > end)
+            if (start.HasValue && end.HasValue && start > end)
             {
                 throw new ArgumentException("Start time must be after end time");
             }
@@ -256,11 +256,11 @@ namespace LetsLearn.UseCases.Services.CourseSer
                 {
                     if (string.IsNullOrEmpty(type) || type.Equals(topicSection.Type, StringComparison.OrdinalIgnoreCase))
                     {
-                        object? topicData = await GetTopicDataByTypeAsync(topicSection.Id, userId, type, start, end, ct);
+                        object? topicData = await GetTopicDataByTypeAsync(topicSection.Id, userId, start, end, ct);
                         if (topicData != null)
                         {
                             var topicDTO = ToDTO(topicSection);
-                            topicDTO.Data = JsonSerializer.Serialize(topicData);
+                            topicDTO.Data = topicData;
                             result.Add(topicDTO);
                         }
                     }
@@ -270,7 +270,7 @@ namespace LetsLearn.UseCases.Services.CourseSer
             return result;
         }
 
-        public async Task<object?> GetTopicDataByTypeAsync(Guid topicId, Guid userId, string? type, DateTime? start, DateTime? end, CancellationToken ct = default)
+        public async Task<object?> GetTopicDataByTypeAsync(Guid topicId, Guid userId, DateTime? start, DateTime? end, CancellationToken ct = default)
         {
             // Lấy thông tin topic theo loại
             var topic = await _uow.Topics.GetByIdAsync(topicId, ct);

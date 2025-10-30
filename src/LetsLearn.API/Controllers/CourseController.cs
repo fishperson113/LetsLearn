@@ -163,7 +163,7 @@ namespace LetsLearn.API.Controllers
 
                 await _courseService.AddUserToCourseAsync(id, userId, ct);
 
-                return NoContent(); 
+                return NoContent();
             }
             catch (KeyNotFoundException knfEx)
             {
@@ -173,6 +173,27 @@ namespace LetsLearn.API.Controllers
             {
                 return BadRequest(new { message = ex.Message });
             }
+        }
+
+        [HttpGet("{id}/work")]
+        public async Task<ActionResult<TopicDTO>> GetWorksOfCourseAndUser(String id,
+            [FromQuery] string type,
+            [FromQuery] DateTime? start,
+            [FromQuery] DateTime? end,
+            CancellationToken ct = default)
+        {
+            // Nếu start hoặc end có giá trị, chuyển đổi thời gian sang giờ GMT+7
+            //if (start.HasValue)
+            //    start = TimeUtils.ConvertDateToGMT7Date(start.Value);
+            //if (end.HasValue)
+            //    end = TimeUtils.ConvertDateToGMT7Date(end.Value);
+
+            var userId = Guid.Parse(User.Claims.First(c => c.Type == "userID").Value);
+
+            var result = await _courseService.GetAllWorksOfCourseAndUserAsync(id, userId, type, start, end, ct);
+
+            // Trả về kết quả dưới dạng JSON
+            return Ok(result);
         }
     }
 }
