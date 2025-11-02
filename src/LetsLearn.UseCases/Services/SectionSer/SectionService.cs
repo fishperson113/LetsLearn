@@ -1,5 +1,7 @@
 ﻿using LetsLearn.Core.Entities;
+using LetsLearn.Core.Interfaces;
 using LetsLearn.UseCases.DTOs;
+using LetsLearn.UseCases.ServiceInterfaces;
 using LetsLearn.UseCases.Services;
 using System;
 using System.Collections.Generic;
@@ -7,13 +9,14 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
-using LetsLearn.Core.Interfaces;
 
 namespace LetsLearn.UseCases.Services.SectionSer
 {
     public class SectionService : ISectionService
     {
         private readonly IUnitOfWork _uow;
+        //private readonly ITopicService _topicService;
+
         public SectionService(IUnitOfWork uow)
         {
             _uow = uow;
@@ -127,7 +130,7 @@ namespace LetsLearn.UseCases.Services.SectionSer
             Topics = s.Topics.Select(MapToTopicDTO).ToList()
         };
 
-        private static TopicDTO MapToTopicDTO(Topic t) => new()
+        private static TopicResponse MapToTopicDTO(Topic t) => new()
         {
             Id = t.Id,
             SectionId = t.SectionId,

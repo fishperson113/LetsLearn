@@ -10,5 +10,7 @@ namespace LetsLearn.Core.Interfaces
     public interface ITopicAssignmentRepository : IRepository<TopicAssignment>
     {
         Task UpdateAsync(TopicAssignment topic);
+        Task<List<TopicAssignment>> GetAssignmentsByCourseIdAndDateRangeAsync(Guid courseId, DateTime startTime, DateTime endTime, CancellationToken ct = default);
+
     }
 }

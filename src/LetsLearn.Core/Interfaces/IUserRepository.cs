@@ -10,7 +10,8 @@ namespace LetsLearn.Core.Interfaces
     public interface IUserRepository : IRepository<User>
     {
         Task<User?> GetByEmailAsync(string email, CancellationToken ct = default);
-        //Task<User?> GetUserWithCoursesAsync(Guid userId);
         Task<List<User>> GetAllUsersWithRolesAsync();
+        Task<User?> GetByIdWithEnrollmentsAsync(Guid id, CancellationToken ct = default);
+
     }
 }

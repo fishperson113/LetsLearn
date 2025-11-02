@@ -1,24 +1,31 @@
 ﻿using LetsLearn.Core.Entities;
 using LetsLearn.Core.Interfaces;
+using LetsLearn.Infrastructure.UnitOfWork;
 using LetsLearn.UseCases.DTOs;
+using LetsLearn.UseCases.ServiceInterfaces;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
 
 namespace LetsLearn.UseCases.Services.CourseSer
 {
     public class CourseService : ICourseService
     {
         private readonly IUnitOfWork _uow;
+        private readonly ITopicService _topicService;
+
         private static readonly DateTime MIN = DateTime.SpecifyKind(DateTime.MinValue.AddYears(1), DateTimeKind.Utc);
         private static readonly DateTime MAX = DateTime.SpecifyKind(DateTime.MaxValue.AddYears(-1), DateTimeKind.Utc);
 
-        public CourseService(IUnitOfWork uow)
+        public CourseService(IUnitOfWork uow, ITopicService topicService)
         {
             _uow = uow;
+            _topicService = topicService;
         }
 
         // =============== CREATE / UPDATE ===============
@@ -52,10 +59,26 @@ namespace LetsLearn.UseCases.Services.CourseSer
                 Price = dto.Price,
                 IsPublished = dto.IsPublished ?? false,
                 CreatorId = userId,
-                TotalJoined = 0
+                TotalJoined = 1
             };
 
             await _uow.Course.AddAsync(course);
+
+            DateTime utcNow = DateTime.UtcNow;
+
+            TimeZoneInfo gmtPlus7 = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+
+            DateTime gmtPlus7Time = TimeZoneInfo.ConvertTimeFromUtc(utcNow, gmtPlus7);
+
+            var enrollment = new Enrollment
+            {
+                StudentId = userId,
+                CourseId = course.Id,
+                JoinDate = DateTime.SpecifyKind(gmtPlus7Time, DateTimeKind.Utc)
+            };
+
+            await _uow.Enrollments.AddAsync(enrollment);
+
             try
             {
                 await _uow.CommitAsync();
@@ -76,8 +99,7 @@ namespace LetsLearn.UseCases.Services.CourseSer
                 Price = course.Price,
                 Category = course.Category,
                 Level = course.Level,
-                IsPublished = course.IsPublished,
-                // Sections = null (chưa load)
+                IsPublished = course.IsPublished
             };
         }
 
@@ -150,7 +172,12 @@ namespace LetsLearn.UseCases.Services.CourseSer
             var userExists = await _uow.Users.ExistsAsync(u => u.Id == userId, ct);
             if (!userExists) throw new KeyNotFoundException("User not found.");
 
-            var courses = await _uow.Course.GetByCreatorId(userId);
+            var enrollments = await _uow.Enrollments.GetByStudentId(userId, ct);
+
+            var courseIds = enrollments.Select(e => e.CourseId).Distinct();
+
+            var courses = await _uow.Course.GetByIdsAsync(courseIds);
+
             return courses.Where(c => c != null).Select(c => MapToResponse(c!)).ToList();
         }
 
@@ -163,6 +190,143 @@ namespace LetsLearn.UseCases.Services.CourseSer
             var course = await _uow.Course.GetByIdAsync(id, ct)
                          ?? throw new KeyNotFoundException("Course not found.");
             return MapToResponse(course);
+        }
+
+        public async Task AddUserToCourseAsync(String courseId, Guid userId, CancellationToken ct = default)
+        {
+            var course = await _uow.Course.GetByIdAsync(courseId, ct)
+                             ?? throw new KeyNotFoundException("Course not found.");
+
+            var user = await _uow.Users.GetByIdAsync(userId, ct)
+                            ?? throw new KeyNotFoundException("User not found.");
+
+            var enrollmentExists = await _uow.Enrollments.ExistsAsync(e => e.CourseId == courseId && e.StudentId == userId, ct);
+            if (enrollmentExists)
+                throw new InvalidOperationException("User is already enrolled in this course.");
+
+            var enrollment = new Enrollment
+            {
+                StudentId = userId,
+                CourseId = courseId,
+                JoinDate = DateTime.UtcNow
+            };
+
+            await _uow.Enrollments.AddAsync(enrollment);
+
+            course.TotalJoined += 1;
+
+            try
+            {
+                await _uow.CommitAsync();
+            }
+            catch (DbUpdateException ex)
+            {
+                throw new InvalidOperationException("Failed to add user to course.", ex);
+            }
+        }
+
+        public async Task<List<TopicDTO>> GetAllWorksOfCourseAndUserAsync(String courseId, Guid userId, string type, DateTime? start, DateTime? end, CancellationToken ct = default)
+        {
+            // Kiểm tra nếu chỉ có start hoặc end được cung cấp
+            if (start.HasValue ^ end.HasValue) // XOR
+            {
+                throw new ArgumentException("Provide start and end time!");
+            }
+
+            // Kiểm tra nếu start sau end
+            if (start.HasValue && end.HasValue && start > end)
+            {
+                throw new ArgumentException("Start time must be after end time");
+            }
+
+            // Lấy thông tin khóa học
+            var course = await _uow.Course.GetByIdAsync(courseId, ct);
+            if (course == null)
+            {
+                throw new KeyNotFoundException("Course not found");
+            }
+
+            var result = new List<TopicDTO>();
+
+            // Duyệt qua tất cả các sections trong khóa học
+            foreach (var courseSection in course.Sections)
+            {
+                // Duyệt qua các topics trong từng section
+                foreach (var topicSection in courseSection.Topics)
+                {
+                    if (string.IsNullOrEmpty(type) || type.Equals(topicSection.Type, StringComparison.OrdinalIgnoreCase))
+                    {
+                        var topicData = await GetTopicDataByTypeAsync(topicSection.Id, userId, start, end, ct);
+                        if (topicData != null)
+                        {
+                            var topicDTO = ToDTO(topicSection);
+                            topicDTO.Data = topicData;
+                            //topicDTO.Data = topicData.Item;
+                            //topicDTO.Response = topicData.Response;
+                            result.Add(topicDTO);
+                        }
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        public async Task<object?> GetTopicDataByTypeAsync(Guid topicId, Guid userId, DateTime? start, DateTime? end, CancellationToken ct = default) //TopicDataDTO
+        {
+            // Lấy thông tin topic theo loại
+            var topic = await _uow.Topics.GetByIdAsync(topicId, ct);
+            if (topic == null)
+            {
+                throw new KeyNotFoundException("Topic not found");
+            }
+
+            // TopicDataDTO? topicData = null;
+
+            object? topicData = null;
+
+            switch (topic.Type.ToLower())
+            {
+                case "quiz":
+                    var quiz = await _uow.TopicQuizzes.GetWithQuestionsAsync(topicId);
+                    if (quiz != null && (end == null || quiz.Close < end))
+                    {
+                        //var responses = await _uow.QuizResponses.GetByTopicIdAndStudentIdAsync(quiz.TopicId, userId, ct);
+                        //topicData = new TopicDataDTO
+                        //{
+                        //    Item = quiz,
+                        //    Response = responses
+                        //};
+                        topicData = new { quiz };
+                    }
+                    break;
+
+                case "assignment":
+                    var assignment = (await _uow.TopicAssignments.FindAsync(a => a.TopicId == topicId, ct)).FirstOrDefault();
+                    if (assignment != null && (end == null || assignment.Close < end))
+                    {
+                        //var response = await _uow.AssignmentResponse.GetByTopicIdAndStudentIdAsync(assignment.TopicId, userId, ct);
+                        //topicData = new TopicDataDTO
+                        //{
+                        //    Item = assignment,
+                        //    Response = response
+                        //};
+                        topicData = new { assignment };
+                    }
+                    break;
+
+                case "meeting":
+                case "file":
+                case "link":
+                case "page":
+                    // Không xử lý các loại này
+                    break;
+
+                default:
+                    throw new NotSupportedException($"Topic type {topic.Type} is not supported.");
+            }
+
+            return topicData;
         }
 
         // =============== Helpers (mapping & utils) ===============
@@ -184,103 +348,34 @@ namespace LetsLearn.UseCases.Services.CourseSer
                 Category = c.Category,
                 Level = c.Level,
                 IsPublished = c.IsPublished,
-                // Sections = null (chưa load)
+                Sections = c.Sections?.Select(s => new SectionResponse
+                {
+                    Id = s.Id,
+                    CourseId = c.Id,
+                    Position = s.Position,
+                    Title = s.Title,
+                    Description = s.Description,
+                    Topics = s.Topics?.Select(t => new TopicResponse
+                    {
+                        Id = t.Id,
+                        Title = t.Title,
+                        SectionId = t.SectionId,
+                        Type = t.Type
+                    }).ToList() ?? new List<TopicResponse>()
+                }).ToList()
             };
         }
 
-        //private static TopicDTO MapTopicToDto(Topic t)
-        //{
-        //    return new TopicDTO
-        //    {
-        //        Id = t.Id,
-        //        Type = t.Type,
-        //    };
-        //}
-
-        //private static List<SingleQuizReportDTO.StudentInfoAndMark> CalculateAverageStudentScoreForQuizzes(List<SingleQuizReportDTO> singleQuizReports)
-        //{
-        //    var scoreMap = new Dictionary<Guid, List<double>>();
-        //    var latestInfo = new Dictionary<Guid, SingleQuizReportDTO.StudentInfoAndMark>();
-
-        //    foreach (var rep in singleQuizReports)
-        //    {
-        //        if (rep.StudentWithMark == null) continue;
-        //        foreach (var info in rep.StudentWithMark)
-        //        {
-        //            if (info.Student == null || !info.Submitted || info.Mark == null) continue;
-        //            var studentId = info.Student.Id;
-        //            if (!scoreMap.TryGetValue(studentId, out var list))
-        //            {
-        //                list = new List<double>();
-        //                scoreMap[studentId] = list;
-        //            }
-        //            list.Add(info.Mark.Value);
-        //            latestInfo[studentId] = info;
-        //        }
-        //    }
-
-        //    return scoreMap.Select(kv =>
-        //    {
-        //        var studentId = kv.Key;
-        //        var scores = kv.Value;
-        //        var avg = scores.Count > 0 ? scores.Average() : 0.0;
-        //        var src = latestInfo[studentId];
-        //        return new SingleQuizReportDTO.StudentInfoAndMark
-        //        {
-        //            Student = src.Student,
-        //            Submitted = src.Submitted,
-        //            ResponseId = src.ResponseId,
-        //            Mark = avg
-        //        };
-        //    }).ToList();
-        //}
-
-        //private static List<AllAssignmentsReportDTO.StudentInfoWithAverageMark> CalculateAverageStudentScoreForAssignments(List<SingleAssignmentReportDTO> singleAssignmentReports)
-        //{
-        //    var scoreMap = new Dictionary<Guid, List<double>>();
-        //    var latestInfo = new Dictionary<Guid, SingleAssignmentReportDTO.StudentInfoAndMark>();
-
-        //    foreach (var rep in singleAssignmentReports)
-        //    {
-        //        if (rep.StudentMarks == null) continue;
-        //        foreach (var info in rep.StudentMarks)
-        //        {
-        //            if (info.Student == null || !info.Submitted || info.Mark == null) continue;
-        //            var studentId = info.Student.Id;
-        //            if (!scoreMap.TryGetValue(studentId, out var list))
-        //            {
-        //                list = new List<double>();
-        //                scoreMap[studentId] = list;
-        //            }
-        //            list.Add(info.Mark.Value);
-        //            latestInfo[studentId] = info;
-        //        }
-        //    }
-
-        //    return scoreMap.Select(kv =>
-        //    {
-        //        var studentId = kv.Key;
-        //        var scores = kv.Value;
-        //        var avg = scores.Count > 0 ? scores.Average() : 0.0;
-        //        var src = latestInfo[studentId];
-        //        return new AllAssignmentsReportDTO.StudentInfoWithAverageMark(src.Student, avg, src.Submitted);
-        //    }).ToList();
-        //}
-
-        //private static Dictionary<object, object> MergeMarkDistributionCount(List<Dictionary<object, object>> list)
-        //{
-        //    var keys = new object[] { -1, 0, 2, 5, 8 };
-        //    var acc = keys.ToDictionary(k => (object)k, k => (object)0);
-
-        //    foreach (var dict in list.Where(x => x != null))
-        //    {
-        //        foreach (var k in keys)
-        //        {
-        //            var v = dict.TryGetValue(k, out var val) ? Convert.ToInt32(val) : 0;
-        //            acc[k] = Convert.ToInt32(acc[k]) + v;
-        //        }
-        //    }
-        //    return acc;
-        //}
+        public static TopicDTO ToDTO(Topic topic)
+        {
+            return new TopicDTO
+            {
+                Id = topic.Id,
+                Title = topic.Title,
+                Type = topic.Type,
+                SectionId = topic.SectionId,
+                // Add any other properties of Topic to map to TopicDTO
+            };
+        }
     }
 }

@@ -53,7 +53,8 @@ namespace LetsLearn.Infrastructure.Data
                 .HasKey(e => new { e.StudentId, e.CourseId });
                 
             modelBuilder.Entity<Enrollment>()
-                .HasOne<User>().WithMany()
+                .HasOne<User>()
+                .WithMany(u => u.Enrollments)
                 .HasForeignKey(e => e.StudentId)
                 .OnDelete(DeleteBehavior.Restrict);
 

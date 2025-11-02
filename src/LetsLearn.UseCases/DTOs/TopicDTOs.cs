@@ -22,11 +22,11 @@ namespace LetsLearn.UseCases.DTOs
 
         public string? Type { get; set; }
 
-        public string? Data { get; set; }
+        public Object? Data { get; set; }
 
         public int? StudentCount { get; set; }
 
-        public string? Response { get; set; }
+        public Object? Response { get; set; }
 
         public GetCourseResponse? Course { get; set; }
     }
@@ -292,4 +292,11 @@ namespace LetsLearn.UseCases.DTOs
         public int MultipleChoiceQuestionCount { get; set; }
         public int ShortAnswerQuestionCount { get; set; }
     }
+
+    public class TopicDataDTO
+    {
+        public object? Item { get; set; }       // quiz or assignment
+        public object? Response { get; set; }   // response
+    }
+
 }

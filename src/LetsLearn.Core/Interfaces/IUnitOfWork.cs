@@ -27,6 +27,8 @@ namespace LetsLearn.Core.Interfaces
         IRepository<AssignmentResponse> AssignmentResponses { get; }
         IRepository<TopicQuizQuestion> TopicQuizQuestions { get; }
         IRepository<TopicQuizQuestionChoice> TopicQuizQuestionChoices { get; }
+
+        IEnrollmentRepository Enrollments { get; }
         Task<int> CommitAsync();
     }
 }

@@ -54,10 +54,39 @@ namespace LetsLearn.API.Controllers
         }
 
         [HttpGet("{id:guid}")]
-        public async Task<IActionResult> GetUserInformation(Guid id)
+        public async Task<IActionResult> GetUserInformation(Guid id, CancellationToken ct)
         {
-            var user = await _userService.GetByIdAsync(id);
+            var user = await _userService.GetByIdAsync(id, ct);
             return Ok(user);
+        }
+
+        [HttpGet("work")]
+        public async Task<ActionResult<List<TopicDTO>>> GetAllWorksOfUser(
+            [FromQuery] string? type,
+            [FromQuery] String? courseId,
+            [FromQuery] DateTime? start,
+            [FromQuery] DateTime? end,
+            CancellationToken ct = default)
+        {
+            //if (start.HasValue) start = ConvertToGMT7(start.Value);
+            //if (end.HasValue) end = ConvertToGMT7(end.Value);
+
+            var userId = Guid.Parse(User.Claims.First(c => c.Type == "userID").Value);
+
+            var result = await _userService.GetAllWorksOfUserAsync(userId, type, start, end, ct);
+
+            return Ok(result);
+        }
+
+        [HttpDelete("leave")]
+        public async Task<IActionResult> LeaveCourse([FromQuery] string courseId, CancellationToken ct)
+        {
+            // Lấy userId từ JWT token
+            var userId = Guid.Parse(User.Claims.First(c => c.Type == "userID").Value);
+
+            await _userService.LeaveCourseAsync(userId, courseId, ct);
+
+            return NoContent();
         }
     }
 }

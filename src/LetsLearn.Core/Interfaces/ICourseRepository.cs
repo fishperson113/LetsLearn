@@ -11,7 +11,8 @@ namespace LetsLearn.Core.Interfaces
     {
         Task<Course?> GetByIdAsync(string id, CancellationToken ct = default);
         Task<IEnumerable<Course?>> GetAllCoursesByIsPublishedTrue();
-        Task <IEnumerable<Course?>> GetByCreatorId(Guid Id);
+        Task <IEnumerable<Course?>> GetByCreatorId(Guid Id, CancellationToken ct = default);
         Task<bool> ExistByTitle(string title);
+        Task<List<Course>> GetByIdsAsync(IEnumerable<string> courseIds, CancellationToken ct = default);
     }
 }

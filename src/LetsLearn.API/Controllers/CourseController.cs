@@ -35,14 +35,14 @@ namespace LetsLearn.API.Controllers
         /// </summary>
         [HttpGet]
         [AllowAnonymous]
-        public async Task<ActionResult<List<GetCourseResponse>>> Get([FromQuery] Guid? userId, CancellationToken ct)
+        public async Task<ActionResult<List<GetCourseResponse>>> GetAllCoursesByUserId([FromQuery] Guid? userId, CancellationToken ct)
         {
             try
             {
                 if (userId.HasValue && userId.Value != Guid.Empty)
                 {
-                    var byCreator = await _courseService.GetAllByUserIdAsync(userId.Value, ct);
-                    return Ok(byCreator);
+                    var coursesByUser = await _courseService.GetAllByUserIdAsync(userId.Value, ct);
+                    return Ok(coursesByUser);
                 }
 
                 var publics = await _courseService.GetAllPublicAsync(ct);
@@ -149,6 +149,51 @@ namespace LetsLearn.API.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
-    }
 
+        /// <summary>
+        /// PATCH /api/course/{id}/join
+        /// Join course with given id.
+        /// </summary>
+        [HttpPatch("{id}/join")]
+        public async Task<IActionResult> JoinCourse(String id, CancellationToken ct)
+        {
+            try
+            {
+                var userId = Guid.Parse(User.Claims.First(c => c.Type == "userID").Value);
+
+                await _courseService.AddUserToCourseAsync(id, userId, ct);
+
+                return NoContent();
+            }
+            catch (KeyNotFoundException knfEx)
+            {
+                return NotFound(new { message = knfEx.Message });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpGet("{id}/work")]
+        public async Task<ActionResult<TopicDTO>> GetWorksOfCourseAndUser(String id,
+            [FromQuery] string type,
+            [FromQuery] DateTime? start,
+            [FromQuery] DateTime? end,
+            CancellationToken ct = default)
+        {
+            // Nếu start hoặc end có giá trị, chuyển đổi thời gian sang giờ GMT+7
+            //if (start.HasValue)
+            //    start = TimeUtils.ConvertDateToGMT7Date(start.Value);
+            //if (end.HasValue)
+            //    end = TimeUtils.ConvertDateToGMT7Date(end.Value);
+
+            var userId = Guid.Parse(User.Claims.First(c => c.Type == "userID").Value);
+
+            var result = await _courseService.GetAllWorksOfCourseAndUserAsync(id, userId, type, start, end, ct);
+
+            // Trả về kết quả dưới dạng JSON
+            return Ok(result);
+        }
+    }
 }
