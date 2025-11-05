@@ -17,6 +17,10 @@ namespace LetsLearn.Core.Interfaces
         IConversationRepository Conversations { get; }
         IQuestionRepository Questions { get; }
         IQuestionChoiceRepository QuestionChoices { get; }
+        ICommentRepository Comments { get; }
+        IAssignmentResponseRepository AssignmentResponses { get; }
+        IQuizResponseRepository QuizResponses { get; }
+        IQuizResponseAnswerRepository QuizResponseAnswers { get; }
         ISectionRepository Sections { get; }
         ITopicRepository Topics { get; }
         ITopicPageRepository TopicPages { get; }
@@ -24,7 +28,6 @@ namespace LetsLearn.Core.Interfaces
         ITopicLinkRepository TopicLinks { get; }
         ITopicQuizRepository TopicQuizzes { get; }
         ITopicAssignmentRepository TopicAssignments { get; }
-        IRepository<AssignmentResponse> AssignmentResponses { get; }
         IRepository<TopicQuizQuestion> TopicQuizQuestions { get; }
         IRepository<TopicQuizQuestionChoice> TopicQuizQuestionChoices { get; }
 

@@ -56,64 +56,26 @@ namespace LetsLearn.UseCases.Services.Auth
         // - catch (inner) around ValidateToken: +1
         // - if stored token invalid/expired (with two ||): if +1, two logical operators || +2
         // D = 6 => Minimum Test Cases = D + 1 = 7
-        public async Task<JwtTokenResponse> RefreshTokenAsync(HttpContext context)
+        public async Task RefreshTokenAsync(HttpContext context)
         {
-            var authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
-            if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
-            {
-                throw new SecurityTokenException("Refresh token is missing or invalid!");
-            }
+            var refreshToken = _tokenService.GetToken(context, isAccessToken: false);
+            if (string.IsNullOrEmpty(refreshToken))
+                throw new Exception("Refresh token is missing!");
 
-            var refreshToken = authHeader.Substring("Bearer ".Length).Trim();
+            var userPrincipal = _tokenService.ValidateToken(refreshToken, isAccessToken: false);
 
-            // Xác thực token (dùng TokenService nếu cần, nhưng AddJwtBearer sẽ xử lý)
-            ClaimsPrincipal userPrincipal;
-            try
-            {
-                userPrincipal = _tokenService.ValidateToken(refreshToken, isAccessToken: false);
-            }
-            catch (Microsoft.IdentityModel.Tokens.SecurityTokenException ex)
-            {
-                throw new Microsoft.IdentityModel.Tokens.SecurityTokenException("Invalid refresh token format!", ex);
-            }
-            catch (ArgumentException ex)
-            {
-                throw new Microsoft.IdentityModel.Tokens.SecurityTokenException("Invalid refresh token format!", ex);
-            }
-            var idClaim = userPrincipal.Claims.FirstOrDefault(c => c.Type == "userID");
-            var roleClaim = userPrincipal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role);
-            if (idClaim == null || roleClaim == null)
-            {
-                throw new SecurityTokenException("Required claims are missing in refresh token.");
-            }
-            var userId = Guid.Parse(idClaim.Value);
-            var role = roleClaim.Value;
+            var userId = Guid.Parse(userPrincipal.Claims.First(c => c.Type == "userID").Value);
+            var role = userPrincipal.Claims.First(c => c.Type == ClaimTypes.Role).Value;
 
-            var storedToken = await _unitOfWork.RefreshTokens.GetByTokenAsync(refreshToken);
+            var storedToken = await ((RefreshTokenRepository)_unitOfWork.RefreshTokens).GetByUserIdAsync(userId);
             if (storedToken == null || storedToken.Token != refreshToken || storedToken.ExpiryDate < DateTime.UtcNow)
             {
                 throw new SecurityTokenException("Invalid or expired refresh token!");
             }
 
-            await _unitOfWork.RefreshTokens.DeleteAsync(storedToken);
-
             var newAccessToken = _tokenService.CreateAccessToken(userId, role);
             var newRefreshToken = await CreateAndStoreRefreshTokenAsync(userId, role);
-
-            try
-            {
-                await _unitOfWork.CommitAsync();
-            }
-            catch (DbUpdateException ex)
-            {
-                throw new InvalidOperationException("Failed to persist refreshed tokens.", ex);
-            }
-
-            return new JwtTokenResponse
-            {
-                AccessToken = newAccessToken,
-                RefreshToken = newRefreshToken
-            };
+            _tokenService.SetTokenCookies(context, newAccessToken, newRefreshToken);
         }
     }
 }

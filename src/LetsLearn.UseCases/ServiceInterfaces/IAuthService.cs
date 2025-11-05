@@ -10,10 +10,10 @@ namespace LetsLearn.UseCases.ServiceInterfaces
 {
     public interface IAuthService
     {
-        Task<JwtTokenResponse> RegisterAsync(SignUpRequest request, HttpContext context);
+        Task RegisterAsync(SignUpRequest request, HttpContext context);
         Task<JwtTokenResponse> LoginAsync(AuthRequest request, HttpContext context);
-        Task<JwtTokenResponse> RefreshAsync(HttpContext httpContext);
+        Task RefreshAsync(HttpContext httpContext);
         Task UpdatePasswordAsync(UpdatePassword request, Guid userId);
-        Task LogoutAsync(HttpContext context, Guid userId);
+        void Logout(HttpContext context);
     }
 }

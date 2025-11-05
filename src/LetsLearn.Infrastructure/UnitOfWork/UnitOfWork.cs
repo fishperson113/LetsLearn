@@ -25,6 +25,11 @@ namespace LetsLearn.Infrastructure.UnitOfWork
         public IConversationRepository Conversations { get; private set; }
         public IQuestionRepository Questions { get; }
         public IQuestionChoiceRepository QuestionChoices { get; }
+        public ICommentRepository Comments { get; private set; }
+        public IAssignmentResponseRepository AssignmentResponses { get; private set; }
+        public IQuizResponseRepository QuizResponses { get; private set; }
+        public IQuizResponseAnswerRepository QuizResponseAnswers { get; private set; }
+
         public ISectionRepository Sections { get; private set; }
         public ITopicRepository Topics { get; private set; }
         public ITopicPageRepository TopicPages { get; private set; }
@@ -32,7 +37,6 @@ namespace LetsLearn.Infrastructure.UnitOfWork
         public ITopicLinkRepository TopicLinks { get; private set; }
         public ITopicQuizRepository TopicQuizzes { get; private set; }
         public ITopicAssignmentRepository TopicAssignments { get; private set; }
-        public IRepository<AssignmentResponse> AssignmentResponses { get; private set; }
         public IRepository<TopicQuizQuestion> TopicQuizQuestions { get; private set; }
         public IRepository<TopicQuizQuestionChoice> TopicQuizQuestionChoices { get; private set; }
         public IEnrollmentRepository Enrollments { get; private set; }
@@ -55,7 +59,10 @@ namespace LetsLearn.Infrastructure.UnitOfWork
             TopicAssignments = new TopicAssignmentRepository(_context);
             Questions = new QuestionRepository(_context);
             QuestionChoices = new QuestionChoiceRepository(_context);
-            AssignmentResponses = new GenericRepository<AssignmentResponse>(_context);
+            Comments = new CommentRepository(context);
+            AssignmentResponses = new AssignmentResponseRepository(_context);
+            QuizResponses = new QuizResponseRepository(_context);
+            QuizResponseAnswers = new QuizResponseAnswerRepository(_context);
             Enrollments = new EnrollmentRepository(_context);
         }
 

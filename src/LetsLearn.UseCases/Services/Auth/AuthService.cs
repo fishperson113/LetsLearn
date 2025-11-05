@@ -33,7 +33,7 @@ namespace LetsLearn.UseCases.Services.Auth
         // Decision points (D):
         // - if existingUser != null: +1
         // D = 1 => Minimum Test Cases = D + 1 = 2
-        public async Task<JwtTokenResponse> RegisterAsync(SignUpRequest request, HttpContext context)
+        public async Task RegisterAsync(SignUpRequest request, HttpContext context)
         {
             var existingUser = await _unitOfWork.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
             if (existingUser != null)
@@ -61,11 +61,7 @@ namespace LetsLearn.UseCases.Services.Auth
             var accessToken = _tokenService.CreateAccessToken(user.Id, user.Role);
             var refreshToken = await _refreshTokenService.CreateAndStoreRefreshTokenAsync(user.Id, user.Role);
 
-            return new JwtTokenResponse
-            {
-                AccessToken = accessToken,
-                RefreshToken = refreshToken
-            };
+            _tokenService.SetTokenCookies(context, accessToken, refreshToken);
         }
 
         // Test Case Estimation:
@@ -85,6 +81,8 @@ namespace LetsLearn.UseCases.Services.Auth
             var accessToken = _tokenService.CreateAccessToken(user.Id, user.Role);
             var refreshToken = await _refreshTokenService.CreateAndStoreRefreshTokenAsync(user.Id, user.Role);
 
+            _tokenService.SetTokenCookies(context, accessToken, refreshToken);
+
             return new JwtTokenResponse
             {
                 AccessToken = accessToken,
@@ -96,9 +94,9 @@ namespace LetsLearn.UseCases.Services.Auth
         // Decision points (D):
         // - Delegates to refresh service, no branching here: +0
         // D = 0 => Minimum Test Cases = D + 1 = 1
-        public async Task<JwtTokenResponse> RefreshAsync(HttpContext httpContext)
+        public async Task RefreshAsync(HttpContext httpContext)
         {
-            return await _refreshTokenService.RefreshTokenAsync(httpContext);
+            await _refreshTokenService.RefreshTokenAsync(httpContext);
         }
 
         // Test Case Estimation:
@@ -131,24 +129,9 @@ namespace LetsLearn.UseCases.Services.Auth
         // - if userId != Guid.Empty: +1
         // - if storedToken != null: +1
         // D = 2 => Minimum Test Cases = D + 1 = 3
-        public async Task LogoutAsync(HttpContext context, Guid userId)
+        public void Logout(HttpContext context)
         {
-            if (userId != Guid.Empty)
-            {
-                var storedToken = await _unitOfWork.RefreshTokens.GetByUserIdAsync(userId);
-                if (storedToken != null)
-                {
-                    await _unitOfWork.RefreshTokens.DeleteAsync(storedToken);
-                    try
-                    {
-                        await _unitOfWork.CommitAsync();
-                    }
-                    catch (DbUpdateException ex)
-                    {
-                        throw new InvalidOperationException("Failed to logout user.", ex);
-                    }
-                }
-            }
+            _tokenService.RemoveAllTokens(context);
         } 
 
         private static string HashPassword(string password)

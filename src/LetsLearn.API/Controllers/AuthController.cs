@@ -4,6 +4,7 @@ using LetsLearn.UseCases.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using LetsLearn.UseCases.Services.Auth;
 
 namespace LetsLearn.API.Controllers
 {
@@ -21,30 +22,36 @@ namespace LetsLearn.API.Controllers
         [HttpPost("signup")]
         public async Task<IActionResult> Register([FromBody] SignUpRequest request)
         {
-            var result = await _authService.RegisterAsync(request, HttpContext);
-            return Ok(result);
+            await _authService.RegisterAsync(request, HttpContext);
+            return Ok(new { message = "Successfully registered" });
         }
 
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] AuthRequest request)
         {
             var response = await _authService.LoginAsync(request, HttpContext);
-            return Ok(response); 
+            return Ok(response);
         }
 
         [HttpPost("refresh")]
         public async Task<IActionResult> Refresh()
         {
-                var response = await _authService.RefreshAsync(HttpContext);
-                return Ok(response);
+            try
+            {
+                await _authService.RefreshAsync(HttpContext);
+                return Ok(new { message = "Access token refreshed" });
+            }
+            catch (Exception ex)
+            {
+                return Unauthorized(new { message = ex.Message });
+            }
         }
 
         [HttpPost("logout")]
         [Authorize]
-        public async Task<IActionResult> Logout()
+        public IActionResult Logout()
         {
-            var userId = Guid.Parse(User.Claims.First(c => c.Type == "userID").Value);
-            await _authService.LogoutAsync(HttpContext,userId);
+            _authService.Logout(HttpContext);
             return Ok("Logged out successfully");
         }
 
