@@ -16,6 +16,9 @@ namespace LetsLearn.UseCases.Services.Auth
 {
     public class TokenService : ITokenService
     {
+        private readonly string AccessTokenCookie;
+        private readonly string RefreshTokenCookie;
+        private readonly string AuthPrefix;
         private readonly int AccessTokenExpireSeconds;             
         private readonly int RefreshTokenExpireSeconds;   
 
@@ -29,6 +32,9 @@ namespace LetsLearn.UseCases.Services.Auth
             _secretBytes = Encoding.UTF8.GetBytes(secretKey);
             AccessTokenExpireSeconds = int.Parse(config["Jwt:AccessTokenExpireSeconds"] ?? "3600");
             RefreshTokenExpireSeconds = int.Parse(config["Jwt:RefreshTokenExpireSeconds"] ?? "604800");
+            AccessTokenCookie = config["Jwt:AccessTokenCookie"] ?? "ACCESS_TOKEN";
+            RefreshTokenCookie = config["Jwt:RefreshTokenCookie"] ?? "REFRESH_TOKEN";
+            AuthPrefix = config["Jwt:AuthPrefix"] ?? "Bearer_";
         }
 
         // Test Case Estimation:
@@ -116,6 +122,43 @@ namespace LetsLearn.UseCases.Services.Auth
         public int GetRefreshTokenExpireSeconds()
         {
             return RefreshTokenExpireSeconds;
+        }
+
+        public void SetTokenCookies(HttpContext context, string accessToken, string refreshToken)
+        {
+            context.Response.Cookies.Append(AccessTokenCookie, AuthPrefix + accessToken, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                Path = "/",
+                Expires = DateTime.UtcNow.AddSeconds(AccessTokenExpireSeconds)
+            });
+
+            context.Response.Cookies.Append(RefreshTokenCookie, AuthPrefix + refreshToken, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                Path = "/",
+                Expires = DateTime.UtcNow.AddSeconds(RefreshTokenExpireSeconds)
+            });
+        }
+
+        public void RemoveAllTokens(HttpContext context)
+        {
+            context.Response.Cookies.Delete(AccessTokenCookie);
+            context.Response.Cookies.Delete(RefreshTokenCookie);
+        }
+
+        public string? GetToken(HttpContext context, bool isAccessToken)
+        {
+            var cookieName = isAccessToken ? AccessTokenCookie : RefreshTokenCookie;
+            if (!context.Request.Cookies.TryGetValue(cookieName, out var cookieValue))
+                throw new Exception("No authorization cookie!");
+
+            if (!cookieValue.StartsWith(AuthPrefix))
+                throw new Exception("Authorization cookie must start with '" + AuthPrefix + "'.");
+
+            return cookieValue.Substring(AuthPrefix.Length);
         }
     }
 }

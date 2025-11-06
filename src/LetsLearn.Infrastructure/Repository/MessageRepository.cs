@@ -15,7 +15,7 @@ namespace LetsLearn.Infrastructure.Repository
         public MessageRepository(LetsLearnContext context) : base(context)
         {
         }
-
+        
         public async Task<IEnumerable<Message>> GetMessagesByConversationIdAsync(Guid conversationId)
         {
             return await _dbSet

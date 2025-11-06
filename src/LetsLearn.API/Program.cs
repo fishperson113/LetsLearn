@@ -19,6 +19,10 @@ using Microsoft.IdentityModel.Tokens;
 using StackExchange.Redis;
 using System.Text;
 using LetsLearn.UseCases.ServiceInterfaces;
+using LetsLearn.UseCases.Services.CommentService;
+using LetsLearn.UseCases.Services.AssignmentResponseService;
+using LetsLearn.UseCases.Services.QuizResponseService;
+using LetsLearn.API.Middleware;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -26,21 +30,21 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddSingleton<TokenService>();
 
-// Add JWT Authentication
-builder.Services.AddAuthentication("Bearer")
-    .AddJwtBearer("Bearer", options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "auth0",
-            ValidateAudience = false,
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.ASCII.GetBytes(builder.Configuration["Jwt:Secret"] ?? "your-super-secret-key")),
-            ClockSkew = TimeSpan.FromMinutes(5)
-        };
-    });
+//// Add JWT Authentication
+//builder.Services.AddAuthentication("Bearer")
+//    .AddJwtBearer("Bearer", options =>
+//    {
+//        options.TokenValidationParameters = new TokenValidationParameters
+//        {
+//            ValidateIssuer = true,
+//            ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "auth0",
+//            ValidateAudience = false,
+//            ValidateIssuerSigningKey = true,
+//            IssuerSigningKey = new SymmetricSecurityKey(
+//                Encoding.ASCII.GetBytes(builder.Configuration["Jwt:Secret"] ?? "your-super-secret-key")),
+//            ClockSkew = TimeSpan.FromMinutes(5)
+//        };
+//    });
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -56,8 +60,8 @@ builder.Services.AddSwaggerGen(c =>
     c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
     {
         Name = "Authorization",
-        Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
-        Scheme = "bearer",
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http, 
+        Scheme = "bearer",                                 
         BearerFormat = "JWT",
         In = Microsoft.OpenApi.Models.ParameterLocation.Header,
         Description = "Enter Access Token here"
@@ -101,6 +105,10 @@ builder.Services.AddScoped<IConversationRepository, ConversationRepository>();
 builder.Services.AddScoped<IMessageRepository, MessageRepository>();
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 builder.Services.AddScoped<IQuestionRepository, QuestionRepository>();
+builder.Services.AddScoped<ICommentRepository, CommentRepository>();
+builder.Services.AddScoped<IAssignmentResponseRepository, AssignmentResponseRepository>();
+builder.Services.AddScoped<IQuizResponseRepository, QuizResponseRepository>();
+builder.Services.AddScoped<IQuizResponseAnswerRepository, QuizResponseAnswerRepository>();
 builder.Services.AddScoped<IEnrollmentRepository, EnrollmentRepository>();
 
 //DI for custom services
@@ -112,9 +120,22 @@ builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IQuestionService, QuestionService>();
 builder.Services.AddScoped<ICourseService, CourseService>();
+builder.Services.AddScoped<ICommentService, CommentService>();
+builder.Services.AddScoped<IAssignmentResponseService, AssignmentResponseService>();
+builder.Services.AddScoped<IQuizResponseService, QuizResponseService>();
 builder.Services.AddScoped<ISectionService, SectionService>();
 builder.Services.AddScoped<ITopicService, TopicService>();
 
+var jwtSettings = builder.Configuration.GetSection("Jwt");
+var key = Encoding.UTF8.GetBytes(jwtSettings["Secret"]);
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = "ManualJwt";
+    options.DefaultChallengeScheme = "ManualJwt";
+    options.DefaultForbidScheme = "ManualJwt";
+})
+.AddScheme<AuthenticationSchemeOptions, JwtAuthHandler>("ManualJwt", null);
 
 builder.Services.AddAuthorization();
 
@@ -136,6 +157,8 @@ using (var scope = app.Services.CreateScope())
 app.UseHttpsRedirection();
 
 app.UseAuthentication();
+
+app.UseJwtAuth();
 
 app.UseAuthorization();
 

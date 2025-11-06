@@ -10,7 +10,7 @@ using LetsLearn.Core.Entities;
 namespace LetsLearn.API.Controllers
 {
     [ApiController]
-    [Route("user/message")]
+    [Route("message")]
     [Authorize]
     public class ChatController : ControllerBase
     {
@@ -33,11 +33,12 @@ namespace LetsLearn.API.Controllers
             return Ok();
         }
 
-        [HttpGet("getMessages")]
+        [HttpPost("getMessages")]
         public async Task<ActionResult<IEnumerable<GetMessageResponse>>> GetMessagesByConversationId([FromBody] GetMessageRequest requestDto)
         {
             var userId = Guid.Parse(User.Claims.First(c => c.Type == "userID").Value);
 
+            //check
             if (!await _messageService.IsUserInConversationAsync(userId, requestDto.ConversationId))
             {
                 return Forbid("You do not have access to this conversation.");

@@ -67,7 +67,7 @@ namespace LetsLearn.UseCases.Services.ConversationService
         // D = 1 => Minimum Test Cases = D + 1 = 2
         public async Task<List<ConversationDTO>> GetAllByUserIdAsync(Guid userId)
         {
-            if (!await _unitOfWork.Conversations.ExistsAsync(u => u.Id == userId))
+            if (!await _unitOfWork.Users.ExistsAsync(u => u.Id == userId))
             {
                 throw new ArgumentException("User not found.");
             }

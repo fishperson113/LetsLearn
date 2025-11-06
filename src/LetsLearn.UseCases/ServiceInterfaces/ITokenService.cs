@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.Http;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
@@ -13,5 +14,8 @@ namespace LetsLearn.UseCases.ServiceInterfaces
         string CreateRefreshToken(Guid userId, string role);
         ClaimsPrincipal ValidateToken(string token, bool isAccessToken);
         int GetRefreshTokenExpireSeconds();
+        void SetTokenCookies(HttpContext context, string accessToken, string refreshToken);
+        string? GetToken(HttpContext context, bool isAccessToken);
+        void RemoveAllTokens(HttpContext context);
     }
 }
