@@ -478,7 +478,7 @@ namespace LetsLearn.UseCases.Services
             var quizQuestions = topicQuiz.Questions;
 
             // Fetch quiz responses of students
-            var quizResponses = await _unitOfWork.QuizResponses.FindAllByTopicIdAsync(topicId, ct);
+            var quizResponses = await _unitOfWork.QuizResponses.FindAllByTopicIdWithAnswersAsync(topicId, ct);
 
             // Get students who participated in the quiz
             var topicEndTime = topicQuiz.Close ?? DateTime.MaxValue;
@@ -486,16 +486,25 @@ namespace LetsLearn.UseCases.Services
 
             int studentCount = studentsThatTookPartIn.Count;
 
-            // Calculate student marks based on quiz responses
-            var marksWithStudentId = quizResponses.ToDictionary(
-                response => response.StudentId,
-                response => (double)response.Answers.Average(answer =>
+            // Create a dictionary for all students with default mark 0 for those who didn't participate
+            var marksWithStudentId = studentsThatTookPartIn.ToDictionary(
+                student => student.StudentId,
+                student =>
                 {
-                    var question = JsonSerializer.Deserialize<Question>(answer.Question);
-                    _logger.LogInformation("Raw JSON for CorrectAnswer: {JsonData}", answer.Answer);
-                    return (answer.Mark / question!.DefaultMark ?? 1) * 10;
-                })
-            );
+                    // Check if the student has a quiz response, if not set mark as 0
+                    var quizResponse = quizResponses.FirstOrDefault(qr => qr.StudentId == student.StudentId);
+                    if (quizResponse == null)
+                    {
+                        return 0.0; // Student did not participate in the quiz
+                    }
+
+                    // If the student has a response, calculate their mark based on their answers
+                    return (double)quizResponse.Answers.Average(answer =>
+                    {
+                        var question = JsonSerializer.Deserialize<Question>(answer.Question);
+                        return (answer.Mark / question!.DefaultMark ?? 1) * 10;
+                    });
+                });
 
             // Apply the grading method to calculate final marks for each student
             var finalMarksWithStudentId = marksWithStudentId.ToDictionary(
@@ -520,6 +529,10 @@ namespace LetsLearn.UseCases.Services
 
             var quizResponseDTOs = await MapQuizResponsesToDTO(quizResponses, ct);
 
+            // Calculate completion rate excluding students who did not participate
+            var studentsWithResponse = studentInfoAndMarks.Count(info => info.Submitted); // Count only students who submitted their response
+            double completionRate = studentCount > 0 ? (double)studentsWithResponse / studentCount : 0;
+
             // Update additional metrics
             reportDTO.MarkDistributionCount = CalculateMarkDistribution(marksWithStudentId, studentCount);
             reportDTO.QuestionCount = quizQuestions.Count;
@@ -529,9 +542,9 @@ namespace LetsLearn.UseCases.Services
             reportDTO.MinStudentMarkBase10 = minMark;
             reportDTO.AttemptCount = quizResponses.Count;
             reportDTO.AvgTimeSpend = CalculateAvgTimeSpend(quizResponseDTOs);
-            reportDTO.CompletionRate = (double)marksWithStudentId.Count / studentCount;
+            reportDTO.CompletionRate = completionRate;
             reportDTO.TrueFalseQuestionCount = quizQuestions.Count(q => q.Type == "True/False");
-            reportDTO.MultipleChoiceQuestionCount = quizQuestions.Count(q => q.Type == "Choices Answer");
+            reportDTO.MultipleChoiceQuestionCount = quizQuestions.Count(q => q.Type == "Multiple Choice");
             reportDTO.ShortAnswerQuestionCount = quizQuestions.Count(q => q.Type == "Short Answer");
 
             return reportDTO;
@@ -615,6 +628,7 @@ namespace LetsLearn.UseCases.Services
                 return new SingleQuizReportDTO.StudentInfoAndMark
                 {
                     Student = MapToDTO(user),
+                    Submitted = true,
                     Mark = mark,
                     ResponseId = null
                 };

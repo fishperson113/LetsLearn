@@ -54,7 +54,7 @@ namespace LetsLearn.Core.Entities
         public Guid TopicQuizId { get; set; }        // UUID FK -> topic_quiz.id
         public string? QuestionName { get; set; }
         public string? QuestionText { get; set; }
-        public string? Type { get; set; }
+        public string? Type { get; set; }           // True/False   Short Answer    Multiple Choice
         public decimal? DefaultMark { get; set; }
         public string? FeedbackOfTrue { get; set; }
         public string? FeedbackOfFalse { get; set; }
