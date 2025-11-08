@@ -134,35 +134,35 @@ namespace LetsLearn.API.Controllers
             }
         }
 
-        //// GET /course/{courseId}/topic/{id}/quiz-report
-        //[HttpGet("{id:guid}/quiz-report")]
-        //[ProducesResponseType(typeof(SingleQuizReportDTO), StatusCodes.Status200OK)]
-        //[ProducesResponseType(StatusCodes.Status404NotFound)]
-        //public async Task<ActionResult<SingleQuizReportDTO>> GetQuizReport(
-        //    [FromRoute] Guid courseId,
-        //    [FromRoute] Guid id,
-        //    CancellationToken ct)
-        //{
-        //    try
-        //    {
-        //        _logger.LogInformation("Fetching quiz report for topic {TopicId} in course {CourseId}", id, courseId);
+        // GET /topic/{id}/quiz-report
+        [HttpGet("{courseId}/{id:guid}/quiz-report")]
+        [ProducesResponseType(typeof(SingleQuizReportDTO), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<SingleQuizReportDTO>> GetQuizReport(
+            [FromRoute] String courseId,
+            [FromRoute] Guid id,
+            CancellationToken ct)
+        {
+            try
+            {
+                _logger.LogInformation("Fetching quiz report for topic {TopicId} in course {CourseId}", id, courseId);
 
-        //        var report = await _topicService.GetSingleQuizReportAsync(courseId, id, ct);
-        //        if (report is null)
-        //        {
-        //            _logger.LogWarning("Quiz report not found for topic {TopicId}", id);
-        //            return NotFound();
-        //        }
+                var report = await _topicService.GetSingleQuizReportAsync(courseId, id, ct);
+                if (report is null)
+                {
+                    _logger.LogWarning("Quiz report not found for topic {TopicId}", id);
+                    return NotFound();
+                }
 
-        //        _logger.LogInformation("Quiz report for topic {TopicId} retrieved successfully", id);
-        //        return Ok(report);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        _logger.LogError(ex, "Error fetching quiz report for topic {TopicId}", id);
-        //        return StatusCode(StatusCodes.Status500InternalServerError, "Failed to fetch quiz report");
-        //    }
-        //}
+                _logger.LogInformation("Quiz report for topic {TopicId} retrieved successfully", id);
+                return Ok(report);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching quiz report for topic {TopicId}", id);
+                return StatusCode(StatusCodes.Status500InternalServerError, "Failed to fetch quiz report");
+            }
+        }
 
         //// GET /course/{courseId}/topic/{id}/assignment-report
         //[HttpGet("{id:guid}/assignment-report")]

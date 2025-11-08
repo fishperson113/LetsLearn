@@ -20,7 +20,6 @@ namespace LetsLearn.UseCases.Services.QuizResponseService
             _unitOfWork = unitOfWork;
         }
 
-
         private QuizResponseDTO ToDto(QuizResponse entity)
         {
             return new QuizResponseDTO
@@ -35,13 +34,14 @@ namespace LetsLearn.UseCases.Services.QuizResponseService
                     CompletedAt = entity.CompletedAt,
                     Answers = entity.Answers.Select(a => new QuizResponseAnswerDTO
                     {
-                        Question = JsonSerializer.Deserialize<Question>(a.Question)!,
+                        TopicQuizQuestion = JsonSerializer.Deserialize<Question>(a.Question!)!,
                         Answer = a.Answer,
                         Mark = a.Mark
                     }).ToList()
                 }
             };
         }
+
         public async Task<QuizResponseDTO> CreateQuizResponseAsync(QuizResponseRequest dto, Guid studentId, CancellationToken ct = default)
         {
             var entity = new QuizResponse
@@ -61,7 +61,7 @@ namespace LetsLearn.UseCases.Services.QuizResponseService
                 {
                     Id = Guid.NewGuid(),
                     QuizResponseId = entity.Id,
-                    Question = JsonSerializer.Serialize(a.Question),
+                    Question = JsonSerializer.Serialize(a.TopicQuizQuestion),
                     Answer = a.Answer,
                     Mark = a.Mark
                 });
@@ -90,7 +90,7 @@ namespace LetsLearn.UseCases.Services.QuizResponseService
                 {
                     Id = Guid.NewGuid(),
                     QuizResponseId = entity.Id,
-                    Question = JsonSerializer.Serialize(a.Question),
+                    Question = JsonSerializer.Serialize(a.TopicQuizQuestion),
                     Answer = a.Answer,
                     Mark = a.Mark
                 });

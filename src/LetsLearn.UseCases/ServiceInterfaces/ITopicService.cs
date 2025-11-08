@@ -13,6 +13,7 @@ namespace LetsLearn.UseCases.ServiceInterfaces
         Task<TopicResponse> UpdateTopicAsync(UpdateTopicRequest topicRequest, CancellationToken ct = default);
         Task<bool> DeleteTopicAsync(Guid id, CancellationToken ct = default);
         Task<TopicResponse> GetTopicByIdAsync(Guid id, CancellationToken ct = default);
+        Task<SingleQuizReportDTO> GetSingleQuizReportAsync(String courseId, Guid topicId, CancellationToken ct = default);
 
     }
 }

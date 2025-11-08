@@ -20,6 +20,7 @@ namespace LetsLearn.Infrastructure.Repository
         {
             return await _dbSet.AsNoTracking()
                 .Where(qr => qr.TopicId == topicId)
+                .Include(qr => qr.Answers)
                 .ToListAsync(ct);
         }
 
