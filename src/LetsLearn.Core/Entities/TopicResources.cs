@@ -43,7 +43,7 @@ namespace LetsLearn.Core.Entities
         public string? TimeLimitUnit { get; set; }
         public decimal? GradeToPass { get; set; }
         public string? GradingMethod { get; set; }
-        public int? AttemptAllowed { get; set; }
+        public string? AttemptAllowed { get; set; }
         public ICollection<TopicQuizQuestion> Questions { get; set; } = new List<TopicQuizQuestion>();
 
     }

@@ -30,17 +30,23 @@ namespace LetsLearn.API.Controllers
         [ProducesResponseType(typeof(TopicResponse), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<TopicResponse>> CreateTopic(
-            [FromBody] CreateTopicRequest request,
-            CancellationToken ct)
+        [FromRoute] string courseId,
+        [FromBody] CreateTopicRequest request,
+        CancellationToken ct)
         {
             try
             {
-                _logger.LogInformation("Creating topic for section {SectionId}", request.SectionId);
+                _logger.LogInformation("Creating topic for section {SectionId} in course {CourseId}",
+                    request.SectionId, courseId);
 
                 var created = await _topicService.CreateTopicAsync(request, ct);
-                _logger.LogInformation("Topic {TopicId} created successfully for section {SectionId}", created.Id, request.SectionId);
+                _logger.LogInformation("Topic {TopicId} created successfully for section {SectionId}",
+                    created.Id, request.SectionId);
 
-                return CreatedAtAction(nameof(GetTopicById), new { id = created.Id }, created);
+                return CreatedAtAction(
+                    nameof(GetTopicById),
+                    new { courseId, id = created.Id },
+                    created);
             }
             catch (Exception ex)
             {
@@ -54,10 +60,10 @@ namespace LetsLearn.API.Controllers
         [ProducesResponseType(typeof(TopicResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult<TopicResponse>> UpdateTopic(
-            [FromRoute] string courseId,
-            [FromRoute] Guid id,
-            [FromBody] UpdateTopicRequest request,
-            CancellationToken ct)
+        [FromRoute] string courseId,
+        [FromRoute] Guid id,
+        [FromBody] UpdateTopicRequest request,
+        CancellationToken ct)
         {
             try
             {
@@ -66,21 +72,22 @@ namespace LetsLearn.API.Controllers
                     _logger.LogWarning("Mismatched IDs: URL ID {UrlId} != Body ID {BodyId}", id, request.Id);
                     return BadRequest("The ID in the URL must match the ID in the request body");
                 }
-                _logger.LogInformation("Updating topic {TopicId}", request.Id);
+
+                _logger.LogInformation("Updating topic {TopicId} in course {CourseId}", id, courseId);
 
                 var updated = await _topicService.UpdateTopicAsync(request, ct);
                 if (updated is null)
                 {
-                    _logger.LogWarning("Topic {TopicId} not found", request.Id);
+                    _logger.LogWarning("Topic {TopicId} not found", id);
                     return NotFound();
                 }
 
-                _logger.LogInformation("Topic {TopicId} updated successfully", request.Id);
+                _logger.LogInformation("Topic {TopicId} updated successfully", id);
                 return Ok(updated);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error updating topic {TopicId}", request.Id);
+                _logger.LogError(ex, "Error updating topic {TopicId}", id);
                 return StatusCode(StatusCodes.Status500InternalServerError, "Failed to update topic");
             }
         }
@@ -90,12 +97,13 @@ namespace LetsLearn.API.Controllers
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DeleteTopic(
-            [FromRoute] Guid id,
-            CancellationToken ct)
+        [FromRoute] string courseId,
+        [FromRoute] Guid id,
+        CancellationToken ct)
         {
             try
             {
-                _logger.LogInformation("Deleting topic {TopicId}", id);
+                _logger.LogInformation("Deleting topic {TopicId} from course {CourseId}", id, courseId);
 
                 var deleted = await _topicService.DeleteTopicAsync(id, ct);
                 if (!deleted)
@@ -119,11 +127,14 @@ namespace LetsLearn.API.Controllers
         [ProducesResponseType(typeof(TopicResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult<TopicResponse>> GetTopicById(
-            [FromRoute] Guid id,
-            CancellationToken ct)
+        [FromRoute] string courseId,
+        [FromRoute] Guid id,
+        CancellationToken ct)
         {
             try
             {
+                _logger.LogInformation("Fetching topic {TopicId} from course {CourseId}", id, courseId);
+
                 var dto = await _topicService.GetTopicByIdAsync(id, ct);
                 if (dto is null)
                 {

@@ -37,6 +37,7 @@ namespace LetsLearn.UseCases.Services
                 // Bước 1: Tạo Topic cha
                 var topic = new Topic
                 {
+                    Id = Guid.NewGuid(),
                     Title = request.Title,
                     Type = request.Type,
                     SectionId = request.SectionId
@@ -45,13 +46,14 @@ namespace LetsLearn.UseCases.Services
                 await _unitOfWork.Topics.AddAsync(topic);
 
                 object? topicData = null;
-
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var raw = request.Data ?? "null";
                 // Bước 2: Deserialize Data và xử lý theo Type
                 switch (request.Type.ToLower())
                 {
                     case "page":
                         {
-                            var pageReq = JsonSerializer.Deserialize<CreateTopicPageRequest>(request.Data!.Value.GetRawText(), new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                            var pageReq = JsonSerializer.Deserialize<CreateTopicPageRequest>(raw, options);
 
                             var page = new TopicPage
                             {
@@ -67,7 +69,7 @@ namespace LetsLearn.UseCases.Services
 
                     case "file":
                         {
-                            var fileReq = JsonSerializer.Deserialize<CreateTopicFileRequest>(request.Data!.Value.GetRawText(), new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                            var fileReq = JsonSerializer.Deserialize<CreateTopicFileRequest>(raw, options);
 
                             var file = new TopicFile
                             {
@@ -82,7 +84,7 @@ namespace LetsLearn.UseCases.Services
 
                     case "link":
                         {
-                            var linkReq = JsonSerializer.Deserialize<CreateTopicLinkRequest>(request.Data!.Value.GetRawText(), new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                            var linkReq = JsonSerializer.Deserialize<CreateTopicLinkRequest>(raw, options);
 
                             var link = new TopicLink
                             {
@@ -98,7 +100,7 @@ namespace LetsLearn.UseCases.Services
 
                     case "assignment":
                         {
-                            var assignReq = JsonSerializer.Deserialize<CreateTopicAssignmentRequest>(request.Data!.Value.GetRawText(), new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                            var assignReq = JsonSerializer.Deserialize<CreateTopicAssignmentRequest>(raw, options);
 
                             var assignment = new TopicAssignment
                             {
@@ -118,7 +120,7 @@ namespace LetsLearn.UseCases.Services
 
                     case "quiz":
                         {
-                            var quizReq = JsonSerializer.Deserialize<CreateTopicQuizRequest>(request.Data!.Value.GetRawText(),new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                            var quizReq = JsonSerializer.Deserialize<CreateTopicQuizRequest>(raw, options);
 
                             var quiz = new TopicQuiz
                             {
@@ -199,13 +201,14 @@ namespace LetsLearn.UseCases.Services
             await _unitOfWork.Topics.UpdateAsync(topic);
 
             object? topicData = null;
-
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var raw = request.Data ?? "null";
             // Chuyển đổi dựa vào type do người dùng truyền
             switch (request.Type?.ToLower())
             {
                 case "page":
                     {
-                        var pageReq = JsonSerializer.Deserialize<UpdateTopicPageRequest>(request.Data!.Value.GetRawText(), new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                        var pageReq = JsonSerializer.Deserialize<UpdateTopicPageRequest>(raw, options);
                         var page = (await _unitOfWork.TopicPages.FindAsync(p => p.TopicId == topic.Id)).FirstOrDefault()
                                    ?? throw new KeyNotFoundException("TopicPage not found.");
                         page.Description = pageReq.Description ?? page.Description;
@@ -217,7 +220,7 @@ namespace LetsLearn.UseCases.Services
 
                 case "file":
                     {
-                        var fileReq = JsonSerializer.Deserialize<UpdateTopicFileRequest>(request.Data!.Value.GetRawText(), new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                        var fileReq = JsonSerializer.Deserialize<UpdateTopicFileRequest>(raw, options);
                         var file = (await _unitOfWork.TopicFiles.FindAsync(f => f.TopicId == topic.Id, ct)).FirstOrDefault()
                                    ?? throw new KeyNotFoundException("TopicFile not found.");
                         file.Description = fileReq.Description ?? file.Description;
@@ -228,7 +231,7 @@ namespace LetsLearn.UseCases.Services
 
                 case "link":
                     {
-                        var linkReq = JsonSerializer.Deserialize<UpdateTopicLinkRequest>(request.Data!.Value.GetRawText(), new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                        var linkReq = JsonSerializer.Deserialize<UpdateTopicLinkRequest>(raw, options);
                         var link = (await _unitOfWork.TopicLinks.FindAsync(l => l.TopicId == topic.Id, ct)).FirstOrDefault()
                                    ?? throw new KeyNotFoundException("TopicLink not found.");
                             link.Description = linkReq.Description ?? link.Description;
@@ -240,7 +243,7 @@ namespace LetsLearn.UseCases.Services
 
                 case "assignment":
                     {
-                        var assignmentReq = JsonSerializer.Deserialize<UpdateTopicAssignmentRequest>(request.Data!.Value.GetRawText(), new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                        var assignmentReq = JsonSerializer.Deserialize<UpdateTopicAssignmentRequest>(raw, options);
                         var assignment = (await _unitOfWork.TopicAssignments.FindAsync(a => a.TopicId == topic.Id, ct)).FirstOrDefault()
                                          ?? throw new KeyNotFoundException("TopicAssignment not found.");
 
@@ -258,7 +261,7 @@ namespace LetsLearn.UseCases.Services
 
                 case "quiz":
                     {
-                        var quizReq = JsonSerializer.Deserialize<UpdateTopicQuizRequest>(request.Data!.Value.GetRawText(), new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                        var quizReq = JsonSerializer.Deserialize<UpdateTopicQuizRequest>(raw, options);
                         var quiz = await _unitOfWork.TopicQuizzes.GetWithQuestionsAsync(topic.Id)
                                    ?? throw new KeyNotFoundException("TopicQuiz not found.");
 

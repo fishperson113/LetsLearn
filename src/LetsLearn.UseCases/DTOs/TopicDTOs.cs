@@ -54,7 +54,7 @@ namespace LetsLearn.UseCases.DTOs
         public string? Title { get; set; }
         public string Type { get; set; } = default!;   // "page", "file", "link", "quiz", "assignment"
         public Guid SectionId { get; set; }
-        public JsonElement? Data { get; set; }              // phần dữ liệu riêng cho từng type
+        public string? Data { get; set; }              // phần dữ liệu riêng cho từng type
     }
 
     public class CreateTopicAssignmentRequest
@@ -76,7 +76,7 @@ namespace LetsLearn.UseCases.DTOs
         public string? TimeLimitUnit { get; set; }
         public decimal? GradeToPass { get; set; }
         public string? GradingMethod { get; set; }
-        public int? AttemptAllowed { get; set; }
+        public string? AttemptAllowed { get; set; }
 
         public ICollection<TopicQuizQuestionRequest> Questions { get; set; } = new List<TopicQuizQuestionRequest>();
     }
@@ -124,7 +124,7 @@ namespace LetsLearn.UseCases.DTOs
         public Guid? Id { get; set; }
         public string? Title { get; set; }
         public string Type { get; set; } = default!;   // "page", "file", "link", "quiz", "assignment"
-        public JsonElement? Data { get; set; }
+        public string? Data { get; set; }
     }
 
     // Quiz
@@ -137,7 +137,7 @@ namespace LetsLearn.UseCases.DTOs
         public string? TimeLimitUnit { get; set; }
         public decimal? GradeToPass { get; set; }
         public string? GradingMethod { get; set; }
-        public int? AttemptAllowed { get; set; }
+        public string? AttemptAllowed { get; set; }
         public ICollection<UpdateTopicQuizQuestionRequest> Questions { get; set; } = new List<UpdateTopicQuizQuestionRequest>();
     }
 
