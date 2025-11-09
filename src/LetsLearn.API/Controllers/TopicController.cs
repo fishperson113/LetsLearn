@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 namespace LetsLearn.API.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("course/{courseId}/[controller]")]
     [Authorize]
     public class TopicController : ControllerBase
     {
@@ -50,15 +50,22 @@ namespace LetsLearn.API.Controllers
         }
 
         // PUT /course/{courseId}/topic/{id}
-        [HttpPut]
+        [HttpPut("{id:guid}")]
         [ProducesResponseType(typeof(TopicResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult<TopicResponse>> UpdateTopic(
+            [FromRoute] string courseId,
+            [FromRoute] Guid id,
             [FromBody] UpdateTopicRequest request,
             CancellationToken ct)
         {
             try
             {
+                if (id != request.Id)
+                {
+                    _logger.LogWarning("Mismatched IDs: URL ID {UrlId} != Body ID {BodyId}", id, request.Id);
+                    return BadRequest("The ID in the URL must match the ID in the request body");
+                }
                 _logger.LogInformation("Updating topic {TopicId}", request.Id);
 
                 var updated = await _topicService.UpdateTopicAsync(request, ct);
@@ -135,7 +142,7 @@ namespace LetsLearn.API.Controllers
         }
 
         // GET /topic/{id}/quiz-report
-        [HttpGet("{courseId}/{id:guid}/quiz-report")]
+        [HttpGet("{id:guid}/quiz-report")]
         [ProducesResponseType(typeof(SingleQuizReportDTO), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult<SingleQuizReportDTO>> GetQuizReport(

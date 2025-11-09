@@ -10,7 +10,7 @@ using System.Security.Claims;
 namespace LetsLearn.API.Controllers
 {
     [ApiController]
-    [Route("user")]
+    [Route("[controller]")]
     public class UserController : ControllerBase
     {
         private readonly IUserService _userService;

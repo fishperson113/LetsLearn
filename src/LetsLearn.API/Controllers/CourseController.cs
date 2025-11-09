@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 namespace LetsLearn.API.Controllers
 {
     [ApiController]
-    [Route("course")]
+    [Route("[controller]")]
     [Authorize]
     public class CourseController : ControllerBase
     {

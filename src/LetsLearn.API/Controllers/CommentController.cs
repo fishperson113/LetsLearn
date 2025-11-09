@@ -7,7 +7,8 @@ using System.Security.Claims;
 namespace LetsLearn.API.Controllers
 {
     [ApiController]
-    [Route("comments")]
+    [Route("[controller]")]
+
     [Authorize]
     public class CommentController : ControllerBase
     {

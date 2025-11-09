@@ -6,7 +6,7 @@ using System.Security.Claims;
 
 namespace LetsLearn.API.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("[controller]")]
     [ApiController]
     public class QuizResponseController : ControllerBase
     {

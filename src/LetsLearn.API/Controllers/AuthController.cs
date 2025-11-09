@@ -9,7 +9,8 @@ using LetsLearn.UseCases.Services.Auth;
 namespace LetsLearn.API.Controllers
 {
     [ApiController]
-    [Route("auth")]
+    [Route("[controller]")]
+
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;

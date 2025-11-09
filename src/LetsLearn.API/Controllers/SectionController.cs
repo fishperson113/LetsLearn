@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace LetsLearn.API.Controllers
 {
     [ApiController]
-    [Route("api/sections")]
+    [Route("[controller]")]
     [Authorize]
     public class SectionController : ControllerBase
     {

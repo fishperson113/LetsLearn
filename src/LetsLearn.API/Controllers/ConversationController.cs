@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace LetsLearn.API.Controllers
 {
     [ApiController]
-    [Route("conversation")]
+    [Route("[controller]")]
     [Authorize]
     public class ConversationController : ControllerBase
     {

@@ -145,7 +145,8 @@ builder.Services.AddCors(options =>
         builder => builder
             .WithOrigins("http://localhost:4200") // FE port
             .AllowAnyHeader()
-            .AllowAnyMethod());
+            .AllowAnyMethod()
+            .AllowCredentials());
 });
 
 var app = builder.Build();
