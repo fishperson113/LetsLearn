@@ -86,16 +86,20 @@ namespace LetsLearn.API.Controllers
         /// PUT /api/sections/{id} — Update a Section and synchronize its Topics
         /// (remove topics not present in DTO; upsert the rest).
         /// </summary>
-        [HttpPut]
+        [HttpPut("{id:guid}")]
         [ProducesResponseType(typeof(SectionResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<SectionResponse>> Update([FromBody] UpdateSectionRequest request, CancellationToken ct)
+        public async Task<ActionResult<SectionResponse>> Update([FromRoute] Guid id, [FromBody] UpdateSectionRequest request, CancellationToken ct)
         {
             try
             {
                 if (request is null) throw new ArgumentNullException(nameof(request));
-
+                if (id != request.Id)
+                {
+                    _logger.LogWarning("UpdateSection: mismatched IDs. Route ID: {RouteId}, Body ID: {BodyId}", id, request.Id);
+                    return BadRequest(new { error = "The ID in the URL must match the ID in the request body" });
+                }
                 // Ensure Topics is non-null to avoid null-coalescing issues later
                 request.Topics = request.Topics == null ? new List<TopicUpsertDTO>() : request.Topics;
 

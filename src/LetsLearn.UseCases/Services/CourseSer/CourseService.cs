@@ -117,10 +117,6 @@ namespace LetsLearn.UseCases.Services.CourseSer
             if (!string.IsNullOrWhiteSpace(dto.Title))
                 course.Title = dto.Title;
 
-            var titleExists = await _uow.Course.ExistByTitle(dto.Title!);
-            if (titleExists)
-                throw new InvalidOperationException("A course with this title already exists. Please choose a different name");
-
             course.Description = dto.Description;
             course.ImageUrl = dto.ImageUrl;
             course.Category = dto.Category;
@@ -148,7 +144,6 @@ namespace LetsLearn.UseCases.Services.CourseSer
                 Category = course.Category,
                 Level = course.Level,
                 IsPublished = course.IsPublished,
-                // Sections = null (chưa load)
             };
         }
 

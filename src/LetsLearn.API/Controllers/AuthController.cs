@@ -23,15 +23,41 @@ namespace LetsLearn.API.Controllers
         [HttpPost("signup")]
         public async Task<IActionResult> Register([FromBody] SignUpRequest request)
         {
-            await _authService.RegisterAsync(request, HttpContext);
-            return Ok(new { message = "Successfully registered" });
+            try
+            {
+                await _authService.RegisterAsync(request, HttpContext);
+                return Ok(new { message = "Successfully registered" });
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("Email has been registered"))
+            {
+                return Conflict(new { message = "Email already in use" });
+            }
+            catch (InvalidOperationException)
+            {
+                return StatusCode(500, new { message = "Something went wrong. Please try again later." });
+            }
         }
 
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] AuthRequest request)
         {
-            var response = await _authService.LoginAsync(request, HttpContext);
-            return Ok(response);
+            try
+            {
+                var response = await _authService.LoginAsync(request, HttpContext);
+                return Ok(new { message = "Login successful", data = response });
+            }
+            catch (KeyNotFoundException)
+            {
+                return Unauthorized(new { message = "Invalid email or password" });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Unauthorized(new { message = "Invalid email or password" });
+            }
+            catch
+            {
+                return StatusCode(500, new { message = "Something went wrong. Please try again later." });
+            }
         }
 
         [HttpPost("refresh")]
@@ -52,8 +78,15 @@ namespace LetsLearn.API.Controllers
         [Authorize]
         public IActionResult Logout()
         {
-            _authService.Logout(HttpContext);
-            return Ok("Logged out successfully");
+            try
+            {
+                _authService.Logout(HttpContext);
+                return Ok(new { message = "Logged out successfully" });
+            }
+            catch
+            {
+                return StatusCode(500, new { message = "Something went wrong. Please try again later." });
+            }
         }
 
         [HttpPatch("me/password")]
@@ -66,9 +99,21 @@ namespace LetsLearn.API.Controllers
                 await _authService.UpdatePasswordAsync(request, userId);
                 return Ok(new { message = "Password updated successfully" });
             }
-            catch (Exception ex)
+            catch (KeyNotFoundException)
             {
-                return BadRequest(new { error = ex.Message });
+                return NotFound(new { message = "User not found" });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Unauthorized(new { message = "Current password is incorrect" });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch
+            {
+                return StatusCode(500, new { message = "Something went wrong. Please try again later." });
             }
         }
     }

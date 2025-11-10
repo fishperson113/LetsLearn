@@ -11,6 +11,7 @@ namespace LetsLearn.API.Controllers
 {
     [ApiController]
     [Route("[controller]")]
+    [Authorize]
     public class UserController : ControllerBase
     {
         private readonly IUserService _userService;
@@ -31,15 +32,7 @@ namespace LetsLearn.API.Controllers
         [HttpPut("me")]
         public async Task<IActionResult> UpdateUserInformation([FromBody] UpdateUserDTO dto)
         {
-            var userIdClaim = User.FindFirst("uid")
-                                  ?? User.FindFirst(ClaimTypes.NameIdentifier)
-                                  ?? User.FindFirst("sub");
-
-            if (userIdClaim is null)
-                return Unauthorized(new { error = "Missing user id claim (token not present or invalid)." });
-
-            if (!Guid.TryParse(userIdClaim.Value, out var userId))
-                return BadRequest(new { error = "Invalid user id format in claims." });
+            var userId = Guid.Parse(User.Claims.First(c => c.Type == "userID").Value);
             var updated = await _userService.UpdateAsync(userId, dto);
             return Ok(updated);
         }

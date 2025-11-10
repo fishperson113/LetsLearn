@@ -121,14 +121,21 @@ namespace LetsLearn.API.Controllers
         /// PUT /api/course
         /// Updates an existing course.
         /// </summary>
-        [HttpPut]
-        public async Task<ActionResult<UpdateCourseResponse>> Update([FromBody] UpdateCourseRequest request, CancellationToken ct)
+        [HttpPut("{id}")]
+        public async Task<ActionResult<UpdateCourseResponse>> Update(
+            [FromRoute] string id,
+            [FromBody] UpdateCourseRequest request, CancellationToken ct)
         {
             if (!ModelState.IsValid)
                 return ValidationProblem(ModelState);
 
             try
             {
+                if (id != request.Id)
+                {
+                    _logger.LogWarning("Update course: mismatched IDs. Route ID: {RouteId}, Body ID: {BodyId}", id, request.Id);
+                    return BadRequest(new { message = "The ID in the URL must match the ID in the request body" });
+                }
                 var updated = await _courseService.UpdateAsync(request, ct);
                 return Ok(updated);
             }
