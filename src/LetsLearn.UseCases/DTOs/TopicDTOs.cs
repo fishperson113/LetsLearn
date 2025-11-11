@@ -75,7 +75,7 @@ namespace LetsLearn.UseCases.DTOs
         public int? TimeLimit { get; set; }
         public string? TimeLimitUnit { get; set; }
         public decimal? GradeToPass { get; set; }
-        public string? GradingMethod { get; set; }
+        public string? GradingMethod { get; set; }  // Highest Grade    Average Grade   First Grade     Last Grade
         public string? AttemptAllowed { get; set; }
 
         public ICollection<TopicQuizQuestionRequest> Questions { get; set; } = new List<TopicQuizQuestionRequest>();
@@ -85,11 +85,11 @@ namespace LetsLearn.UseCases.DTOs
     {
         public string? QuestionName { get; set; }
         public string? QuestionText { get; set; }
-        public string? Type { get; set; }
+        public string? Type { get; set; }   // Multiple Choice      True/False      Short Answer
         public decimal? DefaultMark { get; set; }
         public string? FeedbackOfTrue { get; set; }
         public string? FeedbackOfFalse { get; set; }
-        public bool? CorrectAnswer { get; set; }
+        public bool? CorrectAnswer { get; set; }    
         public bool? Multiple { get; set; }
         public ICollection<TopicQuizQuestionChoiceRequest> Choices { get; set; } = new List<TopicQuizQuestionChoiceRequest>();
     }
@@ -117,6 +117,13 @@ namespace LetsLearn.UseCases.DTOs
     {
         public string? Description { get; set; }
         public string? Url { get; set; }
+    }
+
+    public class CreateTopicMeetingRequest
+    {
+        public string? Description { get; set; }
+        public DateTime? Open { get; set; }
+        public DateTime? Close { get; set; }
     }
 
     public class UpdateTopicRequest
@@ -155,6 +162,14 @@ namespace LetsLearn.UseCases.DTOs
         public ICollection<UpdateTopicQuizQuestionChoiceRequest> Choices { get; set; } = new List<UpdateTopicQuizQuestionChoiceRequest>();
     }
 
+    public class UpdateTopicQuizQuestionChoiceRequest
+    {
+        public Guid? Id { get; set; }
+        public string? Text { get; set; }
+        public decimal? GradePercent { get; set; }
+        public string? Feedback { get; set; }
+    }
+
     // Assignment
     public class UpdateTopicAssignmentRequest : UpdateTopicRequest
     {
@@ -164,14 +179,6 @@ namespace LetsLearn.UseCases.DTOs
         public int? MaximumFile { get; set; }
         public string? MaximumFileSize { get; set; }
         public DateTime? RemindToGrade { get; set; }
-    }
-
-    public class UpdateTopicQuizQuestionChoiceRequest
-    {
-        public Guid? Id { get; set; }
-        public string? Text { get; set; }
-        public decimal? GradePercent { get; set; }
-        public string? Feedback { get; set; }
     }
 
     // File

@@ -33,6 +33,7 @@ namespace LetsLearn.Core.Entities
         public DateTime? Open { get; set; }
         public DateTime? Close { get; set; }
     }
+
     public class TopicQuiz
     {
         public Guid TopicId { get; set; }            // UUID PK=FK -> topics.id

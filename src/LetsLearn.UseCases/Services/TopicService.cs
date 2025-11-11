@@ -157,6 +157,21 @@ namespace LetsLearn.UseCases.Services
                             break;
                         }
 
+                    case "meeting":
+                        {
+                            var meetingReq = JsonSerializer.Deserialize<CreateTopicMeetingRequest>(raw, options);
+                            var meeting = new TopicMeeting
+                            {
+                                TopicId = topic.Id,
+                                Description = meetingReq?.Description,
+                                Open = meetingReq?.Open,
+                                Close = meetingReq?.Close
+                            };
+                            await _unitOfWork.TopicMeetings.AddAsync(meeting);
+                            topicData = meeting;
+                            break;
+                        }
+
                     default:
                         _logger.LogWarning("Unsupported topic type: {Type}", request.Type);
                         throw new NotSupportedException($"Unsupported topic type: {request.Type}");
@@ -282,7 +297,7 @@ namespace LetsLearn.UseCases.Services
                             {
                                 TopicQuizQuestion question;
 
-                                if (q.Id != Guid.Empty)
+                                if (q.Id != null && q.Id != Guid.Empty && quiz.Questions.Any(x => x.Id == q.Id))
                                 {
                                     // Update question hiện có
                                     question = quiz.Questions.FirstOrDefault(x => x.Id == q.Id)
@@ -301,8 +316,9 @@ namespace LetsLearn.UseCases.Services
                                     foreach (var c in q.Choices)
                                     {
                                         TopicQuizQuestionChoice choice;
-                                        if (c.Id != Guid.Empty)
+                                        if (c.Id.HasValue && c.Id.Value != Guid.Empty)
                                         {
+                                            // Update existing choices
                                             choice = question.Choices.FirstOrDefault(x => x.Id == c.Id)
                                                      ?? throw new KeyNotFoundException($"Choice with ID {c.Id} not found.");
                                             choice.Text = c.Text;
@@ -332,7 +348,7 @@ namespace LetsLearn.UseCases.Services
                                     question = new TopicQuizQuestion
                                     {
                                         Id = Guid.NewGuid(),
-                                        TopicQuizId = request.Id!.Value,
+                                        TopicQuizId = quiz.TopicId,
                                         QuestionName = q.QuestionName,
                                         QuestionText = q.QuestionText,
                                         Type = q.Type,
@@ -341,15 +357,43 @@ namespace LetsLearn.UseCases.Services
                                         FeedbackOfFalse = q.FeedbackOfFalse,
                                         CorrectAnswer = q.CorrectAnswer,
                                         Multiple = q.Multiple,
-                                        Choices = q.Choices.Select(c => new TopicQuizQuestionChoice
+                                        Choices = new List<TopicQuizQuestionChoice>()
+                                    };
+
+                                    // Thêm choices sau khi 'question' đã được gán
+                                    foreach (var c in (q.Choices ?? Enumerable.Empty<UpdateTopicQuizQuestionChoiceRequest>()))
+                                    {
+                                        question.Choices.Add(new TopicQuizQuestionChoice
                                         {
                                             Id = Guid.NewGuid(),
-                                            QuizQuestionId = Guid.Empty,
+                                            QuizQuestionId = question.Id,
                                             Text = c.Text,
                                             GradePercent = c.GradePercent,
                                             Feedback = c.Feedback
-                                        }).ToList()
-                                    };
+                                        });
+                                    }
+
+                                    //question = new TopicQuizQuestion
+                                    //{
+                                    //    Id = Guid.NewGuid(),
+                                    //    TopicQuizId = request.Id!.Value,
+                                    //    QuestionName = q.QuestionName,
+                                    //    QuestionText = q.QuestionText,
+                                    //    Type = q.Type,
+                                    //    DefaultMark = q.DefaultMark,
+                                    //    FeedbackOfTrue = q.FeedbackOfTrue,
+                                    //    FeedbackOfFalse = q.FeedbackOfFalse,
+                                    //    CorrectAnswer = q.CorrectAnswer,
+                                    //    Multiple = q.Multiple,
+                                    //    Choices = q.Choices.Select(c => new TopicQuizQuestionChoice
+                                    //    {
+                                    //        Id = Guid.NewGuid(),
+                                    //        QuizQuestionId = Guid.Empty,
+                                    //        Text = c.Text,
+                                    //        GradePercent = c.GradePercent,
+                                    //        Feedback = c.Feedback
+                                    //    }).ToList()
+                                    //};
                                 }
 
                                 updatedQuestions.Add(question);
@@ -360,6 +404,24 @@ namespace LetsLearn.UseCases.Services
 
                         await _unitOfWork.TopicQuizzes.UpdateAsync(quiz);
                         topicData = quiz;
+                        break;
+                    }
+
+                case "meeting":
+                    {
+                        var meetingReq = JsonSerializer.Deserialize<UpdateTopicMeetingRequest>(raw, options);
+
+                        var meeting = (await _unitOfWork.TopicMeetings
+                            .FindAsync(m => m.TopicId == topic.Id, ct))
+                            .FirstOrDefault()
+                            ?? throw new KeyNotFoundException("TopicMeeting not found.");
+
+                        meeting.Description = meetingReq.Description ?? meeting.Description;
+                        meeting.Open = meetingReq.Open ?? meeting.Open;
+                        meeting.Close = meetingReq.Close ?? meeting.Close;
+
+                        await _unitOfWork.TopicMeetings.UpdateAsync(meeting);
+                        topicData = meeting;
                         break;
                     }
 
@@ -410,7 +472,7 @@ namespace LetsLearn.UseCases.Services
 
                 object? topicData = null;
 
-                switch (topic.Type.ToLower())
+                switch (topic.Type!.ToLower())
                 {
                     case "quiz":
                         var quiz = await _unitOfWork.TopicQuizzes.GetWithQuestionsAsync(topic.Id);
