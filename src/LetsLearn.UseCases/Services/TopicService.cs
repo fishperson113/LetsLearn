@@ -3,7 +3,6 @@ using LetsLearn.Core.Interfaces;
 using LetsLearn.UseCases.DTOs;
 using LetsLearn.UseCases.ServiceInterfaces;
 using LetsLearn.UseCases.Services.QuizResponseService;
-using LetsLearn.UseCases.Services.Users;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;

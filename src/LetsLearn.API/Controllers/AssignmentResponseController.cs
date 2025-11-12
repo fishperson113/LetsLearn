@@ -22,35 +22,35 @@ namespace LetsLearn.API.Controllers
         {
             var userId = Guid.Parse(User.Claims.First(c => c.Type == "userID").Value);
 
-            var result = await _assignmentResponseService.CreateAsync(dto, userId);
+            var result = await _assignmentResponseService.CreateAssigmentResponseAsync(dto, userId);
             return Ok(result);
         }
 
         [HttpGet("getAll/{topicId}")]
         public async Task<ActionResult<IEnumerable<AssignmentResponseDTO>>> GetAllAssignmentResponsesByTopicId([FromRoute] Guid topicId)
         {
-            var res = await _assignmentResponseService.GetAllByTopicIdAsync(topicId);
+            var res = await _assignmentResponseService.GetAllAssigmentResponseByTopicIdAsync(topicId);
             return Ok(res);
         }
 
         [HttpGet("{id}")]
         public async Task<ActionResult<AssignmentResponseDTO>> GetAssignmentResponseById([FromRoute] Guid id)
         {
-            var res = await _assignmentResponseService.GetByIdAsync(id);
+            var res = await _assignmentResponseService.GetAssigmentResponseByIdAsync(id);
             return Ok(res);
         }
 
         [HttpPut("{id}")]
         public async Task<ActionResult<AssignmentResponseDTO>> UpdateAssignmentResponseById([FromRoute] Guid id, [FromBody] UpdateAssignmentResponseRequest dto)
         {
-            var result = await _assignmentResponseService.UpdateByIdAsync(id, dto);
+            var result = await _assignmentResponseService.UpdateAssigmentResponseByIdAsync(id, dto);
             return Ok(result);
         }
 
         [HttpDelete("{id}")]
         public async Task<ActionResult> DeleteAssignmentResponseById([FromRoute] Guid id)
         {
-            await _assignmentResponseService.DeleteAsync(id);
+            await _assignmentResponseService.DeleteAssigmentResponseAsync(id);
             return NoContent();
         }
     }

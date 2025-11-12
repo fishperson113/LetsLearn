@@ -1,6 +1,6 @@
 ﻿using LetsLearn.UseCases.DTOs;
 
-namespace LetsLearn.UseCases.Services.Users
+namespace LetsLearn.UseCases.ServiceInterfaces
 {
     public interface IUserService
     {

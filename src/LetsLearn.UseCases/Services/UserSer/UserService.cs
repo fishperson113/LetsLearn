@@ -2,8 +2,6 @@
 using LetsLearn.Core.Interfaces;
 using LetsLearn.UseCases.DTOs;
 using LetsLearn.UseCases.ServiceInterfaces;
-using LetsLearn.UseCases.Services.CourseSer;
-using LetsLearn.UseCases.Services.Users;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -13,7 +11,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LetsLearn.UseCases.Services.User
+namespace LetsLearn.UseCases.Services.UserSer
 {
     public class UserService : IUserService
     {

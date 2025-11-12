@@ -35,7 +35,7 @@ namespace LetsLearn.UseCases.Services.CourseSer
         // - if titleExists: +1
         // - if idExists: +1
         // D = 3 => Minimum Test Cases = D + 1 = 4
-        public async Task<CreateCourseResponse> CreateAsync(CreateCourseRequest dto, Guid userId, CancellationToken ct = default)
+        public async Task<CreateCourseResponse> CreateCourseAsync(CreateCourseRequest dto, Guid userId, CancellationToken ct = default)
         {
             if (string.IsNullOrWhiteSpace(dto.Title))
                 throw new ArgumentException("Title is required.");
@@ -109,7 +109,7 @@ namespace LetsLearn.UseCases.Services.CourseSer
         // - if Title provided: +1
         // - if titleExists: +1
         // D = 3 => Minimum Test Cases = D + 1 = 4
-        public async Task<UpdateCourseResponse> UpdateAsync(UpdateCourseRequest dto, CancellationToken ct = default)
+        public async Task<UpdateCourseResponse> UpdateCourseAsync(UpdateCourseRequest dto, CancellationToken ct = default)
         {
             var course = await _uow.Course.GetByIdAsync(dto.Id, ct)
                          ?? throw new KeyNotFoundException("Course not found.");
@@ -152,7 +152,7 @@ namespace LetsLearn.UseCases.Services.CourseSer
         // Decision points (D):
         // - Pure retrieval/filtering in repository: +0
         // D = 0 => Minimum Test Cases = D + 1 = 1
-        public async Task<List<GetCourseResponse>> GetAllPublicAsync(CancellationToken ct = default)
+        public async Task<List<GetCourseResponse>> GetAllCoursesAsync(CancellationToken ct = default)
         {
             var courses = await _uow.Course.GetAllCoursesByIsPublishedTrue();
             return courses.Where(c => c != null).Select(c => MapToResponse(c!)).ToList();
@@ -162,7 +162,7 @@ namespace LetsLearn.UseCases.Services.CourseSer
         // Decision points (D):
         // - if userExists is false: +1
         // D = 1 => Minimum Test Cases = D + 1 = 2
-        public async Task<List<GetCourseResponse>> GetAllByUserIdAsync(Guid userId, CancellationToken ct = default)
+        public async Task<List<GetCourseResponse>> GetAllCoursesByUserIdAsync(Guid userId, CancellationToken ct = default)
         {
             var userExists = await _uow.Users.ExistsAsync(u => u.Id == userId, ct);
             if (!userExists) throw new KeyNotFoundException("User not found.");
@@ -180,7 +180,7 @@ namespace LetsLearn.UseCases.Services.CourseSer
         // Decision points (D):
         // - Null-coalesce throw when course not found: +1
         // D = 1 => Minimum Test Cases = D + 1 = 2
-        public async Task<GetCourseResponse> GetByIdAsync(String id, CancellationToken ct = default)
+        public async Task<GetCourseResponse> GetCourseByIdAsync(String id, CancellationToken ct = default)
         {
             var course = await _uow.Course.GetByIdAsync(id, ct)
                          ?? throw new KeyNotFoundException("Course not found.");

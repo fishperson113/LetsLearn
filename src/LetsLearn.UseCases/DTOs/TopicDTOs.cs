@@ -52,7 +52,7 @@ namespace LetsLearn.UseCases.DTOs
     public class CreateTopicRequest
     {
         public string? Title { get; set; }
-        public string Type { get; set; } = default!;   // "page", "file", "link", "quiz", "assignment"
+        public string Type { get; set; } = default!;   // "page", "file", "link", "quiz", "assignment", "meeting"
         public Guid SectionId { get; set; }
         public string? Data { get; set; }              // phần dữ liệu riêng cho từng type
     }
@@ -123,7 +123,7 @@ namespace LetsLearn.UseCases.DTOs
     {
         public Guid? Id { get; set; }
         public string? Title { get; set; }
-        public string Type { get; set; } = default!;   // "page", "file", "link", "quiz", "assignment"
+        public string Type { get; set; } = default!;   // "page", "file", "link", "quiz", "assignment", "meeting"
         public string? Data { get; set; }
     }
 

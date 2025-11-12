@@ -1,7 +1,7 @@
 ﻿using LetsLearn.Core.Shared;
 using LetsLearn.UseCases.DTOs;
+using LetsLearn.UseCases.ServiceInterfaces;
 using LetsLearn.UseCases.Services.Auth;
-using LetsLearn.UseCases.Services.Users;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;

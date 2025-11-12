@@ -37,7 +37,7 @@ namespace LetsLearn.UseCases.Services.AssignmentResponseService
             };
         }
 
-        public async Task<AssignmentResponseDTO> GetByIdAsync(Guid id)
+        public async Task<AssignmentResponseDTO> GetAssigmentResponseByIdAsync(Guid id)
         {
             var entity = await _unitOfWork.AssignmentResponses.GetByIdWithFilesAsync(id);
             if (entity == null)
@@ -47,7 +47,7 @@ namespace LetsLearn.UseCases.Services.AssignmentResponseService
             return ToDto(entity);
         }
 
-        public async Task<AssignmentResponseDTO> CreateAsync(CreateAssignmentResponseRequest dto, Guid studentId)
+        public async Task<AssignmentResponseDTO> CreateAssigmentResponseAsync(CreateAssignmentResponseRequest dto, Guid studentId)
         {
             var entity = new AssignmentResponse
             {
@@ -75,13 +75,13 @@ namespace LetsLearn.UseCases.Services.AssignmentResponseService
             return ToDto(entity);
         }
 
-        public async Task<IEnumerable<AssignmentResponseDTO>> GetAllByTopicIdAsync(Guid topicId)
+        public async Task<IEnumerable<AssignmentResponseDTO>> GetAllAssigmentResponseByTopicIdAsync(Guid topicId)
         {
             var entities = await _unitOfWork.AssignmentResponses.GetAllByTopicIdWithFilesAsync(topicId);
             return entities.Select(e => ToDto(e));
         }
 
-        public async Task<AssignmentResponseDTO> UpdateByIdAsync(Guid id, UpdateAssignmentResponseRequest dto)
+        public async Task<AssignmentResponseDTO> UpdateAssigmentResponseByIdAsync(Guid id, UpdateAssignmentResponseRequest dto)
         {
             var entity = await _unitOfWork.AssignmentResponses.GetByIdTrackedWithFilesAsync(id);
             if (entity == null)
@@ -112,7 +112,7 @@ namespace LetsLearn.UseCases.Services.AssignmentResponseService
             return ToDto(entity);
         }
 
-        public async Task DeleteAsync(Guid id)
+        public async Task DeleteAssigmentResponseAsync(Guid id)
         {
             var entity = await _unitOfWork.AssignmentResponses.GetByIdTrackedWithFilesAsync(id);
             if (entity == null)

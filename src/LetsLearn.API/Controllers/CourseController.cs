@@ -1,6 +1,6 @@
 ﻿using LetsLearn.Core.Entities;
-using LetsLearn.UseCases.DTOs;           
-using LetsLearn.UseCases.Services.CourseSer;
+using LetsLearn.UseCases.DTOs;
+using LetsLearn.UseCases.ServiceInterfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -41,11 +41,11 @@ namespace LetsLearn.API.Controllers
             {
                 if (userId.HasValue && userId.Value != Guid.Empty)
                 {
-                    var coursesByUser = await _courseService.GetAllByUserIdAsync(userId.Value, ct);
+                    var coursesByUser = await _courseService.GetAllCoursesByUserIdAsync(userId.Value, ct);
                     return Ok(coursesByUser);
                 }
 
-                var publics = await _courseService.GetAllPublicAsync(ct);
+                var publics = await _courseService.GetAllCoursesAsync(ct);
                 return Ok(publics);
             }
             catch (KeyNotFoundException ex)
@@ -69,7 +69,7 @@ namespace LetsLearn.API.Controllers
         {
             try
             {
-                var course = await _courseService.GetByIdAsync(id, ct);
+                var course = await _courseService.GetCourseByIdAsync(id, ct);
                 return Ok(course);
             }
             catch (KeyNotFoundException knfEx)
@@ -98,7 +98,7 @@ namespace LetsLearn.API.Controllers
 
             try
             {
-                var created = await _courseService.CreateAsync(request, userId, ct);
+                var created = await _courseService.CreateCourseAsync(request, userId, ct);
 
                 return Ok(created);
                 //return CreatedAtRoute("GetCourseById", new { id = created.Id }, created);
@@ -136,7 +136,7 @@ namespace LetsLearn.API.Controllers
                     _logger.LogWarning("Update course: mismatched IDs. Route ID: {RouteId}, Body ID: {BodyId}", id, request.Id);
                     return BadRequest(new { message = "The ID in the URL must match the ID in the request body" });
                 }
-                var updated = await _courseService.UpdateAsync(request, ct);
+                var updated = await _courseService.UpdateCourseAsync(request, ct);
                 return Ok(updated);
             }
             catch (KeyNotFoundException knfEx)

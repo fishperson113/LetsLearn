@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LetsLearn.UseCases.Services.SectionSer
+namespace LetsLearn.UseCases.ServiceInterfaces
 {
     public interface ISectionService
     {

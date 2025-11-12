@@ -4,8 +4,6 @@ using LetsLearn.Infrastructure.Redis;
 using LetsLearn.Infrastructure.Repository;
 using LetsLearn.Infrastructure.UnitOfWork;
 using LetsLearn.UseCases.Services.Auth;
-using LetsLearn.UseCases.Services.User;
-using LetsLearn.UseCases.Services.Users;
 using LetsLearn.UseCases.Services.MessageService;
 using LetsLearn.UseCases.Services.ConversationService;
 using LetsLearn.UseCases.Services.CourseSer;
@@ -23,28 +21,12 @@ using LetsLearn.UseCases.Services.CommentService;
 using LetsLearn.UseCases.Services.AssignmentResponseService;
 using LetsLearn.UseCases.Services.QuizResponseService;
 using LetsLearn.API.Middleware;
+using LetsLearn.UseCases.Services.UserSer;
 
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddSingleton<TokenService>();
-
-//// Add JWT Authentication
-//builder.Services.AddAuthentication("Bearer")
-//    .AddJwtBearer("Bearer", options =>
-//    {
-//        options.TokenValidationParameters = new TokenValidationParameters
-//        {
-//            ValidateIssuer = true,
-//            ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "auth0",
-//            ValidateAudience = false,
-//            ValidateIssuerSigningKey = true,
-//            IssuerSigningKey = new SymmetricSecurityKey(
-//                Encoding.ASCII.GetBytes(builder.Configuration["Jwt:Secret"] ?? "your-super-secret-key")),
-//            ClockSkew = TimeSpan.FromMinutes(5)
-//        };
-//    });
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -93,7 +75,7 @@ builder.Services.AddStackExchangeRedisCache(options =>
     options.Configuration = builder.Configuration.GetConnectionString("Redis");
     options.InstanceName = "LetsLearn";
 });
-
+builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped(typeof(IRepository<>), typeof(GenericRepository<>));
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IRedisCacheService, RedisCacheService>();
