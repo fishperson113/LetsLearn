@@ -218,7 +218,7 @@ namespace LetsLearn.UseCases.DTOs
 
     public class SingleAssignmentReportDTO
     {
-        public class StudentInfoAndMark
+        public class StudentInfoAndMarkAssignment
         {
             public GetUserResponse Student { get; set; } = default!;
             public bool Submitted { get; set; } = true; // true nếu đã nộp; false = chưa nộp
@@ -228,12 +228,12 @@ namespace LetsLearn.UseCases.DTOs
 
         public string Name { get; set; } = string.Empty;
 
-        public List<StudentInfoAndMark> StudentMarks { get; set; } = new();
-        public List<StudentInfoAndMark> StudentWithMarkOver8 { get; set; } = new();
-        public List<StudentInfoAndMark> StudentWithMarkOver5 { get; set; } = new();
-        public List<StudentInfoAndMark> StudentWithMarkOver2 { get; set; } = new();
-        public List<StudentInfoAndMark> StudentWithMarkOver0 { get; set; } = new();
-        public List<StudentInfoAndMark> StudentWithNoResponse { get; set; } = new();
+        public List<StudentInfoAndMarkAssignment> StudentMarks { get; set; } = new();
+        public List<StudentInfoAndMarkAssignment> StudentWithMarkOver8 { get; set; } = new();
+        public List<StudentInfoAndMarkAssignment> StudentWithMarkOver5 { get; set; } = new();
+        public List<StudentInfoAndMarkAssignment> StudentWithMarkOver2 { get; set; } = new();
+        public List<StudentInfoAndMarkAssignment> StudentWithMarkOver0 { get; set; } = new();
+        public List<StudentInfoAndMarkAssignment> StudentWithNoResponse { get; set; } = new();
 
         public Dictionary<int, int> MarkDistributionCount { get; set; } = new()
         {
@@ -246,6 +246,7 @@ namespace LetsLearn.UseCases.DTOs
 
         public double AvgMark { get; set; }
         public double MaxMark { get; set; }
+        public double MinMark { get; set; }
         public double CompletionRate { get; set; }
 
         // kể cả SV không tham gia
@@ -261,7 +262,7 @@ namespace LetsLearn.UseCases.DTOs
 
     public class SingleQuizReportDTO
     {
-        public class StudentInfoAndMark
+        public class StudentInfoAndMarkQuiz
         {
             public GetUserResponse Student { get; set; } = default!;
             public bool Submitted { get; set; } = true;
@@ -271,13 +272,13 @@ namespace LetsLearn.UseCases.DTOs
 
         public string Name { get; set; } = string.Empty;
 
-        public List<StudentInfoAndMark> StudentWithMark { get; set; } = new();
+        public List<StudentInfoAndMarkQuiz> StudentWithMark { get; set; } = new();
 
-        public List<StudentInfoAndMark> StudentWithMarkOver8 { get; set; } = new();
-        public List<StudentInfoAndMark> StudentWithMarkOver5 { get; set; } = new();
-        public List<StudentInfoAndMark> StudentWithMarkOver2 { get; set; } = new();
-        public List<StudentInfoAndMark> StudentWithMarkOver0 { get; set; } = new();
-        public List<StudentInfoAndMark> StudentWithNoResponse { get; set; } = new();
+        public List<StudentInfoAndMarkQuiz> StudentWithMarkOver8 { get; set; } = new();
+        public List<StudentInfoAndMarkQuiz> StudentWithMarkOver5 { get; set; } = new();
+        public List<StudentInfoAndMarkQuiz> StudentWithMarkOver2 { get; set; } = new();
+        public List<StudentInfoAndMarkQuiz> StudentWithMarkOver0 { get; set; } = new();
+        public List<StudentInfoAndMarkQuiz> StudentWithNoResponse { get; set; } = new();
 
         public double MaxDefaultMark { get; set; }
         public Dictionary<int, int> MarkDistributionCount { get; set; } = new();

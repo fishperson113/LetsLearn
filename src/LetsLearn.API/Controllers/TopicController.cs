@@ -182,34 +182,34 @@ namespace LetsLearn.API.Controllers
             }
         }
 
-        //// GET /course/{courseId}/topic/{id}/assignment-report
-        //[HttpGet("{id:guid}/assignment-report")]
-        //[ProducesResponseType(typeof(SingleAssignmentReportDTO), StatusCodes.Status200OK)]
-        //[ProducesResponseType(StatusCodes.Status404NotFound)]
-        //public async Task<ActionResult<SingleAssignmentReportDTO>> GetAssignmentReport(
-        //    [FromRoute] Guid courseId,
-        //    [FromRoute] Guid id,
-        //    CancellationToken ct)
-        //{
-        //    try
-        //    {
-        //        _logger.LogInformation("Fetching assignment report for topic {TopicId} in course {CourseId}", id, courseId);
+        // GET /topic/{id}/assignment-report
+        [HttpGet("{id:guid}/assignment-report")]
+        [ProducesResponseType(typeof(SingleAssignmentReportDTO), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<SingleAssignmentReportDTO>> GetAssignmentReport(
+            [FromRoute] String courseId,
+            [FromRoute] Guid id,
+            CancellationToken ct)
+        {
+            try
+            {
+                _logger.LogInformation("Fetching assignment report for topic {TopicId} in course {CourseId}", id, courseId);
 
-        //        var report = await _topicService.GetSingleAssignmentReportAsync(courseId, id, ct);
-        //        if (report is null)
-        //        {
-        //            _logger.LogWarning("Assignment report not found for topic {TopicId}", id);
-        //            return NotFound();
-        //        }
+                var report = await _topicService.GetSingleAssignmentReportAsync(courseId, id, ct);
+                if (report is null)
+                {
+                    _logger.LogWarning("Assignment report not found for topic {TopicId}", id);
+                    return NotFound();
+                }
 
-        //        _logger.LogInformation("Assignment report for topic {TopicId} retrieved successfully", id);
-        //        return Ok(report);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        _logger.LogError(ex, "Error fetching assignment report for topic {TopicId}", id);
-        //        return StatusCode(StatusCodes.Status500InternalServerError, "Failed to fetch assignment report");
-        //    }
-        //}
+                _logger.LogInformation("Assignment report for topic {TopicId} retrieved successfully", id);
+                return Ok(report);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching assignment report for topic {TopicId}", id);
+                return StatusCode(StatusCodes.Status500InternalServerError, "Failed to fetch assignment report");
+            }
+        }
     }
 }

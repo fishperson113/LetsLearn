@@ -503,6 +503,12 @@ namespace LetsLearn.UseCases.Services
                             topicData = page;
                         break;
 
+                    case "meeting":
+                        var meeting = (await _unitOfWork.TopicMeetings.FindAsync(p => p.TopicId == topic.Id, ct)).FirstOrDefault();
+                        if (meeting != null)
+                            topicData = meeting;
+                        break;
+
                     default:
                         _logger.LogWarning("Invalid topic type {Type} for topic {TopicId}", topic.Type, id);
                         throw new NotSupportedException($"Invalid topic type: {topic.Type}");
@@ -546,7 +552,8 @@ namespace LetsLearn.UseCases.Services
 
             // Get students who participated in the quiz
             var topicEndTime = topicQuiz.Close ?? DateTime.MaxValue;
-            var studentsThatTookPartIn = await _unitOfWork.Enrollments.GetByCourseIdAndJoinDateLessThanEqualAsync(courseId, topicEndTime, ct);
+            // var studentsThatTookPartIn = await _unitOfWork.Enrollments.GetByCourseIdAndJoinDateLessThanEqualAsync(courseId, topicEndTime, ct);
+            var studentsThatTookPartIn = await _unitOfWork.Enrollments.GetAllByCourseIdAsync(courseId, ct);
 
             int studentCount = studentsThatTookPartIn.Count;
 
@@ -614,6 +621,68 @@ namespace LetsLearn.UseCases.Services
             return reportDTO;
         }
 
+        public async Task<SingleAssignmentReportDTO> GetSingleAssignmentReportAsync(String courseId, Guid topicId, CancellationToken ct = default)
+        {
+            // Fetch Topic
+            var topic = await _unitOfWork.Topics.GetByIdAsync(topicId, ct)
+                ?? throw new KeyNotFoundException("Topic not found");
+
+            var reportDTO = new SingleAssignmentReportDTO();
+
+            // Fetch TopicAssignment
+            var topicAssignment = await _unitOfWork.TopicAssignments.GetByIdAsync(topicId, ct)
+                ?? throw new KeyNotFoundException("Topic Assignment not found");
+
+            // Fetch Assignment responses
+            var assignmentResponses = await _unitOfWork.AssignmentResponses.GetAllByTopicIdAsync(topicId);
+
+            // Get students who participated in the assignment
+            var topicEndTime = topicAssignment.Close ?? DateTime.MaxValue;
+            var studentsThatTookPartIn = await _unitOfWork.Enrollments.GetAllByCourseIdAsync(courseId, ct);
+            int studentCount = studentsThatTookPartIn.Count();
+
+            // Map students to their marks (if any)
+            var marksWithStudentId = studentsThatTookPartIn.ToDictionary(
+                student => student.StudentId,
+                student =>
+                {
+                    // Get assignment response for each student
+                    var assignmentResponse = assignmentResponses.FirstOrDefault(res => res.StudentId == student.StudentId);
+                    if (assignmentResponse == null)
+                    {
+                        return 0.0; // No response, mark is 0
+                    }
+
+                    // Calculate mark for the student based on their answers
+                    return (double)(assignmentResponse.Mark ?? 0m);
+                });
+
+            // Calculate average, max, and min marks
+            double avgMark = marksWithStudentId.Values.Average();
+            double maxMark = marksWithStudentId.Values.Max();
+            double minMark = marksWithStudentId.Values.Min();
+
+            // Categorize students based on their marks
+            var studentInfoAndMarks = await GetStudentInfoWithMarkAndResponseIdForAssignment(studentsThatTookPartIn, marksWithStudentId, ct);
+
+            // Setting up the report DTO
+            reportDTO.Name = topic.Title;
+            reportDTO.StudentMarks = studentInfoAndMarks;
+            reportDTO.StudentWithMarkOver8 = studentInfoAndMarks.Where(info => info.Mark >= 8).ToList();
+            reportDTO.StudentWithMarkOver5 = studentInfoAndMarks.Where(info => info.Mark >= 5 && info.Mark < 8).ToList();
+            reportDTO.StudentWithMarkOver2 = studentInfoAndMarks.Where(info => info.Mark >= 2 && info.Mark < 5).ToList();
+            reportDTO.StudentWithMarkOver0 = studentInfoAndMarks.Where(info => info.Mark < 2).ToList();
+            reportDTO.StudentWithNoResponse = studentInfoAndMarks.Where(info => !info.Submitted).ToList();
+
+            reportDTO.MarkDistributionCount = CalculateMarkDistribution(marksWithStudentId, studentCount);
+            reportDTO.AvgMark = avgMark;
+            reportDTO.MaxMark = maxMark;
+            reportDTO.MinMark = minMark;
+            reportDTO.CompletionRate = (double)assignmentResponses.Count() / studentCount;
+
+            return reportDTO;
+        }
+
         private double CalculateMark(List<double> marks, string method)
         {
             return method.ToLower() switch
@@ -669,7 +738,7 @@ namespace LetsLearn.UseCases.Services
             return distribution;
         }
 
-        public async Task<List<SingleQuizReportDTO.StudentInfoAndMark>> GetStudentInfoWithMarkAndResponseIdForQuiz(
+        public async Task<List<SingleQuizReportDTO.StudentInfoAndMarkQuiz>> GetStudentInfoWithMarkAndResponseIdForQuiz(
             List<Enrollment> studentsThatTookPartIn,
             Dictionary<Guid, double> studentIdWithMark,
             CancellationToken ct = default)
@@ -689,7 +758,7 @@ namespace LetsLearn.UseCases.Services
                     throw new KeyNotFoundException("User not found.");
                 }
 
-                return new SingleQuizReportDTO.StudentInfoAndMark
+                return new SingleQuizReportDTO.StudentInfoAndMarkQuiz
                 {
                     Student = MapToDTO(user),
                     Submitted = true,
@@ -712,7 +781,7 @@ namespace LetsLearn.UseCases.Services
                         throw new KeyNotFoundException("User not found.");
                     }
 
-                    return new SingleQuizReportDTO.StudentInfoAndMark
+                    return new SingleQuizReportDTO.StudentInfoAndMarkQuiz
                     {
                         Student = MapToDTO(user),
                         Submitted = false,
@@ -732,14 +801,14 @@ namespace LetsLearn.UseCases.Services
             //return reportDTO.StudentWithMark.Concat(reportDTO.StudentWithNoResponse).ToList();
 
             // Combine both lists
-            var result = new List<SingleQuizReportDTO.StudentInfoAndMark>();
+            var result = new List<SingleQuizReportDTO.StudentInfoAndMarkQuiz>();
             result.AddRange(studentsWithMarks);
             result.AddRange(studentsNoResponse);
 
             return result;
         }
 
-        public async Task<List<SingleAssignmentReportDTO.StudentInfoAndMark>> GetStudentInfoWithMarkAndResponseIdForAssignment(
+        public async Task<List<SingleAssignmentReportDTO.StudentInfoAndMarkAssignment>> GetStudentInfoWithMarkAndResponseIdForAssignment(
             List<Enrollment> studentsThatTookPartIn,
             Dictionary<Guid, double> studentIdWithMark,
             CancellationToken ct = default)
@@ -760,7 +829,7 @@ namespace LetsLearn.UseCases.Services
                     throw new KeyNotFoundException("User not found.");
                 }
 
-                return new SingleAssignmentReportDTO.StudentInfoAndMark
+                return new SingleAssignmentReportDTO.StudentInfoAndMarkAssignment
                 {
                     Student = MapToDTO(user),
                     Mark = mark,
@@ -781,7 +850,7 @@ namespace LetsLearn.UseCases.Services
                         throw new KeyNotFoundException("User not found.");
                     }
 
-                    return new SingleAssignmentReportDTO.StudentInfoAndMark
+                    return new SingleAssignmentReportDTO.StudentInfoAndMarkAssignment
                     {
                         Student = MapToDTO(user),
                         Submitted = false,
@@ -791,7 +860,7 @@ namespace LetsLearn.UseCases.Services
                 }));
 
             // Combine both lists
-            var result = new List<SingleAssignmentReportDTO.StudentInfoAndMark>();
+            var result = new List<SingleAssignmentReportDTO.StudentInfoAndMarkAssignment>();
             result.AddRange(studentsWithMarks);
             result.AddRange(studentsNoResponse);
 
