@@ -22,6 +22,7 @@ namespace LetsLearn.Infrastructure.Repository
         public async Task<TopicQuiz?> GetWithQuestionsAsync(Guid topicId)
         {
             return await _context.TopicQuizzes
+                .AsNoTracking()
                 .Include(q => q.Questions)
                     .ThenInclude(c => c.Choices)
                 .FirstOrDefaultAsync(q => q.TopicId == topicId);
