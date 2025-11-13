@@ -18,7 +18,7 @@ namespace LetsLearn.Infrastructure.Repository
 
         public async Task<IEnumerable<AssignmentResponse>> GetAllByTopicIdAsync(Guid topicId)
         {
-            return await _dbSet.AsNoTracking().Where(ar => ar.TopicId == topicId).ToListAsync();
+            return await _dbSet.AsNoTracking().Include(ar => ar.Files).Where(ar => ar.TopicId == topicId).ToListAsync();
         }
 
         public async Task<IEnumerable<AssignmentResponse>> GetAllByStudentIdAsync(Guid studentId)
@@ -29,6 +29,11 @@ namespace LetsLearn.Infrastructure.Repository
         public async Task<AssignmentResponse?> GetByTopicIdAndStudentIdAsync(Guid topicId, Guid studentId)
         {
             return await _dbSet.AsNoTracking().FirstOrDefaultAsync(ar => ar.TopicId == topicId && ar.StudentId == studentId);
+        }
+
+        public async Task<AssignmentResponse?> GetByTopicIdAndStudentIdWithFilesAsync(Guid topicId, Guid studentId)
+        {
+            return await _dbSet.AsNoTracking().Include(ar => ar.Files).FirstOrDefaultAsync(ar => ar.TopicId == topicId && ar.StudentId == studentId);
         }
 
         public async Task<IEnumerable<AssignmentResponse>> GetByTopicIdsAndStudentIdAsync(IEnumerable<Guid> topicIds, Guid studentId)

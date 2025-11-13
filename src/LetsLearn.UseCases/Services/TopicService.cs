@@ -665,6 +665,31 @@ namespace LetsLearn.UseCases.Services
             // Categorize students based on their marks
             var studentInfoAndMarks = await GetStudentInfoWithMarkAndResponseIdForAssignment(studentsThatTookPartIn, marksWithStudentId, ct);
 
+            var fileTypeCount = new Dictionary<string, long>();
+            int fileCount = 0;
+
+            foreach (var response in assignmentResponses)
+            {
+                if (response.Files != null)
+                {
+                    foreach (var file in response.Files)
+                    {
+                        fileCount++; // Increment total file count
+                        Console.WriteLine($"Processing file: {file.Name}, extension: {Path.GetExtension(file.Name)}");
+                        string fileExtension = Path.GetExtension(file.Name)?.ToLower() ?? "unknown"; // Get file extension
+
+                        if (fileTypeCount.ContainsKey(fileExtension))
+                        {
+                            fileTypeCount[fileExtension]++;
+                        }
+                        else
+                        {
+                            fileTypeCount[fileExtension] = 1;
+                        }
+                    }
+                }
+            }
+
             // Setting up the report DTO
             reportDTO.Name = topic.Title;
             reportDTO.StudentMarks = studentInfoAndMarks;
@@ -679,6 +704,10 @@ namespace LetsLearn.UseCases.Services
             reportDTO.MaxMark = maxMark;
             reportDTO.MinMark = minMark;
             reportDTO.CompletionRate = (double)assignmentResponses.Count() / studentCount;
+
+            // Set the file counts and file types
+            reportDTO.FileCount = fileCount;
+            reportDTO.FileTypeCount = fileTypeCount;
 
             return reportDTO;
         }

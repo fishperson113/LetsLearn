@@ -1,5 +1,6 @@
 ﻿using LetsLearn.Core.Entities;
 using LetsLearn.Core.Interfaces;
+using LetsLearn.Infrastructure.Repository;
 using LetsLearn.Infrastructure.UnitOfWork;
 using LetsLearn.UseCases.DTOs;
 using LetsLearn.UseCases.ServiceInterfaces;
@@ -255,9 +256,8 @@ namespace LetsLearn.UseCases.Services.CourseSer
                         if (topicData != null)
                         {
                             var topicDTO = ToDTO(topicSection);
-                            topicDTO.Data = topicData;
-                            //topicDTO.Data = topicData.Item;
-                            //topicDTO.Response = topicData.Response;
+                            topicDTO.Data = topicData.Item;
+                            topicDTO.Response = topicData.Response;
                             result.Add(topicDTO);
                         }
                     }
@@ -267,7 +267,348 @@ namespace LetsLearn.UseCases.Services.CourseSer
             return result;
         }
 
-        public async Task<object?> GetTopicDataByTypeAsync(Guid topicId, Guid userId, DateTime? start, DateTime? end, CancellationToken ct = default) //TopicDataDTO
+        public async Task<AllAssignmentsReportDTO> GetAssignmentsReportAsync(String courseId, DateTime? startTime, DateTime? endTime, CancellationToken ct = default)
+        {
+            if (!startTime.HasValue)
+            {
+                startTime = DateTime.MinValue; // Default start to minimum value if not provided
+            }
+            if (!endTime.HasValue)
+            {
+                endTime = DateTime.MaxValue; // Default end to maximum value if not provided
+            }
+
+            // Lấy thông tin khóa học
+            var course = await _uow.Course.GetByIdAsync(courseId, ct)
+                ?? throw new KeyNotFoundException("Course not found");
+
+            var singleAssignmentReportDTOs = new List<SingleAssignmentReportDTO>();
+
+            // Lấy thời gian hiện tại theo UTC và tính toán thời gian tháng hiện tại
+            var now = DateTime.UtcNow;
+            var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+            var monthEnd = monthStart.AddMonths(1).AddSeconds(-1);
+
+            var assignmentsEndingThisMonth = 0;
+            var assignmentsInProgressCounter = 0;
+            DateTime? nextClosestEndTime = null;
+
+            // Duyệt qua tất cả các sections và topics trong khóa học
+            foreach (var courseSection in course.Sections)
+            {
+                foreach (var topic in courseSection.Topics)
+                {
+                    if (topic.Type == "assignment") // Kiểm tra xem loại topic có phải là "assignment" không
+                    {
+                        var topicAssignment = await _uow.TopicAssignments.GetByIdAsync(topic.Id)
+                             ?? throw new InvalidOperationException("Report to dev please");
+                        
+
+                        // Tính toán thời gian bắt đầu và kết thúc của bài tập
+                        var topicStart = topicAssignment.Open ?? DateTime.MinValue;
+                        var topicEnd = topicAssignment.Close ?? DateTime.MaxValue;
+
+                        if (topicStart < endTime && topicEnd > startTime)
+                        {
+                            singleAssignmentReportDTOs.Add(await _topicService.GetSingleAssignmentReportAsync(courseId, topic.Id));
+
+                            // Đếm số bài tập sẽ kết thúc trong tháng này
+                            if (topicEnd > monthStart && topicEnd < monthEnd && topicEnd > now)
+                            {
+                                assignmentsEndingThisMonth++;
+                            }
+
+                            if (topicEnd > now)
+                            {
+                                assignmentsInProgressCounter++;
+                            }
+
+                            // Lưu thời gian kết thúc bài tập gần nhất
+                            if (topicEnd > now)
+                            {
+                                if (nextClosestEndTime == null || topicEnd < nextClosestEndTime)
+                                {
+                                    nextClosestEndTime = topicEnd;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            var markDistributionCounts = singleAssignmentReportDTOs
+                .Where(report => report.MarkDistributionCount != null)  // Kiểm tra null
+                .Select(report => report.MarkDistributionCount) // Lấy MarkDistributionCount từ từng báo cáo
+                .ToList();
+
+            var studentInfoWithAverageMarks = CalculateAverageStudentScoreForAssignments(singleAssignmentReportDTOs);
+
+            var reportDTO = new AllAssignmentsReportDTO
+            {
+                AssignmentsCountInProgress = assignmentsInProgressCounter,
+                AssignmentCount = singleAssignmentReportDTOs.Count,
+                AvgMark = singleAssignmentReportDTOs.Average(r => r.AvgMark),
+                AvgCompletionRate = singleAssignmentReportDTOs.Average(r => r.CompletionRate),
+                NumberOfAssignmentEndsAtThisMonth = assignmentsEndingThisMonth,
+                ClosestNextEndAssignment = nextClosestEndTime,
+                MarkDistributionCount = MergeMarkDistributionCount(markDistributionCounts),
+                StudentInfoWithMarkAverage = studentInfoWithAverageMarks,
+                StudentWithMarkOver8 = studentInfoWithAverageMarks.Where(info => info.AverageMark >= 8.0).ToList(),
+                StudentWithMarkOver5 = studentInfoWithAverageMarks.Where(info => info.AverageMark >= 5.0 && info.AverageMark < 8.0).ToList(),
+                StudentWithMarkOver2 = studentInfoWithAverageMarks.Where(info => info.AverageMark >= 2.0 && info.AverageMark < 5.0).ToList(),
+                StudentWithMarkOver0 = studentInfoWithAverageMarks.Where(info => info.AverageMark < 2.0).ToList(),
+                StudentWithNoResponse = studentInfoWithAverageMarks.Where(info => !info.Submitted).ToList(),
+                FileTypeCount = GetFileTypeCount(singleAssignmentReportDTOs),
+                SingleAssignmentReports = singleAssignmentReportDTOs
+            };
+
+            return reportDTO;
+        }
+
+        public async Task<AllQuizzesReportDTO> GetQuizzesReportAsync(String courseId, DateTime? startTime, DateTime? endTime, CancellationToken ct = default)
+        {
+            if (!startTime.HasValue)
+            {
+                startTime = DateTime.MinValue; // Default start to minimum value if not provided
+            }
+            if (!endTime.HasValue)
+            {
+                endTime = DateTime.MaxValue; // Default end to maximum value if not provided
+            }
+
+            // Lấy thông tin khóa học
+            var course = await _uow.Course.GetByIdAsync(courseId, ct)
+                ?? throw new KeyNotFoundException("Course not found");
+
+            List<SingleQuizReportDTO> singleQuizReportDTOs = new List<SingleQuizReportDTO>();
+
+            // Duyệt qua tất cả các section và topic trong khóa học
+            foreach (var courseSection in course.Sections)
+            {
+                foreach (var topic in courseSection.Topics)
+                {
+                    if (topic.Type == "quiz")
+                    {
+                        // Lấy thông tin bài quiz từ topic
+                        var topicQuiz = await _uow.TopicQuizzes.GetByIdAsync(topic.Id, ct)
+                            ?? throw new InvalidOperationException("Report to dev please");
+                        
+
+                        // Lấy thời gian mở và đóng của bài quiz
+                        var topicStart = topicQuiz.Open ?? DateTime.MinValue;
+                        var topicEnd = topicQuiz.Close ?? DateTime.MaxValue;
+
+                        // Kiểm tra xem bài quiz có trong khoảng thời gian yêu cầu không
+                        if (topicStart < endTime && topicEnd > startTime)
+                        {
+                            var quizReport = await _topicService.GetSingleQuizReportAsync(courseId, topic.Id, ct);
+                            singleQuizReportDTOs.Add(quizReport);
+                        }
+                    }
+                }
+            }
+
+            // Tính toán điểm trung bình của học sinh từ báo cáo quiz
+            var studentInfoAndMarks = CalculateAverageStudentScoreForQuizzes(singleQuizReportDTOs);
+
+            var reportDTO = new AllQuizzesReportDTO
+            {
+                QuizCount = singleQuizReportDTOs.Count,
+                AvgCompletionPercentage = singleQuizReportDTOs.Average(rep => rep.CompletionRate),
+                MinQuestionCount = singleQuizReportDTOs.Min(rep => rep.QuestionCount),
+                MaxQuestionCount = singleQuizReportDTOs.Max(rep => rep.QuestionCount),
+                MinStudentScoreBase10 = singleQuizReportDTOs.Min(rep => rep.MinStudentMarkBase10),
+                MaxStudentScoreBase10 = singleQuizReportDTOs.Max(rep => rep.MaxStudentMarkBase10),
+                StudentInfoWithMarkAverage = studentInfoAndMarks,
+                StudentWithMarkOver8 = studentInfoAndMarks.Where(info => info.Submitted && info.Mark >= 8.0).ToList(),
+                StudentWithMarkOver5 = studentInfoAndMarks.Where(info => info.Submitted && info.Mark >= 5.0 && info.Mark < 8.0).ToList(),
+                StudentWithMarkOver2 = studentInfoAndMarks.Where(info => info.Submitted && info.Mark >= 2.0 && info.Mark < 5.0).ToList(),
+                StudentWithMarkOver0 = studentInfoAndMarks.Where(info => info.Submitted && info.Mark < 2.0).ToList(),
+                StudentWithNoResponse = studentInfoAndMarks.Where(info => !info.Submitted).ToList(),
+                MarkDistributionCount = MergeMarkDistributionCount(singleQuizReportDTOs.Select(rep => rep.MarkDistributionCount).ToList()),
+                SingleQuizReports = singleQuizReportDTOs,
+                TrueFalseQuestionCount = singleQuizReportDTOs.Sum(rep => rep.TrueFalseQuestionCount),
+                MultipleChoiceQuestionCount = singleQuizReportDTOs.Sum(rep => rep.MultipleChoiceQuestionCount),
+                ShortAnswerQuestionCount = singleQuizReportDTOs.Sum(rep => rep.ShortAnswerQuestionCount)
+            };
+
+            return reportDTO;
+        }
+
+        public Dictionary<int, int> MergeMarkDistributionCount(List<Dictionary<int, int>> markDistributionCounts)
+        {
+            // Khởi tạo một từ điển để lưu trữ kết quả phân phối điểm tổng hợp
+            var mergedMarkDistribution = new Dictionary<int, int>
+            {
+                { -1, 0 },
+                { 0, 0 },
+                { 2, 0 },
+                { 5, 0 },
+                { 8, 0 }
+            };
+
+            // Duyệt qua các kết quả phân phối điểm và cộng dồn giá trị của từng nhóm điểm
+            foreach (var distribution in markDistributionCounts)
+            {
+                foreach (var entry in distribution)
+                {
+                    // Nếu nhóm điểm đã tồn tại trong mergedMarkDistribution, cộng dồn giá trị
+                    if (mergedMarkDistribution.ContainsKey(entry.Key))
+                    {
+                        mergedMarkDistribution[entry.Key] += entry.Value;
+                    }
+                }
+            }
+
+            return mergedMarkDistribution;
+        }
+
+        public Dictionary<string, long> GetFileTypeCount(List<SingleAssignmentReportDTO> singleAssignmentReports)
+        {
+            // Khởi tạo một từ điển để lưu trữ số lượng các loại tệp
+            var fileTypeCount = new Dictionary<string, long>();
+
+            // Duyệt qua tất cả các báo cáo bài tập
+            foreach (var report in singleAssignmentReports)
+            {
+                // Kiểm tra nếu báo cáo có FileTypeCount không null và có giá trị
+                if (report.FileTypeCount != null && report.FileTypeCount.Any())
+                {
+                    // Duyệt qua từng loại tệp và cộng dồn số lượng
+                    foreach (var fileType in report.FileTypeCount)
+                    {
+                        if (fileTypeCount.ContainsKey(fileType.Key))
+                        {
+                            fileTypeCount[fileType.Key] += fileType.Value;
+                        }
+                        else
+                        {
+                            fileTypeCount[fileType.Key] = fileType.Value;
+                        }
+                    }
+                }
+            }
+
+            return fileTypeCount;
+        }
+
+        public List<AllAssignmentsReportDTO.StudentInfoWithAverageMark> CalculateAverageStudentScoreForAssignments(List<SingleAssignmentReportDTO> singleAssignmentReports)
+        {
+            // Khởi tạo các cấu trúc dữ liệu để lưu trữ điểm của sinh viên
+            var studentScoresMap = new Dictionary<Guid, List<double>>(); // Lưu điểm của từng sinh viên
+            var latestStudentInfo = new Dictionary<Guid, SingleAssignmentReportDTO.StudentInfoAndMarkAssignment>(); // Lưu thông tin mới nhất của sinh viên
+
+            // Duyệt qua tất cả các báo cáo bài tập
+            foreach (var report in singleAssignmentReports)
+            {
+                // Kiểm tra nếu không có thông tin điểm của sinh viên
+                if (report.StudentMarks == null) continue;
+
+                // Duyệt qua các sinh viên trong báo cáo bài tập
+                foreach (var infoAndMark in report.StudentMarks)
+                {
+                    if (infoAndMark.Student != null && infoAndMark.Submitted)
+                    {
+                        var studentId = infoAndMark.Student.Id;
+                        var mark = infoAndMark.Mark ?? 0;
+
+                        // Lưu điểm của sinh viên
+                        if (!studentScoresMap.ContainsKey(studentId))
+                        {
+                            studentScoresMap[studentId] = new List<double>();
+                        }
+                        studentScoresMap[studentId].Add(mark);
+
+                        // Cập nhật hoặc lưu lại thông tin mới nhất của sinh viên
+                        latestStudentInfo[studentId] = infoAndMark;
+                    }
+                }
+            }
+
+            // Tạo danh sách các sinh viên với điểm trung bình và thông tin
+            return studentScoresMap.Select(entry =>
+            {
+                var studentId = entry.Key;
+                var scores = entry.Value;
+
+                // Tính điểm trung bình của sinh viên
+                var averageMark = scores.Average();
+
+                // Lấy thông tin sinh viên mới nhất
+                var existingInfo = latestStudentInfo[studentId];
+
+                // Tạo đối tượng StudentInfoWithAverageMark
+                return new AllAssignmentsReportDTO.StudentInfoWithAverageMark
+                {
+                    User = existingInfo.Student,
+                    AverageMark = averageMark,
+                    Submitted = existingInfo.Submitted
+                };
+            }).ToList();
+        }
+
+        public List<SingleQuizReportDTO.StudentInfoAndMarkQuiz> CalculateAverageStudentScoreForQuizzes(List<SingleQuizReportDTO> singleQuizReports)
+        {
+            // Tạo Dictionary lưu trữ điểm của học sinh qua các quiz
+            var studentScoresMap = new Dictionary<Guid, List<double>>();
+
+            // Tạo Dictionary lưu trữ thông tin mới nhất của từng học sinh
+            var latestStudentInfo = new Dictionary<Guid, SingleQuizReportDTO.StudentInfoAndMarkQuiz>();
+
+            // Lặp qua tất cả các báo cáo quiz
+            foreach (var report in singleQuizReports)
+            {
+                if (report.StudentWithMark == null) continue;
+
+                // Lặp qua từng học sinh trong báo cáo quiz
+                foreach (var infoAndMark in report.StudentWithMark)
+                {
+                    if (infoAndMark.Student != null && infoAndMark.Submitted && report.MaxDefaultMark != null)
+                    {
+                        var studentId = infoAndMark.Student.Id;
+
+                        // Lưu trữ điểm của học sinh vào studentScoresMap
+                        if (!studentScoresMap.ContainsKey(studentId))
+                        {
+                            studentScoresMap[studentId] = new List<double>();
+                        }
+                        studentScoresMap[studentId].Add(infoAndMark.Mark ?? 0);
+
+                        // Cập nhật thông tin học sinh mới nhất
+                        latestStudentInfo[studentId] = infoAndMark;
+                    }
+                }
+            }
+
+            // Tạo danh sách kết quả với điểm trung bình cho mỗi học sinh
+            var result = studentScoresMap.Select(entry =>
+            {
+                var studentId = entry.Key;
+                var scores = entry.Value;
+
+                // Lấy thông tin học sinh mới nhất
+                var existingInfo = latestStudentInfo[studentId];
+
+                // Tạo đối tượng mới để tránh sửa đổi thông tin gốc
+                var avgInfo = new SingleQuizReportDTO.StudentInfoAndMarkQuiz
+                {
+                    Student = existingInfo.Student,
+                    Submitted = existingInfo.Submitted,
+                    ResponseId = existingInfo.ResponseId
+                };
+
+                // Tính điểm trung bình
+                double averageMark = scores.Average();
+                avgInfo.Mark = averageMark;
+
+                return avgInfo;
+            }).ToList();
+
+            return result;
+        }
+
+
+        public async Task<TopicDataDTO?> GetTopicDataByTypeAsync(Guid topicId, Guid userId, DateTime? start, DateTime? end, CancellationToken ct = default) //TopicDataDTO
         {
             // Lấy thông tin topic theo loại
             var topic = await _uow.Topics.GetByIdAsync(topicId, ct);
@@ -276,9 +617,7 @@ namespace LetsLearn.UseCases.Services.CourseSer
                 throw new KeyNotFoundException("Topic not found");
             }
 
-            // TopicDataDTO? topicData = null;
-
-            object? topicData = null;
+            TopicDataDTO? topicData = null;
 
             switch (topic.Type.ToLower())
             {
@@ -286,13 +625,12 @@ namespace LetsLearn.UseCases.Services.CourseSer
                     var quiz = await _uow.TopicQuizzes.GetWithQuestionsAsync(topicId);
                     if (quiz != null && (end == null || quiz.Close < end))
                     {
-                        //var responses = await _uow.QuizResponses.GetByTopicIdAndStudentIdAsync(quiz.TopicId, userId, ct);
-                        //topicData = new TopicDataDTO
-                        //{
-                        //    Item = quiz,
-                        //    Response = responses
-                        //};
-                        topicData = new { quiz };
+                        var responses = await _uow.QuizResponses.FindByTopicIdAndStudentIdWithAnswersAsync(quiz.TopicId, userId, ct);
+                        topicData = new TopicDataDTO
+                        {
+                            Item = quiz,
+                            Response = responses
+                        };
                     }
                     break;
 
@@ -300,13 +638,12 @@ namespace LetsLearn.UseCases.Services.CourseSer
                     var assignment = (await _uow.TopicAssignments.FindAsync(a => a.TopicId == topicId, ct)).FirstOrDefault();
                     if (assignment != null && (end == null || assignment.Close < end))
                     {
-                        //var response = await _uow.AssignmentResponse.GetByTopicIdAndStudentIdAsync(assignment.TopicId, userId, ct);
-                        //topicData = new TopicDataDTO
-                        //{
-                        //    Item = assignment,
-                        //    Response = response
-                        //};
-                        topicData = new { assignment };
+                        var response = await _uow.AssignmentResponses.GetByTopicIdAndStudentIdWithFilesAsync(assignment.TopicId, userId);
+                        topicData = new TopicDataDTO
+                        {
+                            Item = assignment,
+                            Response = response
+                        };
                     }
                     break;
 
@@ -369,7 +706,6 @@ namespace LetsLearn.UseCases.Services.CourseSer
                 Title = topic.Title,
                 Type = topic.Type,
                 SectionId = topic.SectionId,
-                // Add any other properties of Topic to map to TopicDTO
             };
         }
     }

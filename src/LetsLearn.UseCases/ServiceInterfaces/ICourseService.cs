@@ -16,10 +16,8 @@ namespace LetsLearn.UseCases.ServiceInterfaces
         Task<GetCourseResponse> GetCourseByIdAsync(string id, CancellationToken ct = default);
         Task AddUserToCourseAsync(string courseId, Guid userId, CancellationToken ct = default);
         Task<List<TopicDTO>> GetAllWorksOfCourseAndUserAsync(string courseId, Guid userId, string type, DateTime? start, DateTime? end, CancellationToken ct = default);
-        Task<object?> GetTopicDataByTypeAsync(Guid topicId, Guid userId, DateTime? start, DateTime? end, CancellationToken ct = default);
-
-            //Task<AllQuizzesReportDTO> GetQuizzesReportAsync(Guid courseId, DateTime? start, DateTime? end, CancellationToken ct = default);
-            //Task<AllAssignmentsReportDTO> GetAssignmentsReportAsync(Guid courseId, DateTime? start, DateTime? end, CancellationToken ct = default);
-
+        Task<TopicDataDTO?> GetTopicDataByTypeAsync(Guid topicId, Guid userId, DateTime? start, DateTime? end, CancellationToken ct = default);
+        Task<AllAssignmentsReportDTO> GetAssignmentsReportAsync(String courseId, DateTime? startTime, DateTime? endTime, CancellationToken ct = default);
+        Task<AllQuizzesReportDTO> GetQuizzesReportAsync(String courseId, DateTime? startTime, DateTime? endTime, CancellationToken ct = default);
     }
 }
