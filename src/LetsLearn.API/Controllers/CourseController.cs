@@ -189,18 +189,37 @@ namespace LetsLearn.API.Controllers
             [FromQuery] DateTime? end,
             CancellationToken ct = default)
         {
-            // Nếu start hoặc end có giá trị, chuyển đổi thời gian sang giờ GMT+7
-            //if (start.HasValue)
-            //    start = TimeUtils.ConvertDateToGMT7Date(start.Value);
-            //if (end.HasValue)
-            //    end = TimeUtils.ConvertDateToGMT7Date(end.Value);
-
             var userId = Guid.Parse(User.Claims.First(c => c.Type == "userID").Value);
 
             var result = await _courseService.GetAllWorksOfCourseAndUserAsync(id, userId, type, start, end, ct);
 
-            // Trả về kết quả dưới dạng JSON
             return Ok(result);
         }
+
+        [HttpGet("{courseId}/assignment-report")]
+        [ProducesResponseType(typeof(AllAssignmentsReportDTO), StatusCodes.Status200OK)]
+        public async Task<ActionResult<AllAssignmentsReportDTO>> GetAllAssignmentReport(
+            [FromRoute] String courseId,
+            [FromQuery] DateTime? start,
+            [FromQuery] DateTime? end,
+            CancellationToken ct)
+        {
+            var report = await _courseService.GetAssignmentsReportAsync(courseId, start, end, ct);
+
+            return Ok(report);
+        }
+
+        [HttpGet("{courseId}/quiz-report")]
+        public async Task<ActionResult<AllQuizzesReportDTO>> GetAllQuizzesReport(
+            [FromRoute] String courseId,
+            [FromQuery] DateTime? start,
+            [FromQuery] DateTime? end,
+            CancellationToken ct)
+        {
+            var report = await _courseService.GetQuizzesReportAsync(courseId, start, end, ct);
+
+            return Ok(report);
+        }
+
     }
 }

@@ -12,6 +12,8 @@ namespace LetsLearn.Core.Interfaces
         Task<IEnumerable<AssignmentResponse>> GetAllByTopicIdAsync(Guid topicId);
         Task<IEnumerable<AssignmentResponse>> GetAllByStudentIdAsync(Guid studentId);
         Task<AssignmentResponse?> GetByTopicIdAndStudentIdAsync(Guid topicId, Guid studentId);
+        Task<AssignmentResponse?> GetByTopicIdAndStudentIdWithFilesAsync(Guid topicId, Guid studentId);
+
         Task<IEnumerable<AssignmentResponse>> GetByTopicIdsAndStudentIdAsync(IEnumerable<Guid> topicIds, Guid studentId);
 
         Task<AssignmentResponse?> GetByIdWithFilesAsync(Guid id);
