@@ -3,6 +3,7 @@ using LetsLearn.Core.Interfaces;
 using LetsLearn.UseCases.DTOs;
 using LetsLearn.UseCases.ServiceInterfaces;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,6 +11,8 @@ using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using System.Text.Json;
+
 
 namespace LetsLearn.UseCases.Services.UserSer
 {
@@ -168,17 +171,94 @@ namespace LetsLearn.UseCases.Services.UserSer
             return result;
         }
 
-        public static TopicDTO ToDTO(Topic topic)
+        public async Task<StudentReportDTO> GetStudentReportAsync(
+            Guid userId,
+            String courseId,
+            DateTime? start,
+            DateTime? end,
+            CancellationToken ct = default)
         {
-            return new TopicDTO
+            // 1. Lấy course
+            var course = await _unitOfWork.Course.GetByIdAsync(courseId, ct);
+            if (course == null)
+                throw new KeyNotFoundException("Course not found");
+
+            // 2. Lấy tất cả topic của course
+            var sectionIds = course.Sections.Select(s => s.Id).ToList();
+            var topics = await _unitOfWork.Topics.GetAllBySectionIdsAsync(sectionIds, ct);
+
+            // 3. Xử lý start/end null
+            var startTime = start ?? DateTime.MinValue;
+            var endTime = end ?? DateTime.MaxValue;
+
+            // 4. Lấy danh sách quiz trong thời gian [start, end]
+            var quizTopicIds = topics.Where(t => t.Type == "quiz").Select(t => t.Id).ToList();
+            var topicQuizzes = await _unitOfWork.TopicQuizzes.FindByTopicsAndOpenCloseAsync(
+                quizTopicIds, startTime, endTime, ct);
+
+            // 5. Lấy quiz responses của user
+            var quizResponses = await _unitOfWork.QuizResponses.FindByTopicIdsAndStudentIdAsync(
+                topicQuizzes.Select(q => q.TopicId).ToList(), userId, ct);
+
+            // 6. Lấy assignment
+            var assignmentTopicIds = topics.Where(t => t.Type == "assignment").Select(t => t.Id).ToList();
+            var topicAssignments = await _unitOfWork.TopicAssignments.FindByTopicsAndOpenCloseAsync(
+                assignmentTopicIds, startTime, endTime, ct);
+
+            var assignmentResponses = await _unitOfWork.AssignmentResponses.FindByTopicIdsAndStudentIdAsync(
+                topicAssignments.Select(a => a.TopicId).ToList(), userId, ct);
+
+            // 7. Tính điểm quiz base 10
+            var quizTopicIdWithMarkBase10 =
+                CalculateTopicQuizMarkBase10(quizResponses, topicQuizzes.ToDictionary(q => q.TopicId, q => q.GradingMethod));
+
+            // 8. Tính điểm assignment
+            var assignmentTopicIdWithMark =
+                CalculateTopicAssignmentMark(assignmentResponses);
+
+            // 9. Build report DTO
+            var report = new StudentReportDTO
             {
-                Id = topic.Id,
-                Title = topic.Title,
-                Type = topic.Type,
-                SectionId = topic.SectionId,
-                // Add any other properties of Topic to map to TopicDTO
+                TotalQuizCount = topicQuizzes.Count,
+                TotalAssignmentCount = topicAssignments.Count,
+                QuizToDoCount = topicQuizzes.Count - quizResponses.Select(r => r.TopicId).Distinct().Count(),
+                AssignmentToDoCount = topicAssignments.Count - assignmentResponses.Select(r => r.TopicId).Distinct().Count(),
+                AvgQuizMark = quizTopicIdWithMarkBase10.Any() ? quizTopicIdWithMarkBase10.Values.Average() : 0,
+                AvgAssignmentMark = assignmentResponses.Where(r => r.Mark.HasValue).Select(r => (double)r.Mark!.Value).DefaultIfEmpty(0).Average()
             };
+
+            // Top topic quiz
+            report.TopTopicQuiz = quizTopicIdWithMarkBase10.Keys.Select(tId =>
+            {
+                var latest = quizResponses
+                    .Where(r => r.TopicId == tId)
+                    .OrderByDescending(r => r.CompletedAt)
+                    .FirstOrDefault();
+
+                return new StudentReportDTO.TopicInfo
+                {
+                    Topic = topics.First(t => t.Id == tId),               // Topic entity luôn
+                    ResponseId = latest?.Id,
+                    Mark = quizTopicIdWithMarkBase10[tId],
+                    DoneTime = latest?.CompletedAt
+                };
+            }).ToList();
+
+            // Top topic assignment
+            report.TopTopicAssignment = assignmentResponses.Select(resp =>
+            {
+                return new StudentReportDTO.TopicInfo
+                {
+                    Topic = topics.First(t => t.Id == resp.TopicId),
+                    ResponseId = resp.Id,
+                    Mark = assignmentTopicIdWithMark[resp.TopicId],
+                    DoneTime = resp.SubmittedAt
+                };
+            }).ToList();
+
+            return report;
         }
+
 
         public async Task LeaveCourseAsync(Guid userId, string courseId, CancellationToken ct = default)
         {
@@ -199,6 +279,107 @@ namespace LetsLearn.UseCases.Services.UserSer
 
             // Commit transaction
             await _unitOfWork.CommitAsync();
+        }
+
+        public static TopicDTO ToDTO(Topic topic)
+        {
+            return new TopicDTO
+            {
+                Id = topic.Id,
+                Title = topic.Title,
+                Type = topic.Type,
+                SectionId = topic.SectionId,
+                // Add any other properties of Topic to map to TopicDTO
+            };
+        }
+
+        private Dictionary<Guid, double> CalculateTopicQuizMarkBase10(
+            List<QuizResponse> quizResponses,
+            Dictionary<Guid, string> topicGradingMethod)
+        {
+            var result = new Dictionary<Guid, double>();
+
+            // Group theo topicId → list<mark>
+            var grouped = quizResponses
+                .SelectMany(resp =>
+                    resp.Answers.Select(ans =>
+                    {
+                        double mark = Convert.ToDouble(ans.Mark ?? 0);
+
+                        Console.WriteLine($"MARK = {ans.Mark}");
+
+                        double defaultMark = 1;
+
+                        Console.WriteLine($"RAW QUESTION = {ans.Question}");
+
+                        try
+                        {
+                            var qObj = System.Text.Json.JsonSerializer.Deserialize<Question>(
+                                ans.Question,
+                                new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+                            );
+
+                            Console.WriteLine($"Parsed DefaultMark = {qObj?.DefaultMark}");
+
+                            defaultMark = Convert.ToDouble(qObj?.DefaultMark ?? 1);
+                        }
+                        catch { defaultMark = 1; }
+
+                        double normalizedMark = defaultMark == 0
+                            ? 0
+                            : (mark / defaultMark) * 10;
+
+                        Console.WriteLine($"TopicId from Response = {resp.TopicId}");
+
+                        return new { resp.TopicId, normalizedMark };
+                    })
+                )
+                .GroupBy(x => x.TopicId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.Select(x => x.normalizedMark).ToList()
+                );
+
+            // Tính điểm theo grading method
+            foreach (var entry in grouped)
+            {
+                Console.WriteLine($"GROUP KEY = {entry.Key}");
+                Console.WriteLine($"COUNT OF MARKS = {entry.Value.Count}");
+
+                var topicId = entry.Key;
+                var marks = entry.Value;
+                var method = topicGradingMethod.ContainsKey(topicId)
+                        ? topicGradingMethod[topicId]
+                        : "Highest Grade";
+
+                result[topicId] = CalculateMark(marks, method);
+            }
+
+            return result;
+        }
+
+        private Dictionary<Guid, double> CalculateTopicAssignmentMark(IReadOnlyList<AssignmentResponse> responses)
+        {
+            return responses
+                .Where(r => r.Mark.HasValue)
+                .ToDictionary(r => r.TopicId, r => (double)r.Mark!.Value);
+        }
+
+        private double CalculateMark(List<double> marks, string method)
+        {
+            if (marks == null || marks.Count == 0)
+                return 0;
+
+            method = method?.Trim().ToLowerInvariant();
+
+            return method switch
+            {
+                "highest grade" => marks.Max(),
+                "average grade" => marks.Average(),
+                "first grade" => marks.First(),
+                "last grade" => marks.Last(),
+                _ => marks.Max()
+            };
         }
     }
 }

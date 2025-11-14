@@ -40,7 +40,9 @@ namespace LetsLearn.Infrastructure.Repository
 
         public async Task<List<QuizResponse>> FindByTopicIdsAndStudentIdAsync(List<Guid> topicIds, Guid studentId, CancellationToken ct = default)
         {
-            return await _dbSet.AsNoTracking()
+            return await _dbSet
+                .AsNoTracking()
+                .Include(qr => qr.Answers)
                 .Where(qr => topicIds.Contains(qr.TopicId) && qr.StudentId == studentId)
                 .ToListAsync(ct);
         }

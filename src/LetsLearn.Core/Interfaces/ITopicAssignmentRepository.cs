@@ -11,6 +11,6 @@ namespace LetsLearn.Core.Interfaces
     {
         Task UpdateAsync(TopicAssignment topic);
         Task<List<TopicAssignment>> GetAssignmentsByCourseIdAndDateRangeAsync(Guid courseId, DateTime startTime, DateTime endTime, CancellationToken ct = default);
-
+        Task<IReadOnlyList<TopicAssignment>> FindByTopicsAndOpenCloseAsync(IReadOnlyList<Guid> topicIds, DateTime start, DateTime end, CancellationToken ct = default);
     }
 }

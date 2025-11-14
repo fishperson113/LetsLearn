@@ -55,5 +55,18 @@ namespace LetsLearn.Infrastructure.Repository
         {
             return await _dbSet.Include(ar => ar.Files).FirstOrDefaultAsync(ar => ar.Id == id);
         }
+
+        public async Task<IReadOnlyList<AssignmentResponse>> FindByTopicIdsAndStudentIdAsync(
+            IEnumerable<Guid> topicIds,
+            Guid studentId,
+            CancellationToken ct = default)
+        {
+            return await _dbSet
+                .AsNoTracking()
+                .Include(ar => ar.Files)
+                .Where(ar => topicIds.Contains(ar.TopicId) && ar.StudentId == studentId)
+                .ToListAsync(ct);
+        }
+
     }
 }

@@ -714,13 +714,18 @@ namespace LetsLearn.UseCases.Services
 
         private double CalculateMark(List<double> marks, string method)
         {
-            return method.ToLower() switch
+            if (marks == null || marks.Count == 0)
+                return 0;
+
+            method = method?.Trim().ToLowerInvariant();
+
+            return method switch
             {
                 "highest grade" => marks.Max(),
                 "average grade" => marks.Average(),
                 "first grade" => marks.FirstOrDefault(),
                 "last grade" => marks.LastOrDefault(),
-                _ => throw new ArgumentException($"Invalid method: {method}")
+                _ => marks.Max()
             };
         }
 

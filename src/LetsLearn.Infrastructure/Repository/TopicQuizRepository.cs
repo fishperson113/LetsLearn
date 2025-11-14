@@ -27,5 +27,27 @@ namespace LetsLearn.Infrastructure.Repository
                     .ThenInclude(c => c.Choices)
                 .FirstOrDefaultAsync(q => q.TopicId == topicId);
         }
+
+        public async Task<IReadOnlyList<TopicQuiz>> FindByTopicsAndOpenCloseAsync(
+            IReadOnlyList<Guid> topicIds,
+            DateTime start,
+            DateTime end,
+            CancellationToken ct = default)
+        {
+            DateTime min = DateTime.MinValue;
+            DateTime max = DateTime.MaxValue;
+
+            return await _context.TopicQuizzes
+                .AsNoTracking()
+                .Where(q => topicIds.Contains(q.TopicId))
+                .Where(q =>
+                    // Nếu open = null → MIN đỡ null check
+                    (q.Open ?? min) <= end &&
+                    // Nếu close = null → MAX đỡ null check
+                    (q.Close ?? max) >= start
+                )
+                .ToListAsync(ct);
+        }
+
     }
 }

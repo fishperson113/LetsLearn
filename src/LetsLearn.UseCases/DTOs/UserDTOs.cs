@@ -75,4 +75,38 @@ namespace LetsLearn.UseCases.DTOs
         [MinLength(8, ErrorMessage = "Password must be at least 8 characters long")]
         public string NewPassword { get; set; } = null!;
     }
+
+    public class StudentReportDTO
+    {
+        public class TopicInfo
+        {
+            // public TopicDTO Topic { get; set; }
+            public Topic Topic { get; set; }
+            public Guid? ResponseId { get; set; }
+            public double? Mark { get; set; }
+            public DateTime? DoneTime { get; set; }
+
+            public TopicInfo() { }
+
+            public TopicInfo(Topic topic, Guid? responseId, double? mark, DateTime? doneTime)
+            {
+                Topic = topic;
+                ResponseId = responseId;
+                Mark = mark;
+                DoneTime = doneTime;
+            }
+        }
+
+        public double TotalQuizCount { get; set; }
+        public double TotalAssignmentCount { get; set; }
+
+        public double QuizToDoCount { get; set; }
+        public double AssignmentToDoCount { get; set; }
+
+        public double AvgQuizMark { get; set; }
+        public double AvgAssignmentMark { get; set; }
+
+        public List<TopicInfo> TopTopicQuiz { get; set; } = new List<TopicInfo>();
+        public List<TopicInfo> TopTopicAssignment { get; set; } = new List<TopicInfo>();
+    }
 }

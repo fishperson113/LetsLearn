@@ -13,5 +13,6 @@ namespace LetsLearn.Core.Interfaces
         Task<bool> ExistsByIdAsync(Guid id, CancellationToken ct = default);
         Task<Topic?> GetTrackedByIdAsync(Guid id, CancellationToken ct = default);
         Task UpdateAsync(Topic topic);
+        Task<IReadOnlyList<Topic>> GetAllBySectionIdsAsync(List<Guid> sectionIds, CancellationToken ct = default);
     }
 }
