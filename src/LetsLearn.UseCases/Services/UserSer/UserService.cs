@@ -331,31 +331,29 @@ namespace LetsLearn.UseCases.Services.UserSer
 
                         Console.WriteLine($"TopicId from Response = {resp.TopicId}");
 
-                        return new { resp.TopicId, normalizedMark };
+                        return new
+                        {
+                            resp.TopicId,
+                            EarnedMark = mark,
+                            Default = defaultMark
+                        };
                     })
                 )
                 .GroupBy(x => x.TopicId)
                 .ToDictionary(
                     g => g.Key,
-                    g => g.Select(x => x.normalizedMark).ToList()
+                    g =>
+                    {
+                        double totalEarned = g.Sum(x => x.EarnedMark);
+                        double totalDefault = g.Sum(x => x.Default);
+
+                        if (totalDefault == 0) return 0; // tránh chia 0
+
+                        return (totalEarned / totalDefault) * 10;  // score base 10
+                    }
                 );
 
-            // Tính điểm theo grading method
-            foreach (var entry in grouped)
-            {
-                Console.WriteLine($"GROUP KEY = {entry.Key}");
-                Console.WriteLine($"COUNT OF MARKS = {entry.Value.Count}");
-
-                var topicId = entry.Key;
-                var marks = entry.Value;
-                var method = topicGradingMethod.ContainsKey(topicId)
-                        ? topicGradingMethod[topicId]
-                        : "Highest Grade";
-
-                result[topicId] = CalculateMark(marks, method);
-            }
-
-            return result;
+            return grouped;
         }
 
         private Dictionary<Guid, double> CalculateTopicAssignmentMark(IReadOnlyList<AssignmentResponse> responses)
