@@ -10,7 +10,7 @@ namespace LetsLearn.UseCases.ServiceInterfaces
     public interface ICommentService
     {
         Task AddCommentAsync(Guid commenterId, CreateCommentRequest dto, CancellationToken ct = default);
-        Task<List<GetCommentResponse>> GetCommentsByTopicAsync(Guid topicId, CancellationToken ct = default);
+        Task<IEnumerable<GetCommentResponse>> GetCommentsByTopicAsync(Guid topicId, CancellationToken ct = default);
         Task DeleteCommentAsync(Guid commentId, CancellationToken ct = default);
     }
 }

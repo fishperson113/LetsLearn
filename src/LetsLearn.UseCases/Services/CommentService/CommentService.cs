@@ -42,7 +42,7 @@ namespace LetsLearn.UseCases.Services.CommentService
             await _unitOfWork.CommitAsync();
         }
 
-        public async Task<List<GetCommentResponse>> GetCommentsByTopicAsync(Guid topicId, CancellationToken ct = default)
+        public async Task<IEnumerable<GetCommentResponse>> GetCommentsByTopicAsync(Guid topicId, CancellationToken ct = default)
         {
             var comments = await _unitOfWork.Comments.FindByTopicIdAsync(topicId, ct);
 

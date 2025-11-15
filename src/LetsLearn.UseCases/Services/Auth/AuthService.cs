@@ -59,7 +59,7 @@ namespace LetsLearn.UseCases.Services.Auth
             }
 
             var accessToken = _tokenService.CreateAccessToken(user.Id, user.Role);
-            var refreshToken = await _refreshTokenService.CreateAndStoreRefreshTokenAsync(user.Id, user.Role);
+            var refreshToken = await _refreshTokenService.CreatRefreshTokenAsync(user.Id, user.Role);
 
             _tokenService.SetTokenCookies(context, accessToken, refreshToken);
         }
@@ -79,7 +79,7 @@ namespace LetsLearn.UseCases.Services.Auth
                 throw new UnauthorizedAccessException("Incorrect email or password!");
 
             var accessToken = _tokenService.CreateAccessToken(user.Id, user.Role);
-            var refreshToken = await _refreshTokenService.CreateAndStoreRefreshTokenAsync(user.Id, user.Role);
+            var refreshToken = await _refreshTokenService.CreatRefreshTokenAsync(user.Id, user.Role);
 
             _tokenService.SetTokenCookies(context, accessToken, refreshToken);
 

@@ -109,13 +109,13 @@ namespace LetsLearn.UseCases.Services.QuizResponseService
 
             return ToDto(entity);
         }
-        public async Task<List<QuizResponseDTO>> GetAllQuizResponsesByTopicIdAsync(Guid topicId, CancellationToken ct = default)
+        public async Task<IEnumerable<QuizResponseDTO>> GetAllQuizResponsesByTopicIdAsync(Guid topicId, CancellationToken ct = default)
         {
             var entities = await _unitOfWork.QuizResponses.FindAllByTopicIdWithAnswersAsync(topicId, ct);
             return entities.Select(ToDto).ToList();
         }
 
-        public async Task<List<QuizResponseDTO>> GetAllQuizResponsesByTopicIdOfStudentAsync(Guid topicId, Guid studentId, CancellationToken ct = default)
+        public async Task<IEnumerable<QuizResponseDTO>> GetAllQuizResponsesByTopicIdOfStudentAsync(Guid topicId, Guid studentId, CancellationToken ct = default)
         {
             var entities = await _unitOfWork.QuizResponses.FindByTopicIdAndStudentIdWithAnswersAsync(topicId, studentId, ct);
             return entities.Select(ToDto).ToList();
