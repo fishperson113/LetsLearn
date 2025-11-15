@@ -28,5 +28,24 @@ namespace LetsLearn.Infrastructure.Repository
 
             return assignments;
         }
+
+        public async Task<IReadOnlyList<TopicAssignment>> FindByTopicsAndOpenCloseAsync(
+            IReadOnlyList<Guid> topicIds,
+            DateTime start,
+            DateTime end,
+            CancellationToken ct = default)
+        {
+            DateTime min = DateTime.MinValue;
+            DateTime max = DateTime.MaxValue;
+
+            return await _context.TopicAssignments
+                .AsNoTracking()
+                .Where(a => topicIds.Contains(a.TopicId))
+                .Where(a =>
+                    (a.Open ?? min) <= end &&     // open <= endTime
+                    (a.Close ?? max) >= start    // close >= startTime
+                )
+                .ToListAsync(ct);
+        }
     }
 }

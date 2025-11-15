@@ -11,6 +11,6 @@ namespace LetsLearn.Core.Interfaces
     {
         Task UpdateAsync(TopicQuiz topic);
         Task<TopicQuiz?> GetWithQuestionsAsync(Guid topicId);
-
+        Task<IReadOnlyList<TopicQuiz>> FindByTopicsAndOpenCloseAsync(IReadOnlyList<Guid> topicIds, DateTime start, DateTime end, CancellationToken ct = default);
     }
 }

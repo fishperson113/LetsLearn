@@ -61,14 +61,32 @@ namespace LetsLearn.API.Controllers
             [FromQuery] DateTime? end,
             CancellationToken ct = default)
         {
-            //if (start.HasValue) start = ConvertToGMT7(start.Value);
-            //if (end.HasValue) end = ConvertToGMT7(end.Value);
-
             var userId = Guid.Parse(User.Claims.First(c => c.Type == "userID").Value);
 
             var result = await _userService.GetAllWorksOfUserAsync(userId, type, start, end, ct);
 
             return Ok(result);
+        }
+
+        [HttpGet("me/report")]
+        public async Task<ActionResult<StudentReportDTO>> GetLearnerReport(
+            [FromQuery] String courseId,
+            [FromQuery] DateTime? start,
+            [FromQuery] DateTime? end,
+            CancellationToken ct)
+        {
+            // Lấy userId
+            var userId = Guid.Parse(User.Claims.First(c => c.Type == "userID").Value);
+
+            var report = await _userService.GetStudentReportAsync(
+                userId,
+                courseId,
+                start,
+                end,
+                ct
+            );
+
+            return Ok(report);
         }
 
         [HttpDelete("leave")]

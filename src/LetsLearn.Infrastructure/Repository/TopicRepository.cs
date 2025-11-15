@@ -30,5 +30,15 @@ namespace LetsLearn.Infrastructure.Repository
             _context.Entry(topic).State = EntityState.Modified;
             await _context.SaveChangesAsync();
         }
+
+        public async Task<IReadOnlyList<Topic>> GetAllBySectionIdsAsync(List<Guid> sectionIds, CancellationToken ct = default)
+        {
+            if (sectionIds == null || sectionIds.Count == 0)
+                return new List<Topic>();
+
+            return await _dbSet.AsNoTracking()
+                               .Where(t => sectionIds.Contains(t.SectionId))
+                               .ToListAsync(ct);
+        }
     }
 }
