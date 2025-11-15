@@ -153,7 +153,7 @@ namespace LetsLearn.UseCases.Services.CourseSer
         // Decision points (D):
         // - Pure retrieval/filtering in repository: +0
         // D = 0 => Minimum Test Cases = D + 1 = 1
-        public async Task<List<GetCourseResponse>> GetAllCoursesAsync(CancellationToken ct = default)
+        public async Task<IEnumerable<GetCourseResponse>> GetAllCoursesAsync(CancellationToken ct = default)
         {
             var courses = await _uow.Course.GetAllCoursesByIsPublishedTrue();
             return courses.Where(c => c != null).Select(c => MapToResponse(c!)).ToList();
@@ -163,7 +163,7 @@ namespace LetsLearn.UseCases.Services.CourseSer
         // Decision points (D):
         // - if userExists is false: +1
         // D = 1 => Minimum Test Cases = D + 1 = 2
-        public async Task<List<GetCourseResponse>> GetAllCoursesByUserIdAsync(Guid userId, CancellationToken ct = default)
+        public async Task<IEnumerable<GetCourseResponse>> GetAllCoursesByUserIdAsync(Guid userId, CancellationToken ct = default)
         {
             var userExists = await _uow.Users.ExistsAsync(u => u.Id == userId, ct);
             if (!userExists) throw new KeyNotFoundException("User not found.");
@@ -221,7 +221,7 @@ namespace LetsLearn.UseCases.Services.CourseSer
             }
         }
 
-        public async Task<List<TopicDTO>> GetAllWorksOfCourseAndUserAsync(String courseId, Guid userId, string type, DateTime? start, DateTime? end, CancellationToken ct = default)
+        public async Task<IEnumerable<TopicDTO>> GetAllWorksOfCourseAndUserAsync(String courseId, Guid userId, string type, DateTime? start, DateTime? end, CancellationToken ct = default)
         {
             // Kiểm tra nếu chỉ có start hoặc end được cung cấp
             if (start.HasValue ^ end.HasValue) // XOR

@@ -26,7 +26,7 @@ namespace LetsLearn.UseCases.Services.ConversationService
         // - if user1 or user2 missing (with ||): if +1, logical operator || +1
         // - if existingConversation != null: +1
         // D = 3 => Minimum Test Cases = D + 1 = 4
-        public async Task<ConversationDTO> GetOrCreateConversationAsync(Guid user1Id, Guid user2Id)
+        public async Task<ConversationDTO> CreateConversationAsync(Guid user1Id, Guid user2Id)
         {
             var user1 = await _unitOfWork.Users.GetByIdAsync(user1Id);
             var user2 = await _unitOfWork.Users.GetByIdAsync(user2Id);
@@ -65,7 +65,7 @@ namespace LetsLearn.UseCases.Services.ConversationService
         // Decision points (D):
         // - if user not found (ExistsAsync false): +1
         // D = 1 => Minimum Test Cases = D + 1 = 2
-        public async Task<List<ConversationDTO>> GetAllByUserIdAsync(Guid userId)
+        public async Task<IEnumerable<ConversationDTO>> GetAllByUserIdAsync(Guid userId)
         {
             if (!await _unitOfWork.Users.ExistsAsync(u => u.Id == userId))
             {

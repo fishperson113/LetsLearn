@@ -6,8 +6,8 @@ namespace LetsLearn.UseCases.ServiceInterfaces
     {
         Task<GetUserResponse> GetByIdAsync(Guid id, CancellationToken ct = default);
         Task<UpdateUserResponse> UpdateAsync(Guid id, UpdateUserDTO dto);
-        Task<List<GetUserResponse>> GetAllAsync(Guid requesterId);
-        Task<List<TopicDTO>> GetAllWorksOfUserAsync(Guid userId, string? type, DateTime? start, DateTime? end, CancellationToken ct = default);
+        Task<IEnumerable<GetUserResponse>> GetAllAsync(Guid requesterId);
+        Task<IEnumerable<TopicDTO>> GetAllWorksOfUserAsync(Guid userId, string? type, DateTime? start, DateTime? end, CancellationToken ct = default);
         Task LeaveCourseAsync(Guid userId, string courseId, CancellationToken ct = default);
 
 

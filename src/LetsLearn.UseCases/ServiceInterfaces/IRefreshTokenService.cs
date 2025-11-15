@@ -10,7 +10,7 @@ namespace LetsLearn.UseCases.ServiceInterfaces
 {
     public interface IRefreshTokenService
     {
-        Task<string> CreateAndStoreRefreshTokenAsync(Guid userId, string role);
+        Task<string> CreatRefreshTokenAsync(Guid userId, string role);
         Task RefreshTokenAsync(HttpContext context);
     }
 }

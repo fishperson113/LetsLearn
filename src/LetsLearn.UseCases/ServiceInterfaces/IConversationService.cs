@@ -9,7 +9,7 @@ namespace LetsLearn.UseCases.ServiceInterfaces
 {
     public interface IConversationService
     {
-        Task<ConversationDTO> GetOrCreateConversationAsync(Guid user1Id, Guid user2Id);
-        Task<List<ConversationDTO>> GetAllByUserIdAsync(Guid userId);
+        Task<ConversationDTO> CreateConversationAsync(Guid user1Id, Guid user2Id);
+        Task<IEnumerable<ConversationDTO>> GetAllByUserIdAsync(Guid userId);
     }
 }

@@ -28,7 +28,7 @@ namespace LetsLearn.API.Controllers
         public async Task<ActionResult<ConversationDTO>> CreateOrGetConversation([FromQuery] Guid otherUserId)
         {
             var userId = Guid.Parse(User.FindFirst("userID")?.Value ?? throw new UnauthorizedAccessException("User ID not found"));
-            var conversation = await _conversationService.GetOrCreateConversationAsync(userId, otherUserId);
+            var conversation = await _conversationService.CreateConversationAsync(userId, otherUserId);
             return Ok(conversation);
         }
     }

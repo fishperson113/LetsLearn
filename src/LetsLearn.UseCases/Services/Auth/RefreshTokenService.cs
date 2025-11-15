@@ -33,7 +33,7 @@ namespace LetsLearn.UseCases.Services.Auth
         // Decision points (D):
         // - Pure repo operations without branching: +0
         // D = 0 => Minimum Test Cases = D + 1 = 1
-        public async Task<string> CreateAndStoreRefreshTokenAsync(Guid userId, string role)
+        public async Task<string> CreatRefreshTokenAsync(Guid userId, string role)
         {
             var refreshToken = _tokenService.CreateRefreshToken(userId, role);
             var expirySeconds = int.Parse(_tokenService.GetRefreshTokenExpireSeconds().ToString());
@@ -74,7 +74,7 @@ namespace LetsLearn.UseCases.Services.Auth
             }
 
             var newAccessToken = _tokenService.CreateAccessToken(userId, role);
-            var newRefreshToken = await CreateAndStoreRefreshTokenAsync(userId, role);
+            var newRefreshToken = await CreatRefreshTokenAsync(userId, role);
             _tokenService.SetTokenCookies(context, newAccessToken, newRefreshToken);
         }
     }

@@ -178,7 +178,7 @@ namespace LetsLearn.UseCases.Services.QuestionSer
         // Decision points (D):
         // - No branching here: +0
         // D = 0 => Minimum Test Cases = D + 1 = 1
-        public async Task<List<GetQuestionResponse>> GetByCourseIdAsync(string courseId, CancellationToken ct = default)
+        public async Task<IEnumerable<GetQuestionResponse>> GetByCourseIdAsync(string courseId, CancellationToken ct = default)
         {
             var questions = await _uow.Questions.GetAllByCourseIdAsync(courseId, ct);
             return questions.Select(MapToResponse).ToList();

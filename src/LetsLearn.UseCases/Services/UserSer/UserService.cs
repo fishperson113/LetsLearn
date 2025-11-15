@@ -91,7 +91,7 @@ namespace LetsLearn.UseCases.Services.UserSer
         // Decision points (D):
         // - No branching here: +0
         // D = 0 => Minimum Test Cases = D + 1 = 1
-        public async Task<List<GetUserResponse>> GetAllAsync(Guid requesterId)
+        public async Task<IEnumerable<GetUserResponse>> GetAllAsync(Guid requesterId)
         {
             var users = await _unitOfWork.Users.FindAsync(u => u.Id != requesterId);
 
@@ -107,7 +107,7 @@ namespace LetsLearn.UseCases.Services.UserSer
                 .ToList();
         }
 
-        public async Task<List<TopicDTO>> GetAllWorksOfUserAsync(Guid userId, string? type, DateTime? start, DateTime? end, CancellationToken ct = default)
+        public async Task<IEnumerable<TopicDTO>> GetAllWorksOfUserAsync(Guid userId, string? type, DateTime? start, DateTime? end, CancellationToken ct = default)
         {
             if (start.HasValue && end.HasValue && start > end)
                 throw new ArgumentException("Start time must be after end time");

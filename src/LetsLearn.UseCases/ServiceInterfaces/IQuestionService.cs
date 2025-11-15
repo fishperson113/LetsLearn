@@ -12,6 +12,6 @@ namespace LetsLearn.UseCases.ServiceInterfaces
         Task<GetQuestionResponse> CreateAsync(CreateQuestionRequest req, Guid userId, CancellationToken ct = default);
         Task<GetQuestionResponse> UpdateAsync(UpdateQuestionRequest req, Guid userId, CancellationToken ct = default);
         Task<GetQuestionResponse> GetByIdAsync(Guid id, CancellationToken ct = default);
-        Task<List<GetQuestionResponse>> GetByCourseIdAsync(string courseId, CancellationToken ct = default);
+        Task<IEnumerable<GetQuestionResponse>> GetByCourseIdAsync(string courseId, CancellationToken ct = default);
     }
 }

@@ -25,7 +25,7 @@ namespace LetsLearn.Test.Services
                  .ReturnsAsync(new User());
 
             var svc = new ConversationService(uow.Object);
-            await Assert.ThrowsAsync<ArgumentException>(() => svc.GetOrCreateConversationAsync(Guid.NewGuid(), Guid.NewGuid()));
+            await Assert.ThrowsAsync<ArgumentException>(() => svc.CreateConversationAsync(Guid.NewGuid(), Guid.NewGuid()));
         }
 
         [Fact]
@@ -42,7 +42,7 @@ namespace LetsLearn.Test.Services
                  .ReturnsAsync(new Conversation { Id = Guid.NewGuid() });
 
             var svc = new ConversationService(uow.Object);
-            var dto = await svc.GetOrCreateConversationAsync(Guid.NewGuid(), Guid.NewGuid());
+            var dto = await svc.CreateConversationAsync(Guid.NewGuid(), Guid.NewGuid());
 
             Assert.NotEqual(Guid.Empty, dto.Id);
         }
@@ -63,7 +63,7 @@ namespace LetsLearn.Test.Services
             uow.Setup(x => x.CommitAsync()).ReturnsAsync(1);
 
             var svc = new ConversationService(uow.Object);
-            var dto = await svc.GetOrCreateConversationAsync(Guid.NewGuid(), Guid.NewGuid());
+            var dto = await svc.CreateConversationAsync(Guid.NewGuid(), Guid.NewGuid());
             Assert.NotEqual(Guid.Empty, dto.Id);
         }
 
