@@ -75,7 +75,6 @@ builder.Services.AddStackExchangeRedisCache(options =>
     options.Configuration = builder.Configuration.GetConnectionString("Redis");
     options.InstanceName = "LetsLearn";
 });
-builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped(typeof(IRepository<>), typeof(GenericRepository<>));
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IRedisCacheService, RedisCacheService>();
@@ -94,6 +93,7 @@ builder.Services.AddScoped<IQuizResponseAnswerRepository, QuizResponseAnswerRepo
 builder.Services.AddScoped<IEnrollmentRepository, EnrollmentRepository>();
 
 //DI for custom services
+builder.Services.AddSingleton<ITokenService, TokenService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IConversationService, ConversationService>();
