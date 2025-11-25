@@ -148,27 +148,153 @@ namespace LetsLearn.UseCases.Services.UserSer
 
             foreach (var course in courses)
             {
+                // Get course creator and students for full course object
+                var creator = await _unitOfWork.Users.GetByIdAsync(course.CreatorId, ct);
+                var enrollments = await _unitOfWork.Enrollments.GetAllByCourseIdAsync(course.Id, ct);
+                var students = new List<User>();
+
+                foreach (var enrollment in enrollments)
+                {
+                    var student = await _unitOfWork.Users.GetByIdAsync(enrollment.StudentId, ct);
+                    if (student != null) students.Add(student);
+                }
+
+                // Create full course response
+                var courseResponse = MapToEnhancedCourseResponse(course, creator, students);
+
                 foreach (var section in course.Sections)
                 {
                     foreach (var topic in section.Topics)
                     {
                         if (string.IsNullOrEmpty(type) || type.Equals(topic.Type, StringComparison.OrdinalIgnoreCase))
                         {
-                            object? topicData = await _courseService.GetTopicDataByTypeAsync(topic.Id, userId, start, end, ct);
-                            if (topicData != null)
+                            // Use the direct method that doesn't wrap in TopicDataDTO
+                            object? topicData = await GetTopicDataDirectAsync(topic.Id, userId, start, end, ct);
+
+                            var topicDTO = new TopicDTO
                             {
-                                var topicDTO = ToDTO(topic);
-                                topicDTO.Data = topicData;
-                                //topicDTO.Data = topicData.Item;
-                                //topicDTO.Response = topicData.Response;
-                                result.Add(topicDTO);
-                            }
+                                Id = topic.Id,
+                                Title = topic.Title,
+                                Type = topic.Type,
+                                SectionId = topic.SectionId,
+                                Data = topicData,  // Direct assignment without wrapper
+                                Response = null,   // Will be populated if needed
+                                Course = courseResponse, // ✅ Include full course object
+                                StudentCount = students.Count // ✅ Include student count
+                            };
+
+                            result.Add(topicDTO);
                         }
                     }
                 }
             }
 
             return result;
+        }
+
+        // Helper method to create enhanced course response
+        private static GetCourseResponse MapToEnhancedCourseResponse(Course course, User? creator, List<User> students)
+        {
+            return new GetCourseResponse
+            {
+                Id = course.Id,
+                CreatorId = creator?.Id ?? course.CreatorId,
+                Title = course.Title,
+                Description = course.Description,
+                TotalJoined = students.Count,
+                ImageUrl = course.ImageUrl,
+                Price = course.Price,
+                Category = course.Category,
+                Level = course.Level,
+                IsPublished = course.IsPublished,
+            };
+        }
+
+        // Updated method to ensure assignment data includes open/close dates
+        private async Task<object?> GetTopicDataDirectAsync(Guid topicId, Guid userId, DateTime? start, DateTime? end, CancellationToken ct = default)
+        {
+            var topic = await _unitOfWork.Topics.GetByIdAsync(topicId, ct);
+            if (topic == null)
+            {
+                return null;
+            }
+
+            switch (topic.Type.ToLower())
+            {
+                case "quiz":
+                    var quiz = await _unitOfWork.TopicQuizzes.GetWithQuestionsAsync(topicId);
+                    if (quiz != null && ShouldIncludeInDateRange(quiz.Open, quiz.Close, start, end))
+                    {
+                        return quiz; // ✅ Quiz includes open/close dates
+                    }
+                    break;
+
+                case "assignment":
+                    var assignment = (await _unitOfWork.TopicAssignments.FindAsync(a => a.TopicId == topicId, ct)).FirstOrDefault();
+                    if (assignment != null && ShouldIncludeInDateRange(assignment.Open, assignment.Close, start, end))
+                    {
+                        return assignment; // ✅ Assignment includes open/close dates
+                    }
+                    break;
+
+                case "meeting":
+                    var meeting = (await _unitOfWork.TopicMeetings.FindAsync(m => m.TopicId == topicId, ct)).FirstOrDefault();
+                    if (meeting != null && ShouldIncludeInDateRange(meeting.Open, meeting.Close, start, end))
+                    {
+                        return meeting; // ✅ Meeting includes open/close dates
+                    }
+                    break;
+
+                case "page":
+                    var page = (await _unitOfWork.TopicPages.FindAsync(p => p.TopicId == topicId, ct)).FirstOrDefault();
+                    return page; // ✅ Pages don't need date filtering
+
+                case "file":
+                    var file = (await _unitOfWork.TopicFiles.FindAsync(f => f.TopicId == topicId, ct)).FirstOrDefault();
+                    return file; // ✅ Files don't need date filtering
+
+                case "link":
+                    var link = (await _unitOfWork.TopicLinks.FindAsync(l => l.TopicId == topicId, ct)).FirstOrDefault();
+                    return link; // ✅ Links don't need date filtering
+
+                default:
+                    return topic;
+            }
+
+            return null;
+        }
+
+        // Update ToDTO to accept course and student count
+        public static TopicDTO ToDTO(Topic topic, GetCourseResponse? course = null, int? studentCount = null)
+        {
+            return new TopicDTO
+            {
+                Id = topic.Id,
+                Title = topic.Title,
+                Type = topic.Type,
+                SectionId = topic.SectionId,
+                Course = course,
+                StudentCount = studentCount
+            };
+        }
+
+        private static bool ShouldIncludeInDateRange(DateTime? itemStart, DateTime? itemEnd, DateTime? filterStart, DateTime? filterEnd)
+        {
+            // If no date filter provided, include all items
+            if (filterStart == null && filterEnd == null)
+                return true;
+
+            // If date filter provided, check for overlap
+            if (filterStart.HasValue && filterEnd.HasValue)
+            {
+                var start = itemStart ?? DateTime.MinValue;
+                var end = itemEnd ?? DateTime.MaxValue;
+
+                // Check if there's any overlap between item date range and filter date range
+                return start <= filterEnd && end >= filterStart;
+            }
+
+            return true;
         }
 
         public async Task<StudentReportDTO> GetStudentReportAsync(

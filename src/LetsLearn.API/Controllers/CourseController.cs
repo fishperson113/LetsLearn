@@ -184,7 +184,7 @@ namespace LetsLearn.API.Controllers
 
         [HttpGet("{id}/work")]
         public async Task<ActionResult<TopicDTO>> GetWorksOfCourseAndUser(String id,
-            [FromQuery] string type,
+            [FromQuery] string? type,
             [FromQuery] DateTime? start,
             [FromQuery] DateTime? end,
             CancellationToken ct = default)

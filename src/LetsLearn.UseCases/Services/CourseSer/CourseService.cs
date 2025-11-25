@@ -223,19 +223,16 @@ namespace LetsLearn.UseCases.Services.CourseSer
 
         public async Task<IEnumerable<TopicDTO>> GetAllWorksOfCourseAndUserAsync(String courseId, Guid userId, string type, DateTime? start, DateTime? end, CancellationToken ct = default)
         {
-            // Kiểm tra nếu chỉ có start hoặc end được cung cấp
-            if (start.HasValue ^ end.HasValue) // XOR
+            if (start.HasValue ^ end.HasValue)
             {
                 throw new ArgumentException("Provide start and end time!");
             }
 
-            // Kiểm tra nếu start sau end
             if (start.HasValue && end.HasValue && start > end)
             {
                 throw new ArgumentException("Start time must be after end time");
             }
 
-            // Lấy thông tin khóa học
             var course = await _uow.Course.GetByIdAsync(courseId, ct);
             if (course == null)
             {
@@ -244,29 +241,72 @@ namespace LetsLearn.UseCases.Services.CourseSer
 
             var result = new List<TopicDTO>();
 
-            // Duyệt qua tất cả các sections trong khóa học
             foreach (var courseSection in course.Sections)
             {
-                // Duyệt qua các topics trong từng section
                 foreach (var topicSection in courseSection.Topics)
                 {
                     if (string.IsNullOrEmpty(type) || type.Equals(topicSection.Type, StringComparison.OrdinalIgnoreCase))
                     {
-                        var topicData = await GetTopicDataByTypeAsync(topicSection.Id, userId, start, end, ct);
-                        if (topicData != null)
+                        // Get the direct topic data without wrapping
+                        var topicData = await GetTopicDataDirectAsync(topicSection.Id, userId, start, end, ct);
+
+                        var topicDTO = new TopicDTO
                         {
-                            var topicDTO = ToDTO(topicSection);
-                            topicDTO.Data = topicData.Item;
-                            topicDTO.Response = topicData.Response;
-                            result.Add(topicDTO);
-                        }
+                            Id = topicSection.Id,
+                            Title = topicSection.Title,
+                            Type = topicSection.Type,
+                            SectionId = topicSection.SectionId,
+                            Data = topicData,  // Direct assignment without .Item wrapper
+                            Response = null,   // Handle response separately if needed
+                            Course = null,     // Will be populated if needed
+                            StudentCount = null
+                        };
+
+                        result.Add(topicDTO);
                     }
                 }
             }
 
             return result;
         }
+        public async Task<object?> GetTopicDataDirectAsync(Guid topicId, Guid userId, DateTime? start, DateTime? end, CancellationToken ct = default)
+        {
+            var topic = await _uow.Topics.GetByIdAsync(topicId, ct);
+            if (topic == null)
+            {
+                return null;
+            }
 
+            switch (topic.Type.ToLower())
+            {
+                case "quiz":
+                    var quiz = await _uow.TopicQuizzes.GetWithQuestionsAsync(topicId);
+                    return quiz; // Return quiz directly, not wrapped in TopicDataDTO
+
+                case "assignment":
+                    var assignment = (await _uow.TopicAssignments.FindAsync(a => a.TopicId == topicId, ct)).FirstOrDefault();
+                    return assignment; // Return assignment directly
+
+                case "meeting":
+                    var meeting = (await _uow.TopicMeetings.FindAsync(m => m.TopicId == topicId, ct)).FirstOrDefault();
+                    return meeting; // Return meeting directly
+
+                case "page":
+                    var page = (await _uow.TopicPages.FindAsync(p => p.TopicId == topicId, ct)).FirstOrDefault();
+                    return page; // Return page directly
+
+                case "file":
+                    var file = (await _uow.TopicFiles.FindAsync(f => f.TopicId == topicId, ct)).FirstOrDefault();
+                    return file; // Return file directly
+
+                case "link":
+                    var link = (await _uow.TopicLinks.FindAsync(l => l.TopicId == topicId, ct)).FirstOrDefault();
+                    return link; // Return link directly
+
+                default:
+                    return topic; // Return basic topic for unknown types
+            }
+        }
         public async Task<AllAssignmentsReportDTO> GetAssignmentsReportAsync(String courseId, DateTime? startTime, DateTime? endTime, CancellationToken ct = default)
         {
             if (!startTime.HasValue)
