@@ -28,6 +28,7 @@ namespace LetsLearn.UseCases.Services.QuestionSer
         // D = 3 => Minimum Test Cases = D + 1 = 4
         public async Task<GetQuestionResponse> CreateAsync(CreateQuestionRequest req, Guid userId, CancellationToken ct = default)
         {
+            var courseId = req.CourseId ?? req.Course?.Id ?? string.Empty;
             var question = new Question
             {
                 Id = Guid.NewGuid(),
@@ -49,7 +50,7 @@ namespace LetsLearn.UseCases.Services.QuestionSer
                 CreatedById = userId,
                 ModifiedById = userId,
 
-                CourseId = req.CourseId ?? ""
+                CourseId = courseId
             };
 
             await _uow.Questions.AddAsync(question);

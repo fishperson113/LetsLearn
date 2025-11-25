@@ -22,7 +22,7 @@ namespace LetsLearn.WebApi.Controllers
             _service = service;
         }
 
-        // POST: api/question
+        // POST: question
         [HttpPost]
         public async Task<ActionResult<GetQuestionResponse>> Create(
             [FromBody] CreateQuestionRequest request,
@@ -47,7 +47,26 @@ namespace LetsLearn.WebApi.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
+        // GET: question?courseId=CS01
+        [HttpGet]
+        [AllowAnonymous]
+        public async Task<ActionResult<List<GetQuestionResponse>>> GetQuestions(
+            [FromQuery] string? courseId = null,
+            CancellationToken ct = default)
+        {
+            if (string.IsNullOrWhiteSpace(courseId))
+                return BadRequest(new { message = "CourseId query parameter is required." });
 
+            try
+            {
+                var list = await _service.GetByCourseIdAsync(courseId, ct);
+                return Ok(list);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
         // GET: api/question/{id}
         [HttpGet("{id:guid}")]
         [AllowAnonymous]

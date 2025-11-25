@@ -9,7 +9,6 @@ namespace LetsLearn.UseCases.DTOs
 {
     public class CreateQuestionChoiceRequest
     {
-        public Guid QuestionId { get; set; }
         public string? Content { get; set; }
         public bool IsCorrect { get; set; }
         public string? Feedback { get; set; }
@@ -31,10 +30,14 @@ namespace LetsLearn.UseCases.DTOs
         public bool IsCorrect { get; set; }
         public string? Feedback { get; set; }
     }
-
+    public class CreateQuestionCourse
+    {
+        public string? Id { get; set; }
+    }
     public class CreateQuestionRequest
     {
-        public String CourseId { get; set; }
+        public String? CourseId { get; set; }
+        public CreateQuestionCourse? Course { get; set; }
         public string? QuestionName { get; set; }
         public string? QuestionText { get; set; }
         public string? Status { get; set; }

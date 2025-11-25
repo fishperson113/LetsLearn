@@ -18,7 +18,7 @@ namespace LetsLearn.Infrastructure.Repository
         {
             return await _dbSet
                 .Include(q => q.Choices)
-                .Where(q => q.CourseId == courseId)
+                .Where(q => q.CourseId == courseId && q.DeletedAt == null)
                 .ToListAsync(ct);
         }
 
@@ -26,7 +26,7 @@ namespace LetsLearn.Infrastructure.Repository
         {
             return await _dbSet
                 .Include(q => q.Choices)
-                .FirstOrDefaultAsync(q => q.Id == id, ct);
+                .FirstOrDefaultAsync(q => q.Id == id && q.DeletedAt == null, ct);
         }
     }
 }

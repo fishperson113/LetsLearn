@@ -47,5 +47,17 @@ namespace LetsLearn.API.Controllers
         {
             return Ok(await _quizResponseService.UpdateQuizResponseByIdAsync(id, dto, ct));
         }
+        [HttpGet("/topic/{topicId:guid}/quiz-response")]
+        public async Task<ActionResult<List<QuizResponseDTO>>> GetQuizResponsesByTopic(
+            [FromRoute] Guid topicId,
+            [FromQuery] Guid? studentId = null,
+            CancellationToken ct = default)
+        {
+            if (studentId.HasValue)
+            {
+                return Ok(await _quizResponseService.GetAllQuizResponsesByTopicIdOfStudentAsync(topicId, studentId.Value, ct));
+            }
+            return Ok(await _quizResponseService.GetAllQuizResponsesByTopicIdAsync(topicId, ct));
+        }
     }
 }
