@@ -288,117 +288,71 @@ namespace LetsLearn.UseCases.Services
                         quiz.GradingMethod = quizReq.GradingMethod ?? quiz.GradingMethod;
                         quiz.AttemptAllowed = quizReq.AttemptAllowed ?? quiz.AttemptAllowed;
 
-                        if (quizReq.Questions != null && quizReq.Questions.Any())
+                        // 1. Build dictionary cho update nhanh
+                        var existingQuestions = quiz.Questions.ToDictionary(q => q.Id);
+
+                        // Danh sách Id mới từ request
+                        var incomingIds = quizReq.Questions.Where(q => q.Id != null)
+                                       .Select(q => q.Id!.Value)
+                                       .ToHashSet();
+
+                        //// 2. XÓA question bị remove
+                        //var removed = quiz.Questions.Where(q => !incomingIds.Contains(q.Id)).ToList();
+                        //foreach (var r in removed)
+                        //    _unitOfWork.TopicQuizQuestions.DeleteAsync(r);
+
+                        // 3. Xử lý từng câu hỏi trong request
+                        foreach (var q in quizReq.Questions)
                         {
-                            var updatedQuestions = new List<TopicQuizQuestion>();
+                            TopicQuizQuestion question;
 
-                            foreach (var q in quizReq.Questions)
+                            // 3.1. Update existing question
+                            if (q.Id != null && existingQuestions.TryGetValue(q.Id.Value, out question))
                             {
-                                TopicQuizQuestion question;
+                                question.QuestionName = q.QuestionName;
+                                question.QuestionText = q.QuestionText;
+                                question.Type = q.Type;
+                                question.DefaultMark = q.DefaultMark;
+                                question.FeedbackOfTrue = q.FeedbackOfTrue;
+                                question.FeedbackOfFalse = q.FeedbackOfFalse;
+                                question.CorrectAnswer = q.CorrectAnswer;
+                                question.Multiple = q.Multiple;
 
-                                if (q.Id != null && q.Id != Guid.Empty && quiz.Questions.Any(x => x.Id == q.Id))
+                                // Update choices
+                                UpdateTopicQuizQuestionChoices(question, q);
+                            }
+                            else
+                            {
+                                // 3.2. CREATE NEW question
+                                question = new TopicQuizQuestion
                                 {
-                                    // Update question hiện có
-                                    question = quiz.Questions.FirstOrDefault(x => x.Id == q.Id)
-                                               ?? throw new KeyNotFoundException($"Question with ID {q.Id} not found.");
-                                    question.QuestionName = q.QuestionName;
-                                    question.QuestionText = q.QuestionText;
-                                    question.Type = q.Type;
-                                    question.DefaultMark = q.DefaultMark;
-                                    question.FeedbackOfTrue = q.FeedbackOfTrue;
-                                    question.FeedbackOfFalse = q.FeedbackOfFalse;
-                                    question.CorrectAnswer = q.CorrectAnswer;
-                                    question.Multiple = q.Multiple;
-
-                                    // Update choices
-                                    var updatedChoices = new List<TopicQuizQuestionChoice>();
-                                    foreach (var c in q.Choices)
-                                    {
-                                        TopicQuizQuestionChoice choice;
-                                        if (c.Id.HasValue && c.Id.Value != Guid.Empty)
-                                        {
-                                            // Update existing choices
-                                            choice = question.Choices.FirstOrDefault(x => x.Id == c.Id)
-                                                     ?? throw new KeyNotFoundException($"Choice with ID {c.Id} not found.");
-                                            choice.Text = c.Text;
-                                            choice.GradePercent = c.GradePercent;
-                                            choice.Feedback = c.Feedback;
-                                        }
-                                        else
-                                        {
-                                            // Tạo mới choice
-                                            choice = new TopicQuizQuestionChoice
-                                            {
-                                                Id = Guid.NewGuid(),
-                                                QuizQuestionId = question.Id,
-                                                Text = c.Text,
-                                                GradePercent = c.GradePercent,
-                                                Feedback = c.Feedback
-                                            };
-                                        }
-                                        updatedChoices.Add(choice);
-                                    }
-
-                                    question.Choices = updatedChoices;
-                                }
-                                else
+                                    Id = Guid.NewGuid(),
+                                    TopicQuizId = quiz.TopicId,
+                                    QuestionName = q.QuestionName,
+                                    QuestionText = q.QuestionText,
+                                    Type = q.Type,
+                                    DefaultMark = q.DefaultMark,
+                                    FeedbackOfTrue = q.FeedbackOfTrue,
+                                    FeedbackOfFalse = q.FeedbackOfFalse,
+                                    CorrectAnswer = q.CorrectAnswer,
+                                    Multiple = q.Multiple,
+                                    Choices = new List<TopicQuizQuestionChoice>()
+                                };
+                                // Tạo choices
+                                foreach (var c in q.Choices)
                                 {
-                                    // Tạo mới question hoàn toàn
-                                    question = new TopicQuizQuestion
+                                    question.Choices.Add(new TopicQuizQuestionChoice
                                     {
                                         Id = Guid.NewGuid(),
-                                        TopicQuizId = quiz.TopicId,
-                                        QuestionName = q.QuestionName,
-                                        QuestionText = q.QuestionText,
-                                        Type = q.Type,
-                                        DefaultMark = q.DefaultMark,
-                                        FeedbackOfTrue = q.FeedbackOfTrue,
-                                        FeedbackOfFalse = q.FeedbackOfFalse,
-                                        CorrectAnswer = q.CorrectAnswer,
-                                        Multiple = q.Multiple,
-                                        Choices = new List<TopicQuizQuestionChoice>()
-                                    };
-
-                                    // Thêm choices sau khi 'question' đã được gán
-                                    foreach (var c in (q.Choices ?? Enumerable.Empty<UpdateTopicQuizQuestionChoiceRequest>()))
-                                    {
-                                        question.Choices.Add(new TopicQuizQuestionChoice
-                                        {
-                                            Id = Guid.NewGuid(),
-                                            QuizQuestionId = question.Id,
-                                            Text = c.Text,
-                                            GradePercent = c.GradePercent,
-                                            Feedback = c.Feedback
-                                        });
-                                    }
-
-                                    //question = new TopicQuizQuestion
-                                    //{
-                                    //    Id = Guid.NewGuid(),
-                                    //    TopicQuizId = request.Id!.Value,
-                                    //    QuestionName = q.QuestionName,
-                                    //    QuestionText = q.QuestionText,
-                                    //    Type = q.Type,
-                                    //    DefaultMark = q.DefaultMark,
-                                    //    FeedbackOfTrue = q.FeedbackOfTrue,
-                                    //    FeedbackOfFalse = q.FeedbackOfFalse,
-                                    //    CorrectAnswer = q.CorrectAnswer,
-                                    //    Multiple = q.Multiple,
-                                    //    Choices = q.Choices.Select(c => new TopicQuizQuestionChoice
-                                    //    {
-                                    //        Id = Guid.NewGuid(),
-                                    //        QuizQuestionId = Guid.Empty,
-                                    //        Text = c.Text,
-                                    //        GradePercent = c.GradePercent,
-                                    //        Feedback = c.Feedback
-                                    //    }).ToList()
-                                    //};
+                                        QuizQuestionId = question.Id,
+                                        Text = c.Text,
+                                        GradePercent = c.GradePercent,
+                                        Feedback = c.Feedback
+                                    });
                                 }
 
-                                updatedQuestions.Add(question);
+                                await _unitOfWork.TopicQuizQuestions.AddAsync(question);
                             }
-
-                            quiz.Questions = updatedQuestions;
                         }
 
                         await _unitOfWork.TopicQuizzes.UpdateAsync(quiz);
@@ -441,6 +395,45 @@ namespace LetsLearn.UseCases.Services
                 SectionId = topic.SectionId,
                 Data = topicData
             };
+        }
+
+        private void UpdateTopicQuizQuestionChoices(TopicQuizQuestion question, UpdateTopicQuizQuestionRequest q)
+        {
+            var existing = question.Choices.ToDictionary(c => c.Id);
+            var incoming = q.Choices.Where(c => c.Id != null)
+                                    .Select(c => c.Id!.Value)
+                                    .ToHashSet();
+
+            // Xóa choice cũ
+            var removed = question.Choices.Where(c => !incoming.Contains(c.Id)).ToList();
+            foreach (var r in removed)
+                question.Choices.Remove(r);
+
+            // xử lý từng choice
+            foreach (var c in q.Choices)
+            {
+                TopicQuizQuestionChoice choice;
+
+                if (c.Id != null && existing.TryGetValue(c.Id.Value, out choice))
+                {
+                    // Update
+                    choice.Text = c.Text;
+                    choice.GradePercent = c.GradePercent;
+                    choice.Feedback = c.Feedback;
+                }
+                else
+                {
+                    // Add new
+                    question.Choices.Add(new TopicQuizQuestionChoice
+                    {
+                        Id = Guid.NewGuid(),
+                        QuizQuestionId = question.Id,
+                        Text = c.Text,
+                        GradePercent = c.GradePercent,
+                        Feedback = c.Feedback
+                    });
+                }
+            }
         }
 
         public async Task<bool> DeleteTopicAsync(Guid id, CancellationToken ct = default)

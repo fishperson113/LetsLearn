@@ -9,16 +9,16 @@ namespace LetsLearn.UseCases.DTOs
 {
     public class CreateQuestionChoiceRequest
     {
-        public string? Content { get; set; }
-        public bool IsCorrect { get; set; }
+        public string? Text { get; set; }
+        public decimal? GradePercent { get; set; }
         public string? Feedback { get; set; }
     }
 
     public class UpdateQuestionChoiceRequest
     {
         public Guid Id { get; set; }
-        public string? Content { get; set; }
-        public bool IsCorrect { get; set; }
+        public string? Text { get; set; }
+        public decimal? GradePercent { get; set; }
         public string? Feedback { get; set; }
     }
 
@@ -26,8 +26,8 @@ namespace LetsLearn.UseCases.DTOs
     {
         public Guid Id { get; set; }
         public Guid QuestionId { get; set; }
-        public string? Content { get; set; }
-        public bool IsCorrect { get; set; }
+        public string? Text { get; set; }
+        public decimal? GradePercent { get; set; }
         public string? Feedback { get; set; }
     }
     public class CreateQuestionCourse
