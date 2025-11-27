@@ -54,14 +54,6 @@ namespace LetsLearn.UseCases.Services.QuestionSer
             };
 
             await _uow.Questions.AddAsync(question);
-            try
-            {
-                await _uow.CommitAsync();
-            }
-            catch (DbUpdateException ex)
-            {
-                throw new InvalidOperationException("Failed to create question.", ex);
-            }
 
             if (req.Choices is { Count: > 0 })
             {
@@ -69,9 +61,9 @@ namespace LetsLearn.UseCases.Services.QuestionSer
                 {
                     Id = Guid.NewGuid(),
                     QuestionId = question.Id,
-                    Text = c.Content,
+                    Text = c.Text,
                     Feedback = c.Feedback,
-                    GradePercent = c.IsCorrect ? 100 : 0
+                    GradePercent = c.GradePercent
                 }).ToList();
 
                     if (choicesToAdd.Count > 0)
@@ -86,6 +78,15 @@ namespace LetsLearn.UseCases.Services.QuestionSer
                             throw new InvalidOperationException("Failed to save question choices.", ex);
                         }
                     }
+            }
+
+            try
+            {
+                await _uow.CommitAsync();
+            }
+            catch (DbUpdateException ex)
+            {
+                throw new InvalidOperationException("Failed to create question.", ex);
             }
 
             var created = await _uow.Questions.GetWithChoicesAsync(question.Id, ct)
@@ -127,9 +128,9 @@ namespace LetsLearn.UseCases.Services.QuestionSer
                 foreach (var c in req.Choices.Where(x => existingById.ContainsKey(x.Id)))
                 {
                     var ex = existingById[c.Id];
-                    ex.Text = c.Content;
+                    ex.Text = c.Text;
                     ex.Feedback = c.Feedback;
-                    ex.GradePercent = c.IsCorrect ? 100 : 0;
+                    ex.GradePercent = c.GradePercent;
                 }
 
                 var toAdd = req.Choices
@@ -138,9 +139,9 @@ namespace LetsLearn.UseCases.Services.QuestionSer
                     {
                         Id = Guid.NewGuid(),
                         QuestionId = question.Id,
-                        Text = x.Content,
+                        Text = x.Text,
                         Feedback = x.Feedback,
-                        GradePercent = x.IsCorrect ? 100 : 0
+                        GradePercent = x.GradePercent
                     })
                     .ToList();
 
@@ -213,9 +214,9 @@ namespace LetsLearn.UseCases.Services.QuestionSer
                 {
                     Id = c.Id,
                     QuestionId = c.QuestionId,
-                    Content = c.Text,
+                    Text = c.Text,
                     Feedback = c.Feedback,
-                    IsCorrect = (c.GradePercent ?? 0) == 100
+                    GradePercent = c.GradePercent
                 }).ToList()
             };
         }

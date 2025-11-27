@@ -9,7 +9,7 @@ using LetsLearn.UseCases.Services.Auth;
 namespace LetsLearn.API.Controllers
 {
     [ApiController]
-    [Route("[controller]")]
+    [Route("auth")]
 
     public class AuthController : ControllerBase
     {

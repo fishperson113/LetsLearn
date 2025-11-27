@@ -66,6 +66,8 @@ namespace LetsLearn.Infrastructure.UnitOfWork
             QuizResponses = new QuizResponseRepository(_context);
             QuizResponseAnswers = new QuizResponseAnswerRepository(_context);
             Enrollments = new EnrollmentRepository(_context);
+            TopicQuizQuestions = new TopicQuizQuestionRepository(_context);
+            TopicQuizQuestionChoices = new TopicQuizQuestionChoiceRepository(_context);
         }
 
         public async Task<int> CommitAsync() =>

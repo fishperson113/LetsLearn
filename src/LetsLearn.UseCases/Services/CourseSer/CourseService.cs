@@ -706,7 +706,7 @@ namespace LetsLearn.UseCases.Services.CourseSer
         // Decision points (D):
         // - Pure mapping, no branching: +0
         // D = 0 => Minimum Test Cases = D + 1 = 1 (basic mapping)
-        private static GetCourseResponse MapToResponse(Course c)
+        private async Task<GetCourseResponse> MapToResponseAsync(Course c)
         {
             return new GetCourseResponse
             {
@@ -720,22 +720,59 @@ namespace LetsLearn.UseCases.Services.CourseSer
                 Category = c.Category,
                 Level = c.Level,
                 IsPublished = c.IsPublished,
-                Sections = c.Sections?.Select(s => new SectionResponse
-                {
-                    Id = s.Id,
-                    CourseId = c.Id,
-                    Position = s.Position,
-                    Title = s.Title,
-                    Description = s.Description,
-                    Topics = s.Topics?.Select(t => new TopicResponse
+
+                Sections = (await Task.WhenAll(
+                    c.Sections.Select(async s => new SectionResponse
                     {
-                        Id = t.Id,
-                        Title = t.Title,
-                        SectionId = t.SectionId,
-                        Type = t.Type
-                    }).ToList() ?? new List<TopicResponse>()
-                }).ToList()
+                        Id = s.Id,
+                        CourseId = c.Id,
+                        Position = s.Position,
+                        Title = s.Title,
+                        Description = s.Description,
+
+                        Topics = (await Task.WhenAll(
+                            s.Topics.Select(async t =>
+                            {
+                                // Dùng TopicService để lấy DATA đầy đủ
+                                return await _topicService.GetTopicByIdAsync(t.Id);
+                            })
+                        )).ToList()
+                    })
+                ))
+                .ToList()
             };
+        }
+
+        private static GetCourseResponse MapToResponse(Course c) 
+        { 
+            return new GetCourseResponse 
+            { 
+                Id = c.Id, 
+                CreatorId = c.CreatorId, 
+                Title = c.Title, 
+                Description = c.Description, 
+                TotalJoined = c.TotalJoined, 
+                ImageUrl = c.ImageUrl, 
+                Price = c.Price, 
+                Category = c.Category, 
+                Level = c.Level, 
+                IsPublished = c.IsPublished, 
+                Sections = c.Sections?.Select(s => new SectionResponse 
+                { 
+                    Id = s.Id, 
+                    CourseId = c.Id, 
+                    Position = s.Position, 
+                    Title = s.Title, 
+                    Description = s.Description, 
+                    Topics = s.Topics?.Select(t => new TopicResponse 
+                    { 
+                        Id = t.Id, 
+                        Title = t.Title, 
+                        SectionId = t.SectionId, 
+                        Type = t.Type 
+                    }).ToList() ?? new List<TopicResponse>() 
+                }).ToList() 
+            }; 
         }
 
         public static TopicDTO ToDTO(Topic topic)

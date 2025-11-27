@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 namespace LetsLearn.WebApi.Controllers
 {
     [ApiController]
-    [Route("[controller]")]
+    [Route("question")]
     [Authorize]
     public class QuestionController : ControllerBase
     {
@@ -87,8 +87,8 @@ namespace LetsLearn.WebApi.Controllers
             }
         }
 
-        // GET: api/question/by-course/{courseId}
-        [HttpGet("by-course/{courseId}")]
+        // GET: api/question/{courseId}
+        [HttpGet("{courseId}")]
         [AllowAnonymous]
         public async Task<ActionResult<List<GetQuestionResponse>>> GetByCourse(String courseId, CancellationToken ct)
         {
