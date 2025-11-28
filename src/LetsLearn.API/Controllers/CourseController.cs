@@ -4,12 +4,16 @@ using LetsLearn.UseCases.ServiceInterfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.Tokens;
 using NpgsqlTypes;
 using System;
 using System.Collections.Generic;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Text.Json;
 
 namespace LetsLearn.API.Controllers
 {
@@ -20,13 +24,97 @@ namespace LetsLearn.API.Controllers
     {
         private readonly ICourseService _courseService;
         private readonly ILogger<CourseController> _logger;
+        private readonly IConfiguration _configuration;
 
-        public CourseController(ICourseService courseService, ILogger<CourseController> logger)
+        public CourseController(ICourseService courseService, ILogger<CourseController> logger, IConfiguration configuration)
         {
             _courseService = courseService;
             _logger = logger;
+            _configuration = configuration;
+        }
+        [HttpGet("{courseId}/meeting/{topicId}/token")]
+        public async Task<ActionResult> GetMeetingToken(string courseId, string topicId, CancellationToken ct)
+        {
+            try
+            {
+                var userId = Guid.Parse(User.Claims.First(c => c.Type == "userID").Value);
+
+                // Verify user has access to this course by checking if they have any work in it
+                // This uses existing service method as a simple access check
+                var userWorks = await _courseService.GetAllWorksOfCourseAndUserAsync(courseId, userId, null, null, null, ct);
+                if (userWorks == null)
+                {
+                    return Forbid("Access denied to course");
+                }
+
+                // Generate LiveKit JWT token
+                var liveKitApiKey = _configuration["LiveKit:ApiKey"] ?? "devkey";
+                var liveKitApiSecret = _configuration["LiveKit:ApiSecret"] ?? "thisisaverylongsecretstring1234567890";
+                var liveKitWsUrl = _configuration["LiveKit:WsUrl"] ?? "ws://45.128.222.24:7880";
+
+                var token = CreateLiveKitToken(userId.ToString(), User.Identity?.Name ?? $"User-{userId}", topicId, liveKitApiKey, liveKitApiSecret);
+
+                return Ok(new
+                {
+                    token = token,
+                    roomName = topicId,
+                    wsUrl = liveKitWsUrl
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { error = "Meeting not found" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating meeting token for course {CourseId}, topic {TopicId}", courseId, topicId);
+                return BadRequest(new { error = "Failed to generate meeting token" });
+            }
         }
 
+        private string CreateLiveKitToken(string userId, string userName, string roomName, string apiKey, string apiSecret)
+        {
+            var now = DateTimeOffset.UtcNow;
+            var nbf = now; // Not before - token is valid immediately
+            var exp = now.AddHours(24); // Token expires in 24 hours
+
+            // Create video permissions as proper object for JSON serialization
+            var videoPermissions = new Dictionary<string, object>
+            {
+                {"room", roomName},
+                {"roomJoin", true},
+                {"canPublish", true},
+                {"canSubscribe", true}
+            };
+
+            // Serialize video permissions to JSON
+            var videoJson = JsonSerializer.Serialize(videoPermissions);
+
+            // Create claims for LiveKit JWT
+            var claims = new List<Claim>
+            {
+                new Claim(JwtRegisteredClaimNames.Iss, apiKey),
+                new Claim(JwtRegisteredClaimNames.Sub, userId),
+                new Claim(JwtRegisteredClaimNames.Iat, now.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64),
+                new Claim(JwtRegisteredClaimNames.Nbf, nbf.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64),
+                new Claim(JwtRegisteredClaimNames.Exp, exp.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64),
+                new Claim("name", userName),
+                new Claim("video", videoJson, JsonClaimValueTypes.Json)
+            };
+
+            var key = Encoding.UTF8.GetBytes(apiSecret);
+            var signingCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256);
+
+            var token = new JwtSecurityToken(
+                issuer: apiKey,
+                claims: claims,
+                notBefore: nbf.DateTime,
+                expires: exp.DateTime,
+                signingCredentials: signingCredentials
+            );
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
+        }
         /// <summary>
         /// GET /api/course?userId=...
         /// Retrieves a list of courses.
