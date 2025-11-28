@@ -42,7 +42,7 @@ namespace LetsLearn.UseCases.Services.CourseSer
                 throw new ArgumentException("Title is required.");
 
             var titleExists = await _uow.Course.ExistByTitle(dto.Title!);
-            if (titleExists) 
+            if (titleExists)
                 throw new InvalidOperationException("A course with this title already exists. Please choose a different name");
 
             var idExists = await _uow.Course.ExistsAsync(c => c.Id == dto.Id, ct);
@@ -342,7 +342,7 @@ namespace LetsLearn.UseCases.Services.CourseSer
                     {
                         var topicAssignment = await _uow.TopicAssignments.GetByIdAsync(topic.Id)
                              ?? throw new InvalidOperationException("Report to dev please");
-                        
+
 
                         // Tính toán thời gian bắt đầu và kết thúc của bài tập
                         var topicStart = topicAssignment.Open ?? DateTime.MinValue;
@@ -387,8 +387,9 @@ namespace LetsLearn.UseCases.Services.CourseSer
             {
                 AssignmentsCountInProgress = assignmentsInProgressCounter,
                 AssignmentCount = singleAssignmentReportDTOs.Count,
-                AvgMark = singleAssignmentReportDTOs.Average(r => r.AvgMark),
-                AvgCompletionRate = singleAssignmentReportDTOs.Average(r => r.CompletionRate),
+                // Add safety checks for empty collections
+                AvgMark = singleAssignmentReportDTOs.Any() ? singleAssignmentReportDTOs.Average(r => r.AvgMark) : 0,
+                AvgCompletionRate = singleAssignmentReportDTOs.Any() ? singleAssignmentReportDTOs.Average(r => r.CompletionRate) : 0,
                 NumberOfAssignmentEndsAtThisMonth = assignmentsEndingThisMonth,
                 ClosestNextEndAssignment = nextClosestEndTime,
                 MarkDistributionCount = MergeMarkDistributionCount(markDistributionCounts),
@@ -432,7 +433,7 @@ namespace LetsLearn.UseCases.Services.CourseSer
                         // Lấy thông tin bài quiz từ topic
                         var topicQuiz = await _uow.TopicQuizzes.GetByIdAsync(topic.Id, ct)
                             ?? throw new InvalidOperationException("Report to dev please");
-                        
+
 
                         // Lấy thời gian mở và đóng của bài quiz
                         var topicStart = topicQuiz.Open ?? DateTime.MinValue;
@@ -454,11 +455,12 @@ namespace LetsLearn.UseCases.Services.CourseSer
             var reportDTO = new AllQuizzesReportDTO
             {
                 QuizCount = singleQuizReportDTOs.Count,
-                AvgCompletionPercentage = singleQuizReportDTOs.Average(rep => rep.CompletionRate),
-                MinQuestionCount = singleQuizReportDTOs.Min(rep => rep.QuestionCount),
-                MaxQuestionCount = singleQuizReportDTOs.Max(rep => rep.QuestionCount),
-                MinStudentScoreBase10 = singleQuizReportDTOs.Min(rep => rep.MinStudentMarkBase10),
-                MaxStudentScoreBase10 = singleQuizReportDTOs.Max(rep => rep.MaxStudentMarkBase10),
+                // Add safety checks for empty collections
+                AvgCompletionPercentage = singleQuizReportDTOs.Any() ? singleQuizReportDTOs.Average(rep => rep.CompletionRate) : 0,
+                MinQuestionCount = singleQuizReportDTOs.Any() ? singleQuizReportDTOs.Min(rep => rep.QuestionCount) : 0,
+                MaxQuestionCount = singleQuizReportDTOs.Any() ? singleQuizReportDTOs.Max(rep => rep.QuestionCount) : 0,
+                MinStudentScoreBase10 = singleQuizReportDTOs.Any() ? singleQuizReportDTOs.Min(rep => rep.MinStudentMarkBase10) : 0,
+                MaxStudentScoreBase10 = singleQuizReportDTOs.Any() ? singleQuizReportDTOs.Max(rep => rep.MaxStudentMarkBase10) : 0,
                 StudentInfoWithMarkAverage = studentInfoAndMarks,
                 StudentWithMarkOver8 = studentInfoAndMarks.Where(info => info.Submitted && info.Mark >= 8.0).ToList(),
                 StudentWithMarkOver5 = studentInfoAndMarks.Where(info => info.Submitted && info.Mark >= 5.0 && info.Mark < 8.0).ToList(),
@@ -571,8 +573,8 @@ namespace LetsLearn.UseCases.Services.CourseSer
                 var studentId = entry.Key;
                 var scores = entry.Value;
 
-                // Tính điểm trung bình của sinh viên
-                var averageMark = scores.Average();
+                // Add safety check for empty scores collection
+                var averageMark = scores.Any() ? scores.Average() : 0;
 
                 // Lấy thông tin sinh viên mới nhất
                 var existingInfo = latestStudentInfo[studentId];
@@ -637,8 +639,8 @@ namespace LetsLearn.UseCases.Services.CourseSer
                     ResponseId = existingInfo.ResponseId
                 };
 
-                // Tính điểm trung bình
-                double averageMark = scores.Average();
+                // Add safety check for empty scores collection
+                double averageMark = scores.Any() ? scores.Average() : 0;
                 avgInfo.Mark = averageMark;
 
                 return avgInfo;
@@ -743,36 +745,36 @@ namespace LetsLearn.UseCases.Services.CourseSer
             };
         }
 
-        private static GetCourseResponse MapToResponse(Course c) 
-        { 
-            return new GetCourseResponse 
-            { 
-                Id = c.Id, 
-                CreatorId = c.CreatorId, 
-                Title = c.Title, 
-                Description = c.Description, 
-                TotalJoined = c.TotalJoined, 
-                ImageUrl = c.ImageUrl, 
-                Price = c.Price, 
-                Category = c.Category, 
-                Level = c.Level, 
-                IsPublished = c.IsPublished, 
-                Sections = c.Sections?.Select(s => new SectionResponse 
-                { 
-                    Id = s.Id, 
-                    CourseId = c.Id, 
-                    Position = s.Position, 
-                    Title = s.Title, 
-                    Description = s.Description, 
-                    Topics = s.Topics?.Select(t => new TopicResponse 
-                    { 
-                        Id = t.Id, 
-                        Title = t.Title, 
-                        SectionId = t.SectionId, 
-                        Type = t.Type 
-                    }).ToList() ?? new List<TopicResponse>() 
-                }).ToList() 
-            }; 
+        private static GetCourseResponse MapToResponse(Course c)
+        {
+            return new GetCourseResponse
+            {
+                Id = c.Id,
+                CreatorId = c.CreatorId,
+                Title = c.Title,
+                Description = c.Description,
+                TotalJoined = c.TotalJoined,
+                ImageUrl = c.ImageUrl,
+                Price = c.Price,
+                Category = c.Category,
+                Level = c.Level,
+                IsPublished = c.IsPublished,
+                Sections = c.Sections?.Select(s => new SectionResponse
+                {
+                    Id = s.Id,
+                    CourseId = c.Id,
+                    Position = s.Position,
+                    Title = s.Title,
+                    Description = s.Description,
+                    Topics = s.Topics?.Select(t => new TopicResponse
+                    {
+                        Id = t.Id,
+                        Title = t.Title,
+                        SectionId = t.SectionId,
+                        Type = t.Type
+                    }).ToList() ?? new List<TopicResponse>()
+                }).ToList()
+            };
         }
 
         public static TopicDTO ToDTO(Topic topic)
