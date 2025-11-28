@@ -527,6 +527,12 @@ namespace LetsLearn.UseCases.Services
 
         public async Task<SingleQuizReportDTO> GetSingleQuizReportAsync(String courseId, Guid topicId, CancellationToken ct = default)
         {
+            // Fetch Course
+            var course = await _unitOfWork.Course.GetByIdAsync(courseId, ct)
+                ?? throw new KeyNotFoundException("Course not found");
+
+            var creatorId = course.CreatorId;
+
             // Fetch Topic
             var topic = await _unitOfWork.Topics.GetByIdAsync(topicId, ct)
                 ?? throw new KeyNotFoundException("Topic not found");
@@ -545,8 +551,10 @@ namespace LetsLearn.UseCases.Services
 
             // Get students who participated in the quiz
             var topicEndTime = topicQuiz.Close ?? DateTime.MaxValue;
-            // var studentsThatTookPartIn = await _unitOfWork.Enrollments.GetByCourseIdAndJoinDateLessThanEqualAsync(courseId, topicEndTime, ct);
-            var studentsThatTookPartIn = await _unitOfWork.Enrollments.GetAllByCourseIdAsync(courseId, ct);
+
+            var studentsThatTookPartIn = (await _unitOfWork.Enrollments.GetAllByCourseIdAsync(courseId, ct))
+                                            .Where(e => e.StudentId != creatorId)
+                                            .ToList(); ;
 
             int studentCount = studentsThatTookPartIn.Count;
 
@@ -616,6 +624,12 @@ namespace LetsLearn.UseCases.Services
 
         public async Task<SingleAssignmentReportDTO> GetSingleAssignmentReportAsync(String courseId, Guid topicId, CancellationToken ct = default)
         {
+            // Fetch Course
+            var course = await _unitOfWork.Course.GetByIdAsync(courseId, ct)
+                ?? throw new KeyNotFoundException("Course not found");
+
+            var creatorId = course.CreatorId;
+
             // Fetch Topic
             var topic = await _unitOfWork.Topics.GetByIdAsync(topicId, ct)
                 ?? throw new KeyNotFoundException("Topic not found");
@@ -631,7 +645,10 @@ namespace LetsLearn.UseCases.Services
 
             // Get students who participated in the assignment
             var topicEndTime = topicAssignment.Close ?? DateTime.MaxValue;
-            var studentsThatTookPartIn = await _unitOfWork.Enrollments.GetAllByCourseIdAsync(courseId, ct);
+
+            var studentsThatTookPartIn = (await _unitOfWork.Enrollments.GetAllByCourseIdAsync(courseId, ct))
+                                                        .Where(e => e.StudentId != creatorId)
+                                                        .ToList(); ;
             int studentCount = studentsThatTookPartIn.Count();
 
             // Map students to their marks (if any)
@@ -684,7 +701,7 @@ namespace LetsLearn.UseCases.Services
             }
 
             // Setting up the report DTO
-            reportDTO.Name = topic.Title;
+            reportDTO.Name = topic.Title ?? "No Title";
             reportDTO.StudentMarks = studentInfoAndMarks;
             reportDTO.StudentWithMarkOver8 = studentInfoAndMarks.Where(info => info.Mark >= 8).ToList();
             reportDTO.StudentWithMarkOver5 = studentInfoAndMarks.Where(info => info.Mark >= 5 && info.Mark < 8).ToList();
@@ -952,7 +969,7 @@ namespace LetsLearn.UseCases.Services
                             // Chuyển đổi Answer thành DTO
                             Answer = answer.Answer,
                             Mark = answer.Mark,
-                            TopicQuizQuestionId = (JsonSerializer.Deserialize<Question>(answer.Question!)!).Id // Giả sử 'Question' là JSON
+                            TopicQuizQuestionId = (JsonSerializer.Deserialize<Question>(answer.Question!)!).Id
                         }).ToList()
                 }
             };
