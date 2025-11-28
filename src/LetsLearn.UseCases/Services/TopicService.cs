@@ -952,7 +952,7 @@ namespace LetsLearn.UseCases.Services
                             // Chuyển đổi Answer thành DTO
                             Answer = answer.Answer,
                             Mark = answer.Mark,
-                            TopicQuizQuestion = JsonSerializer.Deserialize<Question>(answer.Question) // Giả sử 'Question' là JSON
+                            TopicQuizQuestionId = (JsonSerializer.Deserialize<Question>(answer.Question!)!).Id // Giả sử 'Question' là JSON
                         }).ToList()
                 }
             };

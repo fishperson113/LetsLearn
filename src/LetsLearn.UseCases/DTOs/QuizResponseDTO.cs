@@ -24,7 +24,7 @@ namespace LetsLearn.UseCases.DTOs
 
     public class QuizResponseAnswerDTO
     {
-        public Question? TopicQuizQuestion { get; set; }
+        public Guid TopicQuizQuestionId { get; set; }
         public string? Answer { get; set; } = "";
         public decimal? Mark { get; set; }
     }
