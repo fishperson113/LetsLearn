@@ -6,8 +6,9 @@ using System.Security.Claims;
 
 namespace LetsLearn.API.Controllers
 {
-    [Route("[controller]")]
+    [Route("topic/{topicId:guid}/quiz-response")]
     [ApiController]
+    [Authorize]
     public class QuizResponseController : ControllerBase
     {
         private readonly IQuizResponseService _quizResponseService;
@@ -18,7 +19,6 @@ namespace LetsLearn.API.Controllers
         }
 
         [HttpPost]
-        [Authorize]
         public async Task<ActionResult<QuizResponseDTO>> CreateQuizResponse([FromBody] QuizResponseRequest dto, CancellationToken ct = default)
         {
             var userId = Guid.Parse(User.Claims.First(c => c.Type == "userID").Value);
@@ -26,7 +26,7 @@ namespace LetsLearn.API.Controllers
             return Ok(result);
         }
 
-        [HttpGet("getAll/{topicId}")]
+        [HttpGet("getAll")]
         public async Task<ActionResult<List<QuizResponseDTO>>> GetAllQuizResponsesByTopicId([FromRoute] Guid topicId, [FromQuery] Guid? studentId, CancellationToken ct = default)
         {
             if (studentId.HasValue)
@@ -47,7 +47,7 @@ namespace LetsLearn.API.Controllers
         {
             return Ok(await _quizResponseService.UpdateQuizResponseByIdAsync(id, dto, ct));
         }
-        [HttpGet("/topic/{topicId:guid}/quiz-response")]
+        [HttpGet]
         public async Task<ActionResult<List<QuizResponseDTO>>> GetQuizResponsesByTopic(
             [FromRoute] Guid topicId,
             [FromQuery] Guid? studentId = null,

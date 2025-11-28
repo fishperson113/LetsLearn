@@ -253,7 +253,7 @@ namespace LetsLearn.UseCases.Services.CourseSer
                         var topicDTO = new TopicDTO
                         {
                             Id = topicSection.Id,
-                            Title = topicSection.Title,
+                            Title = topicSection.Title ?? "No Title",
                             Type = topicSection.Type,
                             SectionId = topicSection.SectionId,
                             Data = topicData,  // Direct assignment without .Item wrapper
@@ -277,7 +277,7 @@ namespace LetsLearn.UseCases.Services.CourseSer
                 return null;
             }
 
-            switch (topic.Type.ToLower())
+            switch (topic.Type!.ToLower())
             {
                 case "quiz":
                     var quiz = await _uow.TopicQuizzes.GetWithQuestionsAsync(topicId);
@@ -780,7 +780,7 @@ namespace LetsLearn.UseCases.Services.CourseSer
             return new TopicDTO
             {
                 Id = topic.Id,
-                Title = topic.Title,
+                Title = topic.Title ?? "No Title",
                 Type = topic.Type,
                 SectionId = topic.SectionId,
             };

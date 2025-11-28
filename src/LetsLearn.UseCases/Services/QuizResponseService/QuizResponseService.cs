@@ -34,7 +34,7 @@ namespace LetsLearn.UseCases.Services.QuizResponseService
                     CompletedAt = entity.CompletedAt,
                     Answers = entity.Answers.Select(a => new QuizResponseAnswerDTO
                     {
-                        TopicQuizQuestion = JsonSerializer.Deserialize<Question>(a.Question!)!,
+                        TopicQuizQuestionId = (JsonSerializer.Deserialize<Question>(a.Question!)!).Id,
                         Answer = a.Answer,
                         Mark = a.Mark
                     }).ToList()
@@ -57,11 +57,43 @@ namespace LetsLearn.UseCases.Services.QuizResponseService
 
             foreach (var a in dto.Data.Answers)
             {
+                // Load câu hỏi từ DB bằng ID FE gửi
+                var questionEntity = await _unitOfWork.TopicQuizQuestions.GetByIdAsync(a.TopicQuizQuestionId);
+                if (questionEntity == null)
+                    throw new Exception($"TopicQuizQuestion {a.TopicQuizQuestionId} not found");
+
+                // Convert sang Question entity để serialize (cho ToDto)
+                var fullQuestion = new Question
+                {
+                    Id = questionEntity.Id,
+                    QuestionName = questionEntity.QuestionName,
+                    QuestionText = questionEntity.QuestionText,
+                    Status = null,
+                    Type = questionEntity.Type,
+                    DefaultMark = questionEntity.DefaultMark,
+                    Usage = 0,
+                    FeedbackOfTrue = questionEntity.FeedbackOfTrue,
+                    FeedbackOfFalse = questionEntity.FeedbackOfFalse,
+                    CorrectAnswer = questionEntity.CorrectAnswer ?? false,
+                    Multiple = questionEntity.Multiple ?? false,
+                    CreatedById = Guid.Empty,
+                    ModifiedById = null,
+                    CourseId = "",
+                    Choices = questionEntity.Choices.Select(c => new QuestionChoice
+                    {
+                        Id = c.Id,
+                        QuestionId = questionEntity.Id,
+                        Text = c.Text,
+                        GradePercent = c.GradePercent,
+                        Feedback = c.Feedback
+                    }).ToList()
+                };
+
                 entity.Answers.Add(new QuizResponseAnswer
                 {
                     Id = Guid.NewGuid(),
                     QuizResponseId = entity.Id,
-                    Question = JsonSerializer.Serialize(a.TopicQuizQuestion),
+                    Question = JsonSerializer.Serialize(fullQuestion),
                     Answer = a.Answer,
                     Mark = a.Mark
                 });
@@ -69,6 +101,7 @@ namespace LetsLearn.UseCases.Services.QuizResponseService
 
             await _unitOfWork.QuizResponses.AddAsync(entity);
             await _unitOfWork.CommitAsync();
+
             return ToDto(entity);
         }
         public async Task<QuizResponseDTO> UpdateQuizResponseByIdAsync(Guid id, QuizResponseRequest dto, CancellationToken ct = default)
@@ -86,17 +119,47 @@ namespace LetsLearn.UseCases.Services.QuizResponseService
 
             foreach (var a in dto.Data.Answers)
             {
+                var questionEntity = await _unitOfWork.TopicQuizQuestions.GetByIdAsync(a.TopicQuizQuestionId)
+                    ?? throw new Exception($"TopicQuizQuestion {a.TopicQuizQuestionId} not found");
+
+                var fullQuestion = new Question
+                {
+                    Id = questionEntity.Id,
+                    QuestionName = questionEntity.QuestionName,
+                    QuestionText = questionEntity.QuestionText,
+                    Status = null,
+                    Type = questionEntity.Type,
+                    DefaultMark = questionEntity.DefaultMark,
+                    Usage = 0,
+                    FeedbackOfTrue = questionEntity.FeedbackOfTrue,
+                    FeedbackOfFalse = questionEntity.FeedbackOfFalse,
+                    CorrectAnswer = questionEntity.CorrectAnswer ?? false,
+                    Multiple = questionEntity.Multiple ?? false,
+                    CreatedById = Guid.Empty,
+                    ModifiedById = null,
+                    CourseId = "",
+                    Choices = questionEntity.Choices.Select(c => new QuestionChoice
+                    {
+                        Id = c.Id,
+                        QuestionId = questionEntity.Id,
+                        Text = c.Text,
+                        GradePercent = c.GradePercent,
+                        Feedback = c.Feedback
+                    }).ToList()
+                };
+
                 entity.Answers.Add(new QuizResponseAnswer
                 {
                     Id = Guid.NewGuid(),
                     QuizResponseId = entity.Id,
-                    Question = JsonSerializer.Serialize(a.TopicQuizQuestion),
+                    Question = JsonSerializer.Serialize(fullQuestion),
                     Answer = a.Answer,
                     Mark = a.Mark
                 });
             }
 
             await _unitOfWork.CommitAsync();
+
             return ToDto(entity);
         }
         public async Task<QuizResponseDTO> GetQuizResponseByIdAsync(Guid id, CancellationToken ct = default)
