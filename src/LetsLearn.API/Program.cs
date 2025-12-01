@@ -99,7 +99,6 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IConversationService, ConversationService>();
 builder.Services.AddScoped<IMessageService, MessageService>();
 builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
-builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IQuestionService, QuestionService>();
 builder.Services.AddScoped<ICourseService, CourseService>();
 builder.Services.AddScoped<ICommentService, CommentService>();
@@ -146,7 +145,6 @@ using (var scope = app.Services.CreateScope())
     var dbContext = services.GetRequiredService<LetsLearnContext>();
     dbContext.Database.EnsureCreated();
 }
-app.UseHttpsRedirection();
 
 app.UseCors("AllowFrontend");
 

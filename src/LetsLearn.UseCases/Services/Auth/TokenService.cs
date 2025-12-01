@@ -1,16 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using LetsLearn.Core.Entities;
-using Microsoft.IdentityModel.Tokens;
+﻿using LetsLearn.UseCases.ServiceInterfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
-using LetsLearn.UseCases.ServiceInterfaces;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Security.Cryptography;
+using System.Text;
 
 namespace LetsLearn.UseCases.Services.Auth
 {
@@ -19,8 +14,8 @@ namespace LetsLearn.UseCases.Services.Auth
         private readonly string AccessTokenCookie;
         private readonly string RefreshTokenCookie;
         private readonly string AuthPrefix;
-        private readonly int AccessTokenExpireSeconds;             
-        private readonly int RefreshTokenExpireSeconds;   
+        private readonly int AccessTokenExpireSeconds;
+        private readonly int RefreshTokenExpireSeconds;
 
         private readonly string _issuer;
         private readonly byte[] _secretBytes;
@@ -37,17 +32,13 @@ namespace LetsLearn.UseCases.Services.Auth
             AuthPrefix = config["Jwt:AuthPrefix"] ?? "Bearer_";
         }
 
-        // Test Case Estimation:
-        // Decision points (D):
-        // - Pure token creation, no branching: +0
-        // D = 0 => Minimum Test Cases = D + 1 = 1
         public string CreateToken(Guid userId, string role, bool isAccessToken)
         {
             var claims = new List<Claim>
             {
                 new Claim("userID", userId.ToString()),
                 new Claim(ClaimTypes.Role, role),
-                new Claim("typ", isAccessToken ? "access" : "refresh") 
+                new Claim("typ", isAccessToken ? "access" : "refresh")
             };
 
             var credentials = new SigningCredentials(new SymmetricSecurityKey(_secretBytes), SecurityAlgorithms.HmacSha256);
@@ -64,25 +55,12 @@ namespace LetsLearn.UseCases.Services.Auth
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
-        // Test Case Estimation:
-        // Decision points (D):
-        // - Delegates to CreateToken: +0
-        // D = 0 => Minimum Test Cases = D + 1 = 1
         public string CreateAccessToken(Guid userId, string role)
             => CreateToken(userId, role, true);
 
-        // Test Case Estimation:
-        // Decision points (D):
-        // - Delegates to CreateToken: +0
-        // D = 0 => Minimum Test Cases = D + 1 = 1
         public string CreateRefreshToken(Guid userId, string role)
             => CreateToken(userId, role, false);
 
-        // Test Case Estimation:
-        // Decision points (D):
-        // - catch (SecurityTokenException): +1
-        // - catch (ArgumentException/CryptographicException): +1
-        // D = 2 => Minimum Test Cases = D + 1 = 3
         public ClaimsPrincipal ValidateToken(string token, bool isAccessToken)
         {
             try
@@ -115,10 +93,6 @@ namespace LetsLearn.UseCases.Services.Auth
             }
         }
 
-        // Test Case Estimation:
-        // Decision points (D):
-        // - Simple getter: +0
-        // D = 0 => Minimum Test Cases = D + 1 = 1
         public int GetRefreshTokenExpireSeconds()
         {
             return RefreshTokenExpireSeconds;
@@ -126,27 +100,55 @@ namespace LetsLearn.UseCases.Services.Auth
 
         public void SetTokenCookies(HttpContext context, string accessToken, string refreshToken)
         {
-            context.Response.Cookies.Append(AccessTokenCookie, AuthPrefix + accessToken, new CookieOptions
+            // Configure cookies for cross-site HTTP requests
+            var cookieOptions = new CookieOptions
             {
                 HttpOnly = true,
-                Secure = true,
+                Secure = false,        // Allow HTTP cookies
+                SameSite = SameSiteMode.Lax,  // More permissive for cross-site HTTP
                 Path = "/",
-                Expires = DateTime.UtcNow.AddSeconds(AccessTokenExpireSeconds)
-            });
+                Domain = null          // Don't restrict domain for cross-site access
+            };
 
-            context.Response.Cookies.Append(RefreshTokenCookie, AuthPrefix + refreshToken, new CookieOptions
+            // Set Access Token Cookie
+            var accessCookieOptions = new CookieOptions
             {
-                HttpOnly = true,
-                Secure = true,
-                Path = "/",
+                HttpOnly = cookieOptions.HttpOnly,
+                Secure = cookieOptions.Secure,
+                SameSite = cookieOptions.SameSite,
+                Path = cookieOptions.Path,
+                Domain = cookieOptions.Domain,
+                Expires = DateTime.UtcNow.AddSeconds(AccessTokenExpireSeconds)
+            };
+            context.Response.Cookies.Append(AccessTokenCookie, AuthPrefix + accessToken, accessCookieOptions);
+
+            // Set Refresh Token Cookie
+            var refreshCookieOptions = new CookieOptions
+            {
+                HttpOnly = cookieOptions.HttpOnly,
+                Secure = cookieOptions.Secure,
+                SameSite = cookieOptions.SameSite,
+                Path = cookieOptions.Path,
+                Domain = cookieOptions.Domain,
                 Expires = DateTime.UtcNow.AddSeconds(RefreshTokenExpireSeconds)
-            });
+            };
+            context.Response.Cookies.Append(RefreshTokenCookie, AuthPrefix + refreshToken, refreshCookieOptions);
         }
 
         public void RemoveAllTokens(HttpContext context)
         {
-            context.Response.Cookies.Delete(AccessTokenCookie);
-            context.Response.Cookies.Delete(RefreshTokenCookie);
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = false,
+                SameSite = SameSiteMode.Lax,
+                Path = "/",
+                Domain = null,
+                Expires = DateTime.UtcNow.AddDays(-1) // Expire in the past
+            };
+
+            context.Response.Cookies.Append(AccessTokenCookie, "", cookieOptions);
+            context.Response.Cookies.Append(RefreshTokenCookie, "", cookieOptions);
         }
 
         public string? GetToken(HttpContext context, bool isAccessToken)
