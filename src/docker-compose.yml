@@ -5,13 +5,13 @@ services:
       context: .
       dockerfile: LetsLearn.API/Dockerfile
     ports:
-      - "8080:8080"
+      - "8100:8080"  
     depends_on:
       - postgres
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080;
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://aspire-dashboard:18889
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://aspire-dashboard:18890
       - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
     networks:
       - productnetwork
@@ -41,29 +41,14 @@ services:
 
   aspire-dashboard:
     image: mcr.microsoft.com/dotnet/aspire-dashboard:9.3
-    environment: 
-     DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS: "true"
+    environment:
+      DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS: "true"
     ports:
-      - "18888:18888"
-    networks:
-      - productnetwork
-  prometheus:
-    image: prom/prometheus
-    ports: 
-    - "9090:9090"
-    volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - "18890:18888"
     networks:
       - productnetwork
 
-  grafana:
-    image: grafana/grafana
-    ports: 
-    - "3000:3000"
-    networks:
-      - productnetwork
-
-networks: 
+networks:
   productnetwork:
 
 volumes:
