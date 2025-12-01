@@ -104,8 +104,8 @@ namespace LetsLearn.UseCases.Services.Auth
             var cookieOptions = new CookieOptions
             {
                 HttpOnly = true,
-                Secure = false,        // Allow HTTP cookies
-                SameSite = SameSiteMode.Lax,  // More permissive for cross-site HTTP
+                Secure = true,        // Allow HTTP cookies
+                SameSite = SameSiteMode.None,  // More permissive for cross-site HTTP
                 Path = "/",
                 Domain = null          // Don't restrict domain for cross-site access
             };
