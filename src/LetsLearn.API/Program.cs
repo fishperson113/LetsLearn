@@ -127,6 +127,7 @@ builder.Services.AddCors(options =>
             .WithOrigins("http://localhost:4200") // FE port
             .AllowAnyHeader()
             .AllowAnyMethod()
+            .SetIsOriginAllowed(origin => true)
             .AllowCredentials());
 });
 
