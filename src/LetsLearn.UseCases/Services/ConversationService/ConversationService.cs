@@ -23,9 +23,12 @@ namespace LetsLearn.UseCases.Services.ConversationService
 
         // Test Case Estimation:
         // Decision points (D):
-        // - if user1 or user2 missing (with ||): if +1, logical operator || +1
+        // - if user1 == null: +1
+        // - if user2 == null: +1
+        // - logical operator || (user1 OR user2 missing): +1
         // - if existingConversation != null: +1
-        // D = 3 => Minimum Test Cases = D + 1 = 4
+        // - DbUpdateException when committing: +1 (optional branch)
+        // D = 5 => Minimum Test Cases = D + 1 = 6
         public async Task<ConversationDTO> CreateConversationAsync(Guid user1Id, Guid user2Id)
         {
             var user1 = await _unitOfWork.Users.GetByIdAsync(user1Id);

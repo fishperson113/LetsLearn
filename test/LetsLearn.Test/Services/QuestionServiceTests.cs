@@ -58,7 +58,7 @@ namespace LetsLearn.Test.Services
             var req = new CreateQuestionRequest
             {
                 QuestionName = "Q1",
-                Choices = new List<CreateQuestionChoiceRequest> { new CreateQuestionChoiceRequest { Content = "A", IsCorrect = true } }
+                Choices = new List<CreateQuestionChoiceRequest> { new CreateQuestionChoiceRequest { Text = "A", GradePercent = 0 } }
             };
 
             var resp = await svc.CreateAsync(req, Guid.NewGuid());
@@ -137,8 +137,8 @@ namespace LetsLearn.Test.Services
                 Id = q.Id,
                 Choices = new List<UpdateQuestionChoiceRequest>
                 {
-                    new UpdateQuestionChoiceRequest { Id = existingChoice.Id, Content = "new", IsCorrect = true },
-                    new UpdateQuestionChoiceRequest { Id = Guid.NewGuid(), Content = "added", IsCorrect = false }
+                    new UpdateQuestionChoiceRequest { Id = existingChoice.Id, Text = "new", GradePercent = 0 },
+                    new UpdateQuestionChoiceRequest { Id = Guid.NewGuid(), Text = "added", GradePercent = 0 }
                 }
             };
             var resp = await svc.UpdateAsync(req, Guid.NewGuid());

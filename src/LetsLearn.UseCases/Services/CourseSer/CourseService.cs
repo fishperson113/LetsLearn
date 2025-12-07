@@ -32,10 +32,11 @@ namespace LetsLearn.UseCases.Services.CourseSer
         // =============== CREATE / UPDATE ===============
         // Test Case Estimation:
         // Decision points (D):
-        // - if Title is null/whitespace: +1
-        // - if titleExists: +1
-        // - if idExists: +1
-        // D = 3 => Minimum Test Cases = D + 1 = 4
+        // - if Title is null/whitespace → throw: +1
+        // - if titleExists → throw: +1
+        // - if idExists → throw: +1
+        // - DbUpdateException on Commit → +1 (error branch)
+        // D = 4 => Minimum Test Cases = D + 1 = 5
         public async Task<CreateCourseResponse> CreateCourseAsync(CreateCourseRequest dto, Guid userId, CancellationToken ct = default)
         {
             if (string.IsNullOrWhiteSpace(dto.Title))
@@ -109,7 +110,8 @@ namespace LetsLearn.UseCases.Services.CourseSer
         // - Null-coalesce throw when course not found: +1
         // - if Title provided: +1
         // - if titleExists: +1
-        // D = 3 => Minimum Test Cases = D + 1 = 4
+        // - DbUpdateException on Commit → +1
+        // D = 4 => Minimum Test Cases = D + 1 = 5
         public async Task<UpdateCourseResponse> UpdateCourseAsync(UpdateCourseRequest dto, CancellationToken ct = default)
         {
             var course = await _uow.Course.GetByIdAsync(dto.Id, ct)
@@ -188,6 +190,13 @@ namespace LetsLearn.UseCases.Services.CourseSer
             return MapToResponse(course);
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - if course not found → +1
+        // - if user not found → +1
+        // - if enrollmentExists → +1
+        // - Commit error → +1
+        // D = 4 => Minimum Test Cases = D + 1 = 5
         public async Task AddUserToCourseAsync(String courseId, Guid userId, CancellationToken ct = default)
         {
             var course = await _uow.Course.GetByIdAsync(courseId, ct)
@@ -221,6 +230,13 @@ namespace LetsLearn.UseCases.Services.CourseSer
             }
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - if only start or end provided (XOR) → throw: +1
+        // - if start > end → throw: +1
+        // - if course not found → +1
+        // - switch: quiz/assignment/meeting/page/file/link/topic → +6
+        // D = 9 => Minimum Test Cases = D + 1 = 10
         public async Task<IEnumerable<TopicDTO>> GetAllWorksOfCourseAndUserAsync(String courseId, Guid userId, string type, DateTime? start, DateTime? end, CancellationToken ct = default)
         {
             if (start.HasValue ^ end.HasValue)
@@ -269,6 +285,17 @@ namespace LetsLearn.UseCases.Services.CourseSer
 
             return result;
         }
+
+        // Test Case Estimation:
+        // Decision points (D):
+        // - if topic == null: +1
+        // - quiz exists: +1
+        // - assignment exists: +1
+        // - meeting exists: +1
+        // - page exists: +1
+        // - file exists: +1
+        // - link exists: +1
+        // D = 7 => Minimum Test Cases = D + 1 = 8
         public async Task<object?> GetTopicDataDirectAsync(Guid topicId, Guid userId, DateTime? start, DateTime? end, CancellationToken ct = default)
         {
             var topic = await _uow.Topics.GetByIdAsync(topicId, ct);
@@ -307,6 +334,7 @@ namespace LetsLearn.UseCases.Services.CourseSer
                     return topic; // Return basic topic for unknown types
             }
         }
+
         public async Task<AllAssignmentsReportDTO> GetAssignmentsReportAsync(String courseId, DateTime? startTime, DateTime? endTime, CancellationToken ct = default)
         {
             if (!startTime.HasValue)

@@ -37,6 +37,10 @@ namespace LetsLearn.UseCases.Services.AssignmentResponseService
             };
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - if assignmentResponse == null: +1
+        // D = 1 => Minimum Test Cases = D + 1 = 2
         public async Task<AssignmentResponseDTO> GetAssigmentResponseByIdAsync(Guid id)
         {
             var entity = await _unitOfWork.AssignmentResponses.GetByIdWithFilesAsync(id);
@@ -47,6 +51,11 @@ namespace LetsLearn.UseCases.Services.AssignmentResponseService
             return ToDto(entity);
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - foreach files → if files.Count > 0: +1
+        // - DbUpdateException CommitAsync: +1
+        // D = 2 => Minimum Test Cases = D + 1 = 3
         public async Task<AssignmentResponseDTO> CreateAssigmentResponseAsync(CreateAssignmentResponseRequest dto, Guid studentId)
         {
             var entity = new AssignmentResponse
@@ -75,12 +84,23 @@ namespace LetsLearn.UseCases.Services.AssignmentResponseService
             return ToDto(entity);
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - No branching logic
+        // D = 0 => Minimum Test Cases = D + 1 = 1
         public async Task<IEnumerable<AssignmentResponseDTO>> GetAllAssigmentResponseByTopicIdAsync(Guid topicId)
         {
             var entities = await _unitOfWork.AssignmentResponses.GetAllByTopicIdWithFilesAsync(topicId);
             return entities.Select(e => ToDto(e));
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - if entity == null: +1
+        // - if existing files > 0 → DeleteRangeAsync: +1
+        // - foreach new files → if new files.Count > 0: +1
+        // - DbUpdateException CommitAsync: +1
+        // D = 4 => Minimum Test Cases = D + 1 = 5
         public async Task<AssignmentResponseDTO> UpdateAssigmentResponseByIdAsync(Guid id, UpdateAssignmentResponseRequest dto)
         {
             var entity = await _unitOfWork.AssignmentResponses.GetByIdTrackedWithFilesAsync(id);
@@ -112,6 +132,11 @@ namespace LetsLearn.UseCases.Services.AssignmentResponseService
             return ToDto(entity);
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - if entity == null: +1
+        // - DbUpdateException CommitAsync: +1
+        // D = 2 => Minimum Test Cases = D + 1 = 3
         public async Task DeleteAssigmentResponseAsync(Guid id)
         {
             var entity = await _unitOfWork.AssignmentResponses.GetByIdTrackedWithFilesAsync(id);
