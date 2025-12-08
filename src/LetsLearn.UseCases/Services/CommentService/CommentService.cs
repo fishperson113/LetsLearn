@@ -19,6 +19,12 @@ namespace LetsLearn.UseCases.Services.CommentService
             _unitOfWork = unitOfWork;
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - if user == null: +1
+        // - if topic == null: +1
+        // - DbUpdateException CommitAsync (optional): +1
+        // D = 3 => Minimum Test Cases = D + 1 = 4
         public async Task AddCommentAsync(Guid commenterId, CreateCommentRequest dto, CancellationToken ct = default)
         {
             var user = await _unitOfWork.Users.GetByIdAsync(commenterId, ct)
@@ -42,6 +48,10 @@ namespace LetsLearn.UseCases.Services.CommentService
             await _unitOfWork.CommitAsync();
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - No branching logic (always returns list)
+        // D = 0 => Minimum Test Cases = D + 1 = 1
         public async Task<IEnumerable<GetCommentResponse>> GetCommentsByTopicAsync(Guid topicId, CancellationToken ct = default)
         {
             var comments = await _unitOfWork.Comments.FindByTopicIdAsync(topicId, ct);
@@ -56,6 +66,11 @@ namespace LetsLearn.UseCases.Services.CommentService
             }).ToList();
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - if comment not found: +1
+        // - DbUpdateException CommitAsync (optional): +1
+        // D = 2 => Minimum Test Cases = D + 1 = 3
         public async Task DeleteCommentAsync(Guid commentId, CancellationToken ct = default)
         {
             var comment = await _unitOfWork.Comments.FirstOrDefaultAsync(c => c.Id == commentId, ct)

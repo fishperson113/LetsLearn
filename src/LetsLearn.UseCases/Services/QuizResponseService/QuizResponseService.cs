@@ -42,6 +42,12 @@ namespace LetsLearn.UseCases.Services.QuizResponseService
             };
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - if TopicQuizQuestion not found: +1
+        // - foreach answer → serialization / mapping per item: +1
+        // - DbUpdateException when CommitAsync: +1
+        // D = 3 => Minimum Test Cases = D + 1 = 4
         public async Task<QuizResponseDTO> CreateQuizResponseAsync(QuizResponseRequest dto, Guid studentId, CancellationToken ct = default)
         {
             var entity = new QuizResponse
@@ -104,6 +110,15 @@ namespace LetsLearn.UseCases.Services.QuizResponseService
 
             return ToDto(entity);
         }
+
+        // Test Case Estimation:
+        // Decision points (D):
+        // - if quizResponse not found: +1
+        // - if TopicQuizQuestion not found during update: +1
+        // - if old answers exist → DeleteRangeAsync: +1
+        // - foreach new answer → add item: +1
+        // - DbUpdateException when CommitAsync: +1
+        // D = 5 => Minimum Test Cases = D + 1 = 6
         public async Task<QuizResponseDTO> UpdateQuizResponseByIdAsync(Guid id, QuizResponseRequest dto, CancellationToken ct = default)
         {
             var entity = await _unitOfWork.QuizResponses.GetByIdTrackedWithAnswersAsync(id,ct);
@@ -162,6 +177,11 @@ namespace LetsLearn.UseCases.Services.QuizResponseService
 
             return ToDto(entity);
         }
+
+        // Test Case Estimation:
+        // Decision points (D):
+        // - if quizResponse not found: +1
+        // D = 1 => Minimum Test Cases = D + 1 = 2
         public async Task<QuizResponseDTO> GetQuizResponseByIdAsync(Guid id, CancellationToken ct = default)
         {
             var entity = await _unitOfWork.QuizResponses.GetByIdTrackedWithAnswersAsync(id,ct);
@@ -172,12 +192,21 @@ namespace LetsLearn.UseCases.Services.QuizResponseService
 
             return ToDto(entity);
         }
+
+        // Test Case Estimation:
+        // Decision points (D):
+        // - No branching logic: +0
+        // D = 0 => Minimum Test Cases = D + 1 = 1
         public async Task<IEnumerable<QuizResponseDTO>> GetAllQuizResponsesByTopicIdAsync(Guid topicId, CancellationToken ct = default)
         {
             var entities = await _unitOfWork.QuizResponses.FindAllByTopicIdWithAnswersAsync(topicId, ct);
             return entities.Select(ToDto).ToList();
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - No branching logic: +0
+        // D = 0 => Minimum Test Cases = D + 1 = 1
         public async Task<IEnumerable<QuizResponseDTO>> GetAllQuizResponsesByTopicIdOfStudentAsync(Guid topicId, Guid studentId, CancellationToken ct = default)
         {
             var entities = await _unitOfWork.QuizResponses.FindByTopicIdAndStudentIdWithAnswersAsync(topicId, studentId, ct);

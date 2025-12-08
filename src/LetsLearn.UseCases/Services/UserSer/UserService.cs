@@ -60,7 +60,8 @@ namespace LetsLearn.UseCases.Services.UserSer
         // - Null-coalesce throw when user not found: +1
         // - if Username provided: +1
         // - if Avatar provided: +1
-        // D = 3 => Minimum Test Cases = D + 1 = 4
+        // - Commit DbUpdateException: +1
+        // D = 4 => Minimum Test Cases = D + 1 = 5
         public async Task<UpdateUserResponse> UpdateAsync(Guid id, UpdateUserDTO dto)
         {
             var user = await _unitOfWork.Users.GetByIdAsync(id)
@@ -110,6 +111,14 @@ namespace LetsLearn.UseCases.Services.UserSer
                 .ToList();
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - if start > end: +1
+        // - if user not found: +1
+        // - if user is TEACHER or STUDENT: +1
+        // - if no courses found: +1
+        // - topic type filter (if type != null): +1
+        // D = 5 => Minimum Test Cases = D + 1 = 6
         public async Task<IEnumerable<TopicDTO>> GetAllWorksOfUserAsync(Guid userId, string? type, DateTime? start, DateTime? end, CancellationToken ct = default)
         {
             if (start.HasValue && end.HasValue && start > end)
@@ -297,6 +306,14 @@ namespace LetsLearn.UseCases.Services.UserSer
             return true;
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - if course not found: +1
+        // - if no topic quizzes found: +1
+        // - if no assignments found: +1
+        // - quiz mark calculation: +1
+        // - assignment mark calculation: +1
+        // D = 5 => Minimum Test Cases = D + 1 = 6
         public async Task<StudentReportDTO> GetStudentReportAsync(
             Guid userId,
             String courseId,
@@ -385,7 +402,11 @@ namespace LetsLearn.UseCases.Services.UserSer
             return report;
         }
 
-
+        // Test Case Estimation:
+        // Decision points (D):
+        // - if enrollment not found → throw: +1
+        // - if course exists and TotalJoined > 0 → decrease: +1
+        // D = 2 => Minimum Test Cases = D + 1 = 3
         public async Task LeaveCourseAsync(Guid userId, string courseId, CancellationToken ct = default)
         {
             // Kiểm tra xem enrollment có tồn tại

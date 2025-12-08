@@ -24,6 +24,19 @@ namespace LetsLearn.UseCases.Services
             _logger = logger;
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - if request == null: +1
+        // - switch(request.Type):
+        //      case "page": +1
+        //      case "file": +1
+        //      case "link": +1
+        //      case "assignment": +1
+        //      case "quiz": +1
+        //      case "meeting": +1
+        //      default (unsupported type): +1
+        // - commit fails (DbUpdateException): +1
+        // D = 9 => Minimum Test Cases = 10
         public async Task<TopicResponse> CreateTopicAsync(CreateTopicRequest request, CancellationToken ct = default)
         {
             try
@@ -196,6 +209,21 @@ namespace LetsLearn.UseCases.Services
             }
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - if request == null: +1
+        // - if topic not found: +1
+        // - switch(request.Type):
+        //      page exists: +1
+        //      file exists: +1
+        //      link exists: +1
+        //      assignment exists: +1
+        //      quiz exists: +1
+        //      meeting exists: +1
+        //      default (unsupported type): +1
+        // - commit fails: +1
+        // - choices update logic (new choice or update or remove): +1
+        // D = 11 => Minimum Test Cases = 12
         public async Task<TopicResponse> UpdateTopicAsync(UpdateTopicRequest request, CancellationToken ct = default)
         {
             if (request == null)
@@ -397,6 +425,10 @@ namespace LetsLearn.UseCases.Services
             };
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - if topic == null: +1
+        // D = 1 => Minimum Test Cases = 2
         private void UpdateTopicQuizQuestionChoices(TopicQuizQuestion question, UpdateTopicQuizQuestionRequest q)
         {
             var existing = question.Choices.ToDictionary(c => c.Id);
@@ -436,6 +468,17 @@ namespace LetsLearn.UseCases.Services
             }
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - if topic == null: +1
+        // - quiz exists: +1
+        // - assignment exists: +1
+        // - meeting exists: +1
+        // - page exists: +1
+        // - file exists: +1
+        // - link exists: +1
+        // - default (unsupported type): +1
+        // D = 8 => Minimum Test Cases = 9
         public async Task<bool> DeleteTopicAsync(Guid id, CancellationToken ct = default)
         {
             var topic = await _unitOfWork.Topics.GetByIdAsync(id);
@@ -449,6 +492,17 @@ namespace LetsLearn.UseCases.Services
             return true;
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - if topic == null: +1
+        // - quiz type: +1
+        // - assignment type: +1
+        // - meeting type: +1
+        // - page type: +1
+        // - file type: +1
+        // - link type: +1
+        // - default (unsupported type): +1
+        // D = 8 => Minimum Test Cases = D + 1 = 9
         public async Task<TopicResponse> GetTopicByIdAsync(Guid id, CancellationToken ct = default)
         {
             try
