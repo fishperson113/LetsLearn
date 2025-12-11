@@ -25,8 +25,38 @@ namespace LetsLearn.UseCases.DTOs
     public class QuizResponseAnswerDTO
     {
         public Guid TopicQuizQuestionId { get; set; }
+        public QuestionDTO Question { get; set; } = new();
         public string? Answer { get; set; } = "";
         public decimal? Mark { get; set; }
+    }
+
+    public class QuestionDTO
+    {
+        public Guid Id { get; set; }
+        public string? Type { get; set; }
+        public string? QuestionText { get; set; }
+        public decimal? DefaultMark { get; set; }
+        public QuestionDataDTO Data { get; set; } = new();
+    }
+
+    public class QuestionDataDTO
+    {
+        // For Choice Questions
+        public bool Multiple { get; set; }
+        public List<QuestionChoiceDTO> Choices { get; set; } = new();
+
+        // For True/False Questions
+        public bool? CorrectAnswer { get; set; }
+        public string? FeedbackOfTrue { get; set; }
+        public string? FeedbackOfFalse { get; set; }
+    }
+
+    public class QuestionChoiceDTO
+    {
+        public string Id { get; set; } = "";
+        public string? Text { get; set; }
+        public decimal? GradePercent { get; set; }
+        public string? Feedback { get; set; }
     }
 
     public class QuizResponseDTO

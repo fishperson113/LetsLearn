@@ -32,14 +32,93 @@ namespace LetsLearn.UseCases.Services.QuizResponseService
                     Status = entity.Status,
                     StartedAt = entity.StartedAt,
                     CompletedAt = entity.CompletedAt,
-                    Answers = entity.Answers.Select(a => new QuizResponseAnswerDTO
+                    Answers = entity.Answers.Select(a =>
                     {
-                        TopicQuizQuestionId = (JsonSerializer.Deserialize<Question>(a.Question!)!).Id,
-                        Answer = a.Answer,
-                        Mark = a.Mark
+                        var questionEntity = JsonSerializer.Deserialize<Question>(a.Question!)!;
+                        return new QuizResponseAnswerDTO
+                        {
+                            TopicQuizQuestionId = questionEntity.Id,
+                            Question = CreateQuestionDTO(questionEntity),
+                            Answer = a.Answer,
+                            Mark = a.Mark
+                        };
                     }).ToList()
                 }
             };
+        }
+
+        private QuestionDTO CreateQuestionDTO(Question questionEntity)
+        {
+            var questionDto = new QuestionDTO
+            {
+                Id = questionEntity.Id,
+                Type = questionEntity.Type,
+                QuestionText = questionEntity.QuestionText,
+                DefaultMark = questionEntity.DefaultMark
+            };
+
+            // Handle different question types with specific data structures
+            switch (questionEntity.Type?.ToLower())
+            {
+                case "choices answer":
+                case "choice":
+                case "multiple choice":
+                    questionDto.Data = new QuestionDataDTO
+                    {
+                        Multiple = questionEntity.Multiple,
+                        Choices = questionEntity.Choices?.Select(c => new QuestionChoiceDTO
+                        {
+                            Id = c.Id.ToString(),
+                            Text = c.Text,
+                            GradePercent = c.GradePercent,
+                            Feedback = c.Feedback
+                        }).ToList() ?? new List<QuestionChoiceDTO>()
+                    };
+                    break;
+
+                case "true/false":
+                case "truefalse":
+                case "boolean":
+                    questionDto.Data = new QuestionDataDTO
+                    {
+                        CorrectAnswer = questionEntity.CorrectAnswer,
+                        FeedbackOfTrue = questionEntity.FeedbackOfTrue,
+                        FeedbackOfFalse = questionEntity.FeedbackOfFalse
+                    };
+                    break;
+
+                case "short answer":
+                case "shortanswer":
+                case "text":
+                    questionDto.Data = new QuestionDataDTO
+                    {
+                        Choices = questionEntity.Choices?.Select(c => new QuestionChoiceDTO
+                        {
+                            Id = c.Id.ToString(),
+                            Text = c.Text,
+                            GradePercent = c.GradePercent,
+                            Feedback = c.Feedback
+                        }).ToList() ?? new List<QuestionChoiceDTO>()
+                    };
+                    break;
+
+                default:
+                    // Fallback to choices format
+                    questionDto.Data = new QuestionDataDTO
+                    {
+                        Multiple = questionEntity.Multiple,
+                        Choices = questionEntity.Choices?.Select(c => new QuestionChoiceDTO
+                        {
+                            Id = c.Id.ToString(),
+                            Text = c.Text,
+                            GradePercent = c.GradePercent,
+                            Feedback = c.Feedback
+                        }).ToList() ?? new List<QuestionChoiceDTO>()
+                    };
+                    break;
+            }
+
+            return questionDto;
         }
 
         // Test Case Estimation:
