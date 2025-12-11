@@ -276,7 +276,7 @@ namespace LetsLearn.UseCases.Services
                         var linkReq = JsonSerializer.Deserialize<UpdateTopicLinkRequest>(raw, options);
                         var link = (await _unitOfWork.TopicLinks.FindAsync(l => l.TopicId == topic.Id, ct)).FirstOrDefault()
                                    ?? throw new KeyNotFoundException("TopicLink not found.");
-                            link.Description = linkReq.Description ?? link.Description;
+                        link.Description = linkReq.Description ?? link.Description;
                         link.Url = linkReq.Url ?? link.Url;
                         await _unitOfWork.TopicLinks.UpdateAsync(link);
                         topicData = link;
@@ -801,7 +801,7 @@ namespace LetsLearn.UseCases.Services
             if (!validResponses.Any()) return 0.0;
 
             return validResponses
-                .Where(res => res.Data.StartedAt.HasValue && res.Data.CompletedAt.HasValue) 
+                .Where(res => res.Data.StartedAt.HasValue && res.Data.CompletedAt.HasValue)
                 .Select(res =>
                 {
                     var startedAt = res.Data.StartedAt.Value;
@@ -842,9 +842,11 @@ namespace LetsLearn.UseCases.Services
             CancellationToken ct = default)
         {
             var enrollmentByStudentId = studentsThatTookPartIn.ToDictionary(detail => detail.StudentId);
+            var result = new List<SingleQuizReportDTO.StudentInfoAndMarkQuiz>();
 
-            // Fetch students with marks
-            var studentsWithMarks = await Task.WhenAll(studentIdWithMark.Select(async entry =>
+            // FIXED: Change parallel operations to sequential to avoid DbContext threading issues
+            // Fetch students with marks sequentially
+            foreach (var entry in studentIdWithMark)
             {
                 var studentId = entry.Key;
                 var mark = entry.Value;
@@ -856,52 +858,35 @@ namespace LetsLearn.UseCases.Services
                     throw new KeyNotFoundException("User not found.");
                 }
 
-                return new SingleQuizReportDTO.StudentInfoAndMarkQuiz
+                result.Add(new SingleQuizReportDTO.StudentInfoAndMarkQuiz
                 {
                     Student = MapToDTO(user),
                     Submitted = true,
                     Mark = mark,
                     ResponseId = null
-                };
-            })).ConfigureAwait(false);
+                });
+            }
 
-            // Fetch students with no response
-            var studentsNoResponse = await Task.WhenAll(enrollmentByStudentId
-                .Where(entry => !studentIdWithMark.ContainsKey(entry.Key)) // Filter students with no marks
-                .Select(async entry =>
+            // Fetch students with no response sequentially
+            foreach (var entry in enrollmentByStudentId.Where(entry => !studentIdWithMark.ContainsKey(entry.Key)))
+            {
+                var studentId = entry.Value.StudentId;
+
+                var user = await _unitOfWork.Users.GetByIdAsync(studentId, ct);
+
+                if (user == null)
                 {
-                    var studentId = entry.Value.StudentId;
+                    throw new KeyNotFoundException("User not found.");
+                }
 
-                    var user = await _unitOfWork.Users.GetByIdAsync(studentId, ct);
-
-                    if (user == null)
-                    {
-                        throw new KeyNotFoundException("User not found.");
-                    }
-
-                    return new SingleQuizReportDTO.StudentInfoAndMarkQuiz
-                    {
-                        Student = MapToDTO(user),
-                        Submitted = false,
-                        Mark = 0.0,
-                        ResponseId = null
-                    };
-                }));
-
-            //// Create the report
-            //var reportDTO = new SingleQuizReportDTO
-            //{
-            //    StudentWithMark = studentsWithMarks.ToList(),
-            //    StudentWithNoResponse = studentsNoResponse.ToList()
-            //};
-
-            //// Combine both lists into one result
-            //return reportDTO.StudentWithMark.Concat(reportDTO.StudentWithNoResponse).ToList();
-
-            // Combine both lists
-            var result = new List<SingleQuizReportDTO.StudentInfoAndMarkQuiz>();
-            result.AddRange(studentsWithMarks);
-            result.AddRange(studentsNoResponse);
+                result.Add(new SingleQuizReportDTO.StudentInfoAndMarkQuiz
+                {
+                    Student = MapToDTO(user),
+                    Submitted = false,
+                    Mark = 0.0,
+                    ResponseId = null
+                });
+            }
 
             return result;
         }
@@ -912,9 +897,11 @@ namespace LetsLearn.UseCases.Services
             CancellationToken ct = default)
         {
             var enrollmentByStudentId = studentsThatTookPartIn.ToDictionary(detail => detail.StudentId);
+            var result = new List<SingleAssignmentReportDTO.StudentInfoAndMarkAssignment>();
 
-            // Fetch students with marks
-            var studentsWithMarks = await Task.WhenAll(studentIdWithMark.Select(async entry =>
+            // FIXED: Change parallel operations to sequential to avoid DbContext threading issues
+            // Fetch students with marks sequentially
+            foreach (var entry in studentIdWithMark)
             {
                 var studentId = entry.Key;
                 var mark = entry.Value;
@@ -927,40 +914,33 @@ namespace LetsLearn.UseCases.Services
                     throw new KeyNotFoundException("User not found.");
                 }
 
-                return new SingleAssignmentReportDTO.StudentInfoAndMarkAssignment
+                result.Add(new SingleAssignmentReportDTO.StudentInfoAndMarkAssignment
                 {
                     Student = MapToDTO(user),
                     Mark = mark,
                     ResponseId = null
-                };
-            }));
+                });
+            }
 
-            // Fetch students with no response
-            var studentsNoResponse = await Task.WhenAll(enrollmentByStudentId
-                .Where(entry => !studentIdWithMark.ContainsKey(entry.Key)) // Filter students with no marks
-                .Select(async entry =>
+            // Fetch students with no response sequentially
+            foreach (var entry in enrollmentByStudentId.Where(entry => !studentIdWithMark.ContainsKey(entry.Key)))
+            {
+                var studentId = entry.Value.StudentId;
+                var user = await _unitOfWork.Users.GetByIdAsync(studentId, ct);
+
+                if (user == null)
                 {
-                    var studentId = entry.Value.StudentId;
-                    var user = await _unitOfWork.Users.GetByIdAsync(studentId, ct);
+                    throw new KeyNotFoundException("User not found.");
+                }
 
-                    if (user == null)
-                    {
-                        throw new KeyNotFoundException("User not found.");
-                    }
-
-                    return new SingleAssignmentReportDTO.StudentInfoAndMarkAssignment
-                    {
-                        Student = MapToDTO(user),
-                        Submitted = false,
-                        Mark = 0.0,
-                        ResponseId = null
-                    };
-                }));
-
-            // Combine both lists
-            var result = new List<SingleAssignmentReportDTO.StudentInfoAndMarkAssignment>();
-            result.AddRange(studentsWithMarks);
-            result.AddRange(studentsNoResponse);
+                result.Add(new SingleAssignmentReportDTO.StudentInfoAndMarkAssignment
+                {
+                    Student = MapToDTO(user),
+                    Submitted = false,
+                    Mark = 0.0,
+                    ResponseId = null
+                });
+            }
 
             return result;
         }
@@ -991,13 +971,15 @@ namespace LetsLearn.UseCases.Services
                 return new List<QuizResponseDTO>();
             }
 
-            // Chuyển đổi từng phần tử trong danh sách quizResponses sang DTO
-            var quizResponseDTOs = await Task.WhenAll(quizResponses.Select(async quizResponse =>
+            // FIXED: Change parallel operation to sequential to avoid DbContext threading issues
+            // Chuyển đổi từng phần tử trong danh sách quizResponses sang DTO sequentially
+            var quizResponseDTOs = new List<QuizResponseDTO>();
+            foreach (var quizResponse in quizResponses)
             {
-                return MapQuizResponseToDTO(quizResponse); // Sử dụng hàm đã viết để chuyển đổi
-            }));
+                quizResponseDTOs.Add(MapQuizResponseToDTO(quizResponse)); // This method doesn't use async operations
+            }
 
-            return quizResponseDTOs.ToList();
+            return quizResponseDTOs;
         }
 
         public QuizResponseDTO MapQuizResponseToDTO(QuizResponse quizResponse)
