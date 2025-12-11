@@ -185,11 +185,57 @@ namespace LetsLearn.UseCases.Services.CourseSer
         // D = 1 => Minimum Test Cases = D + 1 = 2
         public async Task<GetCourseResponse> GetCourseByIdAsync(String id, CancellationToken ct = default)
         {
+            // Query course như cũ - KHÔNG thay đổi
             var course = await _uow.Course.GetByIdAsync(id, ct)
                          ?? throw new KeyNotFoundException("Course not found.");
-            return MapToResponse(course);
-        }
 
+            // Query riêng creator
+            var creator = await _uow.Users.GetByIdAsync(course.CreatorId, ct);
+
+            // Query riêng enrollments
+            var enrollments = await _uow.Enrollments.FindAsync(e => e.CourseId == id, ct);
+            var studentIds = enrollments.Where(e => e.StudentId != course.CreatorId)
+                                      .Select(e => e.StudentId)
+                                      .ToList();
+
+            // Query riêng students
+            var students = new List<UserBasicInfo>();
+            if (studentIds.Any())
+            {
+                foreach (var studentId in studentIds)
+                {
+                    var student = await _uow.Users.GetByIdAsync(studentId, ct);
+                    if (student != null)
+                    {
+                        students.Add(new UserBasicInfo
+                        {
+                            Id = student.Id,
+                            Username = student.Username,
+                            Avatar = student.Avatar
+                        });
+                    }
+                }
+            }
+
+            return MapToResponseWithUsers(course, creator, students);
+        }
+        // Helper method mapping đơn giản
+        private GetCourseResponse MapToResponseWithUsers(Course c, User? creator, List<UserBasicInfo> students)
+        {
+            var response = MapToResponse(c); // Dùng method cũ
+
+            // Thêm creator và students
+            response.Creator = creator != null ? new UserBasicInfo
+            {
+                Id = creator.Id,
+                Username = creator.Username,
+                Avatar = creator.Avatar
+            } : null;
+
+            response.Students = students;
+
+            return response;
+        }
         // Test Case Estimation:
         // Decision points (D):
         // - if course not found → +1

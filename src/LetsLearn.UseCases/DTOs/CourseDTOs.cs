@@ -75,8 +75,15 @@ namespace LetsLearn.UseCases.DTOs
         public bool IsPublished { get; set; }
 
         public List<SectionResponse>? Sections { get; set; }
+        public UserBasicInfo? Creator { get; set; }
+        public List<UserBasicInfo>? Students { get; set; }
     }
-
+    public class UserBasicInfo
+    {
+        public Guid Id { get; set; }
+        public string Username { get; set; } = null!;
+        public string? Avatar { get; set; }
+    }
     public class AllAssignmentsReportDTO
     {
         public class StudentInfoWithAverageMark
