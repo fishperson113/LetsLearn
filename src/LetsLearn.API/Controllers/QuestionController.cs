@@ -104,7 +104,7 @@ namespace LetsLearn.WebApi.Controllers
         }
 
         // PUT: api/question
-        [HttpPut]
+        [HttpPut("{courseId}")]
         public async Task<ActionResult<GetQuestionResponse>> Update(
             [FromBody] UpdateQuestionRequest request,
             CancellationToken ct)
