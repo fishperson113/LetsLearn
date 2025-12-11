@@ -16,10 +16,12 @@ namespace LetsLearn.WebApi.Controllers
     public class QuestionController : ControllerBase
     {
         private readonly IQuestionService _service;
+        private readonly ILogger<QuestionController> _logger;
 
-        public QuestionController(IQuestionService service)
+        public QuestionController(IQuestionService service, ILogger<QuestionController> logger)
         {
             _service = service;
+            _logger = logger;
         }
 
         // POST: question
@@ -103,11 +105,12 @@ namespace LetsLearn.WebApi.Controllers
             }
         }
 
-        // PUT: api/question
-        [HttpPut("{courseId}")]
+        // PUT: api/question/{courseId}
+        [HttpPut("{questionId:guid}")]
         public async Task<ActionResult<GetQuestionResponse>> Update(
-            [FromBody] UpdateQuestionRequest request,
-            CancellationToken ct)
+             Guid questionId,  
+             [FromBody] UpdateQuestionRequest request,
+             CancellationToken ct)
         {
             if (!ModelState.IsValid)
                 return ValidationProblem(ModelState);
@@ -116,17 +119,25 @@ namespace LetsLearn.WebApi.Controllers
             if (userId == Guid.Empty)
                 return Unauthorized(new { message = "Invalid or missing user identity." });
 
+            request.Id = questionId;
+
+            _logger.LogDebug("Update request for QuestionId={QuestionId}, CourseId from body={CourseId}",
+                questionId, request.CourseId);
+
             try
             {
                 var updated = await _service.UpdateAsync(request, userId, ct);
+                _logger.LogInformation("Question {QuestionId} updated successfully", updated.Id);
                 return Ok(updated);
             }
             catch (KeyNotFoundException)
             {
+                _logger.LogWarning("Question {QuestionId} not found for update", questionId);
                 return NotFound(new { message = "Question not found." });
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error updating question {QuestionId}", questionId);
                 return BadRequest(new { message = ex.Message });
             }
         }

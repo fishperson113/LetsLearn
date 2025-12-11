@@ -8,6 +8,7 @@ using LetsLearn.Core.Entities;
 using LetsLearn.Core.Interfaces;
 using LetsLearn.Infrastructure.Repository;
 using LetsLearn.Infrastructure.Data;
+using Microsoft.Extensions.Logging;
 namespace LetsLearn.Infrastructure.UnitOfWork
 {
     public class UnitOfWork : IUnitOfWork
@@ -41,7 +42,7 @@ namespace LetsLearn.Infrastructure.UnitOfWork
         public IRepository<TopicQuizQuestion> TopicQuizQuestions { get; private set; }
         public IRepository<TopicQuizQuestionChoice> TopicQuizQuestionChoices { get; private set; }
         public IEnrollmentRepository Enrollments { get; private set; }
-        public UnitOfWork(LetsLearnContext context)
+        public UnitOfWork(LetsLearnContext context, ILogger<QuestionRepository> questionLogger)
         {
             _context = context;
             WeatherForecasts = new GenericRepository<WeatherForecast>(_context);
@@ -59,7 +60,7 @@ namespace LetsLearn.Infrastructure.UnitOfWork
             TopicQuizzes = new TopicQuizRepository(_context);
             TopicAssignments = new TopicAssignmentRepository(_context);
             TopicMeetings = new TopicMeetingRepository(_context);
-            Questions = new QuestionRepository(_context);
+            Questions = new QuestionRepository(_context, questionLogger);
             QuestionChoices = new QuestionChoiceRepository(_context);
             Comments = new CommentRepository(context);
             AssignmentResponses = new AssignmentResponseRepository(_context);

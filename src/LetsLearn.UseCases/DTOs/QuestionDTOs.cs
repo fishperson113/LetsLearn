@@ -16,7 +16,7 @@ namespace LetsLearn.UseCases.DTOs
 
     public class UpdateQuestionChoiceRequest
     {
-        public Guid Id { get; set; }
+        public Guid? Id { get; set; }
         public string? Text { get; set; }
         public decimal? GradePercent { get; set; }
         public string? Feedback { get; set; }
@@ -55,7 +55,7 @@ namespace LetsLearn.UseCases.DTOs
     public class UpdateQuestionRequest
     {
         public Guid Id { get; set; }
-        public String CourseId { get; set; }
+        public String? CourseId { get; set; }
         public string? QuestionName { get; set; }
         public string? QuestionText { get; set; }
         public string? Status { get; set; }

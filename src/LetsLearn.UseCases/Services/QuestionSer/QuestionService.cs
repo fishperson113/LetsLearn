@@ -1,23 +1,26 @@
 ﻿using LetsLearn.Core.Entities;
 using LetsLearn.Core.Interfaces;
 using LetsLearn.UseCases.DTOs;
+using LetsLearn.UseCases.ServiceInterfaces;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
-using LetsLearn.UseCases.ServiceInterfaces;
 
 namespace LetsLearn.UseCases.Services.QuestionSer
 {
     public class QuestionService : IQuestionService
     {
         private readonly IUnitOfWork _uow;
+        private readonly ILogger<QuestionService> _logger;
 
-        public QuestionService(IUnitOfWork uow)
+        public QuestionService(IUnitOfWork uow,ILogger<QuestionService>logger)
         {
             _uow = uow;
+            _logger = logger;
         }
 
         // Test Case Estimation:
@@ -105,8 +108,22 @@ namespace LetsLearn.UseCases.Services.QuestionSer
         // D = 6 => Minimum Test Cases = D + 1 = 7
         public async Task<GetQuestionResponse> UpdateAsync(UpdateQuestionRequest req, Guid userId, CancellationToken ct = default)
         {
-            var question = await _uow.Questions.GetWithChoicesAsync(req.Id, ct)
-                          ?? throw new KeyNotFoundException("Question not found.");
+            _logger.LogInformation("Starting update for question {QuestionId} by user {UserId}", req.Id, userId);
+
+            var question = await _uow.Questions.GetWithChoicesAsync(req.Id, ct);
+            if (question == null)
+            {
+                _logger.LogWarning("Question {QuestionId} not found for update", req.Id);
+                throw new KeyNotFoundException("Question not found.");
+            }
+
+            _logger.LogDebug("Question {QuestionId} found. Current state: CourseId={CourseId}, DeletedAt={DeletedAt}, ChoiceCount={ChoiceCount}",
+                question.Id, question.CourseId, question.DeletedAt, question.Choices?.Count ?? 0);
+
+            // Store original values for logging
+            var originalCourseId = question.CourseId;
+            var originalDeletedAt = question.DeletedAt;
+            var originalChoiceCount = question.Choices?.Count ?? 0;
 
             question.QuestionName = req.QuestionName;
             question.QuestionText = req.QuestionText;
@@ -120,21 +137,56 @@ namespace LetsLearn.UseCases.Services.QuestionSer
             if (!string.IsNullOrWhiteSpace(req.CourseId)) question.CourseId = req.CourseId;
             question.ModifiedById = userId;
             question.UpdatedAt = DateTime.UtcNow;
+            // Make sure DeletedAt remains null
+            question.DeletedAt = null;
 
+            _logger.LogDebug("Question {QuestionId} updated. CourseId: {OriginalCourseId} -> {NewCourseId}, DeletedAt: {OriginalDeletedAt} -> {NewDeletedAt}",
+                question.Id, originalCourseId, question.CourseId, originalDeletedAt, question.DeletedAt);
+
+            // Handle choices updates
             if (req.Choices is { Count: > 0 })
             {
-                var existingById = question.Choices.ToDictionary(x => x.Id, x => x);
+                _logger.LogInformation("Processing {RequestChoiceCount} choices for question {QuestionId} (currently has {ExistingChoiceCount})",
+                    req.Choices.Count, question.Id, originalChoiceCount);
 
-                foreach (var c in req.Choices.Where(x => existingById.ContainsKey(x.Id)))
+                var existingById = question.Choices.ToDictionary(x => x.Id, x => x);
+                var incomingIds = req.Choices.Where(x => x.Id.HasValue).Select(x => x.Id!.Value).ToHashSet();
+
+                _logger.LogDebug("Question {QuestionId}: Existing choice IDs: [{ExistingIds}], Incoming choice IDs: [{IncomingIds}]",
+                    question.Id,
+                    string.Join(", ", existingById.Keys),
+                    string.Join(", ", incomingIds));
+
+                // Mark choices for deletion (don't delete immediately)
+                var choicesToRemove = question.Choices.Where(c => !incomingIds.Contains(c.Id)).ToList();
+                if (choicesToRemove.Any())
                 {
-                    var ex = existingById[c.Id];
-                    ex.Text = c.Text;
-                    ex.Feedback = c.Feedback;
-                    ex.GradePercent = c.GradePercent;
+                    _logger.LogInformation("Removing {RemoveCount} choices from question {QuestionId}: [{RemoveIds}]",
+                        choicesToRemove.Count, question.Id, string.Join(", ", choicesToRemove.Select(c => c.Id)));
+
+                    await _uow.QuestionChoices.DeleteRangeAsync(choicesToRemove);
                 }
 
+                // Update existing choices
+                var choicesToUpdate = req.Choices.Where(x => x.Id.HasValue && existingById.ContainsKey(x.Id.Value)).ToList();
+                if (choicesToUpdate.Any())
+                {
+                    _logger.LogInformation("Updating {UpdateCount} existing choices for question {QuestionId}",
+                        choicesToUpdate.Count, question.Id);
+
+                    foreach (var c in choicesToUpdate)
+                    {
+                        var ex = existingById[c.Id!.Value];
+                        ex.Text = c.Text;
+                        ex.Feedback = c.Feedback;
+                        ex.GradePercent = c.GradePercent;
+                        _logger.LogDebug("Updated choice {ChoiceId} for question {QuestionId}", ex.Id, question.Id);
+                    }
+                }
+
+                // Add new choices
                 var toAdd = req.Choices
-                    .Where(x => !existingById.ContainsKey(x.Id))
+                    .Where(x => !x.Id.HasValue || !existingById.ContainsKey(x.Id.Value))
                     .Select(x => new QuestionChoice
                     {
                         Id = Guid.NewGuid(),
@@ -147,21 +199,63 @@ namespace LetsLearn.UseCases.Services.QuestionSer
 
                 if (toAdd.Count > 0)
                 {
+                    _logger.LogInformation("Adding {AddCount} new choices to question {QuestionId}: [{AddIds}]",
+                        toAdd.Count, question.Id, string.Join(", ", toAdd.Select(c => c.Id)));
+
                     await _uow.QuestionChoices.AddRangeAsync(toAdd);
+                }
+            }
+            else
+            {
+                // If no choices provided, remove all existing choices
+                if (question.Choices.Any())
+                {
+                    _logger.LogInformation("No choices provided, removing all {ExistingCount} choices from question {QuestionId}",
+                        question.Choices.Count, question.Id);
+
+                    await _uow.QuestionChoices.DeleteRangeAsync(question.Choices);
                 }
             }
 
             try
             {
+                _logger.LogDebug("Committing changes for question {QuestionId}", question.Id);
                 await _uow.CommitAsync();
+                _logger.LogInformation("Question {QuestionId} updated successfully", question.Id);
             }
             catch (DbUpdateException ex)
             {
+                _logger.LogError(ex, "Failed to update question {QuestionId}. CourseId={CourseId}, DeletedAt={DeletedAt}",
+                    question.Id, question.CourseId, question.DeletedAt);
                 throw new InvalidOperationException("Failed to update question.", ex);
             }
 
-            var updated = await _uow.Questions.GetWithChoicesAsync(req.Id, ct)
-                         ?? throw new InvalidOperationException("Failed to reload updated question.");
+            // Verify the question is still findable
+            _logger.LogDebug("Reloading question {QuestionId} to verify update", question.Id);
+            var updated = await _uow.Questions.GetWithChoicesAsync(req.Id, ct);
+
+            if (updated == null)
+            {
+                _logger.LogError("Question {QuestionId} not found after update! This indicates the question may have been marked as deleted.", req.Id);
+
+                // Try to find the question without the DeletedAt filter to see if it exists but is marked deleted
+                var questionInDb = await _uow.Questions.FirstOrDefaultAsync(q => q.Id == req.Id, ct);
+                if (questionInDb != null)
+                {
+                    _logger.LogError("Question {QuestionId} exists but is marked as deleted. DeletedAt={DeletedAt}, CourseId={CourseId}",
+                        questionInDb.Id, questionInDb.DeletedAt, questionInDb.CourseId);
+                }
+                else
+                {
+                    _logger.LogError("Question {QuestionId} completely missing from database", req.Id);
+                }
+
+                throw new InvalidOperationException("Failed to reload updated question.");
+            }
+
+            _logger.LogInformation("Question {QuestionId} reloaded successfully after update. CourseId={CourseId}, DeletedAt={DeletedAt}, ChoiceCount={ChoiceCount}",
+                updated.Id, updated.CourseId, updated.DeletedAt, updated.Choices?.Count ?? 0);
+
             return MapToResponse(updated);
         }
 
