@@ -63,18 +63,24 @@ namespace LetsLearn.UseCases.Services.AssignmentResponseService
                 Id = Guid.NewGuid(),
                 TopicId = dto.TopicId,
                 StudentId = studentId,
-                SubmittedAt = dto.Data.SubmittedAt,
-                Note = dto.Data.Note,
-                Mark = dto.Data.Mark,
+                SubmittedAt = dto.SubmittedAt ?? DateTime.UtcNow,
+                Note = dto.Note,
+                Mark = dto.Mark,
                 Files = new List<CloudinaryFile>()
             };
 
-            var files = dto.Data.Files;
-            foreach (var file in files)
+            foreach (var fileDto in dto.CloudinaryFiles)
             {
-                file.Id = Guid.NewGuid();
-                file.AssignmentResponseId = entity.Id;
-                entity.Files.Add(file);
+                var fileEntity = new CloudinaryFile
+                {
+                    Id = Guid.NewGuid(),
+                    Name = fileDto.Name,
+                    DisplayUrl = fileDto.DisplayUrl,
+                    DownloadUrl = fileDto.DownloadUrl,
+                    AssignmentResponseId = entity.Id
+                };
+
+                entity.Files.Add(fileEntity);
             }
 
             await _unitOfWork.AssignmentResponses.AddAsync(entity);

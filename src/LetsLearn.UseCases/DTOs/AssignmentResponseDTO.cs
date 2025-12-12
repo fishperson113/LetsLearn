@@ -14,11 +14,11 @@ namespace LetsLearn.UseCases.DTOs
         public AssignmentResponseData Data { get; set; }
     }
 
-    public class CreateAssignmentResponseRequest
-    {
-        public Guid TopicId { get; set; }
-        public AssignmentResponseData Data { get; set; }
-    }
+    //public class CreateAssignmentResponseRequest
+    //{
+    //    public Guid TopicId { get; set; }
+    //    public AssignmentResponseData Data { get; set; }
+    //}
 
     public class AssignmentResponseDTO
     {
@@ -36,5 +36,22 @@ namespace LetsLearn.UseCases.DTOs
         public decimal? Mark { get; set; }
         public string? Note { get; set; }
     }
+
+    public class CreateAssignmentResponseRequest
+    {
+        public Guid TopicId { get; set; }
+        public DateTime? SubmittedAt { get; set; }
+        public List<CreateCloudinaryFileRequest> CloudinaryFiles { get; set; } = new();
+        public decimal? Mark { get; set; }
+        public string? Note { get; set; }
+    }
+
+    public class CreateCloudinaryFileRequest
+    {
+        public string? Name { get; set; }
+        public string? DisplayUrl { get; set; }
+        public string? DownloadUrl { get; set; }
+    }
+
 }
 
