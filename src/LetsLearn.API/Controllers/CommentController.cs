@@ -28,7 +28,7 @@ namespace LetsLearn.API.Controllers
             CancellationToken ct = default)
         {
             var userId = Guid.Parse(User.Claims.First(c => c.Type == "userID").Value);
-
+            createcommentDTO.TopicId = topicId;
             await _commentService.AddCommentAsync(userId, createcommentDTO, ct);
             return Ok();
         }

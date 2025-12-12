@@ -31,7 +31,7 @@ namespace LetsLearn.UseCases.Services.CommentService
                 ?? throw new Exception("Người dùng không tồn tại");
 
 
-            //Check if Topic exists
+            // Check if Topic exists
             var topic = await _unitOfWork.Topics.GetByIdAsync(dto.TopicId, ct)
                 ?? throw new Exception("Chủ đề không tồn tại");
 
