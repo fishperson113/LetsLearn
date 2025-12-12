@@ -15,8 +15,15 @@ namespace LetsLearn.UseCases.DTOs
     {
         public Guid Id { get; set; }
         public string Text { get; set; } = null!;
-        public Guid UserId { get; set; }
+        public CommentUserInfo User { get; set; } = null!;
         public Guid TopicId { get; set; }
         public DateTime CreatedAt { get; set; }
+    }
+
+    public class CommentUserInfo
+    {
+        public Guid Id { get; set; }
+        public string Username { get; set; } = null!;
+        public string Avatar { get; set; } = null!;
     }
 }

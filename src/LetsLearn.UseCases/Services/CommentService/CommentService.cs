@@ -25,11 +25,10 @@ namespace LetsLearn.UseCases.Services.CommentService
         // - if topic == null: +1
         // - DbUpdateException CommitAsync (optional): +1
         // D = 3 => Minimum Test Cases = D + 1 = 4
-        public async Task AddCommentAsync(Guid commenterId, CreateCommentRequest dto, CancellationToken ct = default)
+        public async Task<GetCommentResponse> AddCommentAsync(Guid commenterId, CreateCommentRequest dto, CancellationToken ct = default)
         {
             var user = await _unitOfWork.Users.GetByIdAsync(commenterId, ct)
                 ?? throw new Exception("Người dùng không tồn tại");
-
 
             // Check if Topic exists
             var topic = await _unitOfWork.Topics.GetByIdAsync(dto.TopicId, ct)
@@ -46,6 +45,20 @@ namespace LetsLearn.UseCases.Services.CommentService
 
             await _unitOfWork.Comments.AddAsync(comment);
             await _unitOfWork.CommitAsync();
+
+            return new GetCommentResponse
+            {
+                Id = comment.Id,
+                Text = comment.Text,
+                User = new CommentUserInfo
+                {
+                    Id = user.Id,
+                    Username = user.Username,
+                    Avatar = user.Avatar ?? string.Empty
+                },
+                TopicId = comment.TopicId,
+                CreatedAt = comment.CreatedAt
+            };
         }
 
         // Test Case Estimation:
@@ -56,13 +69,37 @@ namespace LetsLearn.UseCases.Services.CommentService
         {
             var comments = await _unitOfWork.Comments.FindByTopicIdAsync(topicId, ct);
 
-            return comments.Select(c => new GetCommentResponse
+            // Get unique user IDs
+            var userIds = comments.Select(c => c.UserId).Distinct().ToList();
+
+            // Fetch all users in one query
+            var users = new List<User>();
+            foreach (var userId in userIds)
             {
-                Id = c.Id,
-                Text = c.Text,
-                UserId = c.UserId,
-                TopicId = c.TopicId,
-                CreatedAt = c.CreatedAt
+                var user = await _unitOfWork.Users.GetByIdAsync(userId, ct);
+                if (user != null)
+                {
+                    users.Add(user);
+                }
+            }
+
+            // Map comments with user data
+            return comments.Select(c =>
+            {
+                var user = users.FirstOrDefault(u => u.Id == c.UserId);
+                return new GetCommentResponse
+                {
+                    Id = c.Id,
+                    Text = c.Text,
+                    User = new CommentUserInfo
+                    {
+                        Id = user?.Id ?? c.UserId,
+                        Username = user?.Username ?? "Unknown User",
+                        Avatar = user?.Avatar ?? string.Empty
+                    },
+                    TopicId = c.TopicId,
+                    CreatedAt = c.CreatedAt
+                };
             }).ToList();
         }
 

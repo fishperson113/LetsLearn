@@ -21,6 +21,7 @@ namespace LetsLearn.Infrastructure.Repository
             return await _dbSet
                 .AsNoTracking()
                 .Where(c => c.TopicId == topicId)
+                .OrderBy(c => c.CreatedAt)
                 .ToListAsync(ct);
         }
     }
