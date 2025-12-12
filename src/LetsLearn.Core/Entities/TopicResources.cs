@@ -17,6 +17,7 @@ namespace LetsLearn.Core.Entities
     {
         public Guid TopicId { get; set; }     // PK=FK -> topics.id
         public string? Description { get; set; }
+        public CloudinaryFile? File { get; set; }
     }
 
     public class TopicLink

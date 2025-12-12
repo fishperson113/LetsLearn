@@ -89,7 +89,7 @@ namespace LetsLearn.UseCases.DTOs
         public decimal? DefaultMark { get; set; }
         public string? FeedbackOfTrue { get; set; }
         public string? FeedbackOfFalse { get; set; }
-        public bool? CorrectAnswer { get; set; }    
+        public bool? CorrectAnswer { get; set; }
         public bool? Multiple { get; set; }
         public ICollection<TopicQuizQuestionChoiceRequest> Choices { get; set; } = new List<TopicQuizQuestionChoiceRequest>();
     }
@@ -107,10 +107,11 @@ namespace LetsLearn.UseCases.DTOs
         public string? Content { get; set; }
     }
 
+    // Updated to handle file data structure from frontend
     public class CreateTopicFileRequest
     {
         public string? Description { get; set; }
-        public string? FileUrl { get; set; }
+        public TopicFileData? File { get; set; }  // Changed from FileUrl to File object
     }
 
     public class CreateTopicLinkRequest
@@ -181,10 +182,11 @@ namespace LetsLearn.UseCases.DTOs
         public DateTime? RemindToGrade { get; set; }
     }
 
-    // File
+    // File - INHERITANCE PRESERVED, just added File property
     public class UpdateTopicFileRequest : UpdateTopicRequest
     {
         public string? Description { get; set; }
+        public TopicFileData? File { get; set; }  // Added to handle file data from frontend
     }
 
     // Link
@@ -207,6 +209,15 @@ namespace LetsLearn.UseCases.DTOs
         public string? Description { get; set; }
         public DateTime? Open { get; set; }
         public DateTime? Close { get; set; }
+    }
+
+    // New helper class for file data structure
+    public class TopicFileData
+    {
+        public Guid? Id { get; set; }
+        public string? Name { get; set; }
+        public string? DisplayUrl { get; set; }
+        public string? DownloadUrl { get; set; }
     }
 
     public class TopicUpsertDTO
@@ -306,5 +317,4 @@ namespace LetsLearn.UseCases.DTOs
         public object? Item { get; set; }       // quiz or assignment
         public object? Response { get; set; }   // response
     }
-
 }

@@ -87,7 +87,24 @@ namespace LetsLearn.UseCases.Services
                             {
                                 TopicId = topic.Id,
                                 Description = fileReq?.Description,
+                                File = null  // Will be set below if fileReq.File exists
                             };
+
+                            // Handle the file data if provided
+                            if (fileReq?.File != null)
+                            {
+                                var cloudinaryFile = new CloudinaryFile
+                                {
+                                    Id = fileReq.File.Id ?? Guid.NewGuid(),
+                                    Name = fileReq.File.Name,
+                                    DisplayUrl = fileReq.File.DisplayUrl,
+                                    DownloadUrl = fileReq.File.DownloadUrl,
+                                    TopicFileId = topic.Id  // Set the relationship
+                                };
+
+                                file.File = cloudinaryFile;  // Set single file
+                                await _unitOfWork.CloudinaryFiles.AddAsync(cloudinaryFile);
+                            }
 
                             await _unitOfWork.TopicFiles.AddAsync(file);
                             topicData = file;
@@ -262,12 +279,51 @@ namespace LetsLearn.UseCases.Services
 
                 case "file":
                     {
+                        _logger.LogInformation("Processing file update. Raw data: {RawData}", raw);
+
                         var fileReq = JsonSerializer.Deserialize<UpdateTopicFileRequest>(raw, options);
+
+                        _logger.LogInformation("Deserialized file request - Description: {Description}, File: {HasFile}",
+                            fileReq?.Description, fileReq?.File != null);
+
                         var file = (await _unitOfWork.TopicFiles.FindAsync(f => f.TopicId == topic.Id, ct)).FirstOrDefault()
                                    ?? throw new KeyNotFoundException("TopicFile not found.");
-                        file.Description = fileReq.Description ?? file.Description;
+
+                        file.Description = fileReq?.Description ?? file.Description;
+
+                        // Update file data
+                        if (fileReq?.File != null)
+                        {
+                            _logger.LogInformation("Updating file data - ID: {FileId}, Name: {FileName}",
+                                fileReq.File.Id, fileReq.File.Name);
+
+                            // Remove existing file for this topic (if any)
+                            var existingFiles = await _unitOfWork.CloudinaryFiles.FindAsync(cf => cf.TopicFileId == topic.Id, ct);
+                            if (existingFiles.Any())
+                            {
+                                await _unitOfWork.CloudinaryFiles.DeleteRangeAsync(existingFiles);
+                            }
+
+                            // Add new file
+                            var cloudinaryFile = new CloudinaryFile
+                            {
+                                Id = fileReq.File.Id ?? Guid.NewGuid(),
+                                Name = fileReq.File.Name,
+                                DisplayUrl = fileReq.File.DisplayUrl,
+                                DownloadUrl = fileReq.File.DownloadUrl,
+                                TopicFileId = topic.Id
+                            };
+
+                            file.File = cloudinaryFile;  // Set single file
+                            await _unitOfWork.CloudinaryFiles.AddAsync(cloudinaryFile);
+
+                            _logger.LogInformation("Added new CloudinaryFile with ID: {CloudinaryFileId}", cloudinaryFile.Id);
+                        }
+
                         await _unitOfWork.TopicFiles.UpdateAsync(file);
                         topicData = file;
+
+                        _logger.LogInformation("File update completed successfully for TopicFile ID: {TopicId}", topic.Id);
                         break;
                     }
 
@@ -619,7 +675,15 @@ namespace LetsLearn.UseCases.Services
                     case "file":
                         var file = (await _unitOfWork.TopicFiles.FindAsync(f => f.TopicId == topic.Id, ct)).FirstOrDefault();
                         if (file != null)
+                        {
+                            // Load the associated CloudinaryFile if it exists and not already loaded
+                            if (file.File == null)
+                            {
+                                var cloudinaryFiles = await _unitOfWork.CloudinaryFiles.FindAsync(cf => cf.TopicFileId == topic.Id, ct);
+                                file.File = cloudinaryFiles.FirstOrDefault();
+                            }
                             topicData = file;
+                        }
                         break;
 
                     case "link":
