@@ -21,6 +21,10 @@ namespace LetsLearn.UseCases.Services
             };
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - if user == null: +1
+        // D = 1 => Minimum Test Cases = D + 1 = 2
         public async Task<List<NotificationDto>> GetNotificationsAsync(Guid userId, CancellationToken ct = default)
         {
             var user = await _uow.Users.GetByIdAsync(userId)
@@ -31,6 +35,12 @@ namespace LetsLearn.UseCases.Services
             return list.Select(ToDto).ToList();
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - if notification == null: +1
+        // - isRead == true: +1
+        // - isRead == false: +1
+        // D = 3 => Minimum Test Cases = D + 1 = 4
         public async Task<NotificationDto> MarkAsReadAsync(Guid id, bool isRead, CancellationToken ct = default)
         {
             var notification = await _uow.Notifications.GetByIdAsync(id)
@@ -43,6 +53,10 @@ namespace LetsLearn.UseCases.Services
             return ToDto(notification);
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - if notification == null: +1
+        // D = 1 => Minimum Test Cases = D + 1 = 2
         public async Task DeleteNotificationAsync(Guid id, CancellationToken ct = default)
         {
             var notification = await _uow.Notifications.GetByIdAsync(id)
@@ -52,6 +66,10 @@ namespace LetsLearn.UseCases.Services
             await _uow.CommitAsync();
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - if user == null: +1
+        // D = 1 => Minimum Test Cases = D + 1 = 2
         public async Task<NotificationDto> CreateNotificationAsync(Guid userId, string title, string message, CancellationToken ct = default)
         {
             var user = await _uow.Users.GetByIdAsync(userId)
@@ -77,6 +95,10 @@ namespace LetsLearn.UseCases.Services
             return ToDto(entity);
         }
 
+        // Test Case Estimation:
+        // Decision points (D):
+        // - Delegates to CreateNotificationAsync: +0
+        // D = 0 => Minimum Test Cases = D + 1 = 1
         public async Task NotifyUserAsync(Guid userId, string title, string message, CancellationToken ct = default)
         {
             await CreateNotificationAsync(userId, title, message, ct);
