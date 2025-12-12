@@ -1,13 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
-using LetsLearn.Core.Entities;
+﻿using LetsLearn.Core.Entities;
 using LetsLearn.Core.Interfaces;
 using LetsLearn.UseCases.DTOs;
 using LetsLearn.UseCases.Services.QuizResponseService;
 using Moq;
+using System;
+using System.Collections.Generic;
+using System.Linq.Expressions;
+using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace LetsLearn.Test.Services
@@ -63,9 +64,11 @@ namespace LetsLearn.Test.Services
             var uow = new Mock<IUnitOfWork>();
             var quizRepo = new Mock<IQuizResponseRepository>();
             var questionRepo = new Mock<IRepository<TopicQuizQuestion>>();
+            var questionBankRepo = new Mock<IQuestionRepository>();
 
             uow.Setup(x => x.QuizResponses).Returns(quizRepo.Object);
             uow.Setup(x => x.TopicQuizQuestions).Returns(questionRepo.Object);
+            uow.Setup(x => x.Questions).Returns(questionBankRepo.Object);
             uow.Setup(x => x.CommitAsync()).ReturnsAsync(1);
 
             var question = new TopicQuizQuestion
@@ -83,6 +86,9 @@ namespace LetsLearn.Test.Services
 
             quizRepo.Setup(x => x.AddAsync(It.IsAny<QuizResponse>()))
                     .Returns(Task.CompletedTask);
+
+            questionBankRepo.Setup(x => x.FindAsync(It.IsAny<Expression<Func<Question, bool>>>(), It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(new List<Question>());
 
             var svc = new QuizResponseService(uow.Object);
 
@@ -109,8 +115,6 @@ namespace LetsLearn.Test.Services
             Assert.Single(result.Data.Answers);
             Assert.Equal("ABC", result.Data.Answers[0].Answer);
         }
-
-
 
         // -----------------------------------------------------------
         // 2. UpdateQuizResponseByIdAsync

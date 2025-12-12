@@ -104,16 +104,34 @@ namespace LetsLearn.Test.Services
         {
             var uow = new Mock<IUnitOfWork>();
             var commentRepo = new Mock<ICommentRepository>();
+            var userRepo = new Mock<IUserRepository>();
 
             uow.Setup(x => x.Comments).Returns(commentRepo.Object);
+            uow.Setup(x => x.Users).Returns(userRepo.Object);
 
             var topicId = Guid.NewGuid();
+            var userId = Guid.NewGuid();
 
             commentRepo.Setup(x => x.FindByTopicIdAsync(topicId, It.IsAny<CancellationToken>()))
                        .ReturnsAsync(new List<Comment>
                        {
-                           new Comment { Id = Guid.NewGuid(), Text = "C1", TopicId = topicId, UserId = Guid.NewGuid() }
+                           new Comment 
+                           { 
+                               Id = Guid.NewGuid(), 
+                               Text = "C1", 
+                               TopicId = topicId, 
+                               UserId = userId, 
+                               CreatedAt = DateTime.UtcNow 
+                           }
                        });
+
+            userRepo.Setup(x => x.GetByIdAsync(userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new User
+            {
+                Id = userId,
+                Username = "john",
+                Avatar = "avatar.png"
+            });
 
             var svc = new CommentService(uow.Object);
 
@@ -121,6 +139,7 @@ namespace LetsLearn.Test.Services
 
             Assert.Single(list);
             Assert.Equal("C1", list.First().Text);
+            Assert.Equal("john", list.First().User.Username);
         }
 
 

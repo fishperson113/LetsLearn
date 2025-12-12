@@ -232,22 +232,46 @@ namespace LetsLearn.Test.Services
             {
                 Id = "C1",
                 Title = "Course 1",
+                CreatorId = Guid.NewGuid(),
                 Sections = new List<Section>()
+            };
+
+            var creator = new User
+            {
+                Id = course.CreatorId,
+                Username = "teacher",
+                Avatar = "avatar.png"
             };
 
             var uow = new Mock<IUnitOfWork>();
             var courseRepo = new Mock<ICourseRepository>();
+            var userRepo = new Mock<IUserRepository>();
+            var enrollmentRepo = new Mock<IEnrollmentRepository>();
 
             uow.Setup(x => x.Course).Returns(courseRepo.Object);
+            uow.Setup(x => x.Users).Returns(userRepo.Object);
+            uow.Setup(x => x.Enrollments).Returns(enrollmentRepo.Object);
 
             courseRepo.Setup(x => x.GetByIdAsync("C1", It.IsAny<CancellationToken>()))
                       .ReturnsAsync(course);
+
+            userRepo.Setup(x => x.GetByIdAsync(course.CreatorId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(creator);
+
+            enrollmentRepo.Setup(x => x.FindAsync(
+                    It.IsAny<Expression<Func<Enrollment, bool>>>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<Enrollment>()); // no students
 
             var service = new CourseService(uow.Object, null!);
 
             var result = await service.GetCourseByIdAsync("C1");
 
-            Assert.Equal(course.Id, result.Id);
+            Assert.Equal("C1", result.Id);
+            Assert.NotNull(result.Creator);
+            Assert.Equal("teacher", result.Creator.Username);
+            Assert.NotNull(result.Students);
+            Assert.Empty(result.Students);
         }
 
         // ============================================================
