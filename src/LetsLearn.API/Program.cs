@@ -12,7 +12,6 @@ using LetsLearn.UseCases.Services.CommentService;
 using LetsLearn.UseCases.Services.ConversationService;
 using LetsLearn.UseCases.Services.CourseSer;
 using LetsLearn.UseCases.Services.MessageService;
-using LetsLearn.UseCases.Services.Notifications;
 using LetsLearn.UseCases.Services.QuestionSer;
 using LetsLearn.UseCases.Services.QuizResponseService;
 using LetsLearn.UseCases.Services.SectionSer;

@@ -2,18 +2,23 @@
 using LetsLearn.Core.Interfaces;
 using LetsLearn.UseCases.DTOs;
 using LetsLearn.UseCases.ServiceInterfaces;
-using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 
-namespace LetsLearn.UseCases.Services.Notifications
+namespace LetsLearn.UseCases.Services
 {
     public class NotificationService : INotificationService
     {
         private readonly IUnitOfWork _uow;
+        private readonly JsonSerializerOptions _jsonOptions;
 
         public NotificationService(IUnitOfWork uow)
         {
             _uow = uow;
+            _jsonOptions = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            };
         }
 
         public async Task<List<NotificationDto>> GetNotificationsAsync(Guid userId, CancellationToken ct = default)
@@ -63,7 +68,7 @@ namespace LetsLearn.UseCases.Services.Notifications
                 ActorId = user.Id,
                 CreatedAt = DateTime.UtcNow,
                 ReadAt = null,
-                Data = JsonSerializer.Serialize(payload)
+                Data = JsonSerializer.Serialize(payload, _jsonOptions)
             };
 
             await _uow.Notifications.AddAsync(entity);
@@ -78,7 +83,7 @@ namespace LetsLearn.UseCases.Services.Notifications
         }
 
         // ===== Mapping =====
-        private static NotificationDto ToDto(Notification n)
+        private NotificationDto ToDto(Notification n)
         {
             string? title = null;
             string? message = null;
@@ -87,19 +92,42 @@ namespace LetsLearn.UseCases.Services.Notifications
             {
                 try
                 {
-                    var obj = JsonSerializer.Deserialize<NotificationPayload>(n.Data);
+                    // Try to deserialize with case-insensitive options
+                    var obj = JsonSerializer.Deserialize<NotificationPayload>(n.Data, _jsonOptions);
                     title = obj?.Title;
                     message = obj?.Message;
                 }
-                catch
+                catch (JsonException ex)
                 {
-                    // ignore parse error, fallback below
+                    // Log the exception for debugging
+                    Console.WriteLine($"JSON deserialization failed for notification {n.Id}: {ex.Message}");
+                    Console.WriteLine($"JSON Data: {n.Data}");
+
+                    // Try manual parsing as fallback
+                    try
+                    {
+                        var jsonDoc = JsonDocument.Parse(n.Data);
+                        if (jsonDoc.RootElement.TryGetProperty("title", out var titleElement))
+                        {
+                            title = titleElement.GetString();
+                        }
+                        if (jsonDoc.RootElement.TryGetProperty("message", out var messageElement))
+                        {
+                            message = messageElement.GetString();
+                        }
+                    }
+                    catch
+                    {
+                        // Ultimate fallback
+                        title = n.Type;
+                        message = "Failed to parse notification data";
+                    }
                 }
             }
 
-            // fallback 
+            // Use fallback values if parsing failed
             title ??= n.Type;
-            message ??= n.Data;
+            message ??= "No message available";
 
             return new NotificationDto
             {
