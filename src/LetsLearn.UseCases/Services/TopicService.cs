@@ -303,7 +303,15 @@ namespace LetsLearn.UseCases.Services
 
                 case "quiz":
                     {
+                        // LOG: Raw data received
+                        _logger.LogInformation("Raw quiz data received: {RawData}", raw);
+
                         var quizReq = JsonSerializer.Deserialize<UpdateTopicQuizRequest>(raw, options);
+
+                        // LOG: Deserialized quiz request
+                        _logger.LogInformation("Deserialized quiz request - QuestionCount: {QuestionCount}",
+                            quizReq?.Questions?.Count ?? 0);
+
                         var quiz = await _unitOfWork.TopicQuizzes.GetWithQuestionsAsync(topic.Id)
                                    ?? throw new KeyNotFoundException("TopicQuiz not found.");
 
@@ -324,19 +332,42 @@ namespace LetsLearn.UseCases.Services
                                        .Select(q => q.Id!.Value)
                                        .ToHashSet();
 
-                        //// 2. XÓA question bị remove
-                        //var removed = quiz.Questions.Where(q => !incomingIds.Contains(q.Id)).ToList();
-                        //foreach (var r in removed)
-                        //    _unitOfWork.TopicQuizQuestions.DeleteAsync(r);
+                        // LOG: Existing vs incoming questions
+                        _logger.LogInformation("Existing questions: {ExistingCount}, Incoming questions: {IncomingCount}",
+                            existingQuestions.Count, quizReq.Questions.Count);
 
                         // 3. Xử lý từng câu hỏi trong request
                         foreach (var q in quizReq.Questions)
                         {
+                            // LOG: Processing each question
+                            _logger.LogInformation("Processing question ID: {QuestionId}, Name: '{QuestionName}', Type: '{Type}'",
+                                q.Id, q.QuestionName, q.Type);
+
+                            // LOG: Feedback data for each question
+                            _logger.LogInformation("Question {QuestionId} - FeedbackOfTrue: '{FeedbackTrue}', FeedbackOfFalse: '{FeedbackFalse}'",
+                                q.Id, q.FeedbackOfTrue, q.FeedbackOfFalse);
+
+                            // LOG: Choices data
+                            _logger.LogInformation("Question {QuestionId} - ChoiceCount: {ChoiceCount}",
+                                q.Id, q.Choices?.Count ?? 0);
+
+                            foreach (var choice in q.Choices ?? new List<UpdateTopicQuizQuestionChoiceRequest>())
+                            {
+                                _logger.LogInformation("Choice ID: {ChoiceId}, Text: '{Text}', Feedback: '{Feedback}', GradePercent: {GradePercent}",
+                                    choice.Id, choice.Text, choice.Feedback, choice.GradePercent);
+                            }
+
                             TopicQuizQuestion question;
 
                             // 3.1. Update existing question
                             if (q.Id != null && existingQuestions.TryGetValue(q.Id.Value, out question))
                             {
+                                _logger.LogInformation("Updating existing question {QuestionId}", q.Id);
+
+                                // LOG: Before update values
+                                _logger.LogInformation("BEFORE UPDATE - Question {QuestionId}: FeedbackOfTrue='{OldFeedbackTrue}', FeedbackOfFalse='{OldFeedbackFalse}'",
+                                    question.Id, question.FeedbackOfTrue, question.FeedbackOfFalse);
+
                                 question.QuestionName = q.QuestionName;
                                 question.QuestionText = q.QuestionText;
                                 question.Type = q.Type;
@@ -346,11 +377,17 @@ namespace LetsLearn.UseCases.Services
                                 question.CorrectAnswer = q.CorrectAnswer;
                                 question.Multiple = q.Multiple;
 
+                                // LOG: After update values
+                                _logger.LogInformation("AFTER UPDATE - Question {QuestionId}: FeedbackOfTrue='{NewFeedbackTrue}', FeedbackOfFalse='{NewFeedbackFalse}'",
+                                    question.Id, question.FeedbackOfTrue, question.FeedbackOfFalse);
+
                                 // Update choices
                                 UpdateTopicQuizQuestionChoices(question, q);
                             }
                             else
                             {
+                                _logger.LogInformation("Creating new question with ID: {QuestionId}", q.Id ?? Guid.Empty);
+
                                 // 3.2. CREATE NEW question
                                 question = new TopicQuizQuestion
                                 {
@@ -366,17 +403,28 @@ namespace LetsLearn.UseCases.Services
                                     Multiple = q.Multiple,
                                     Choices = new List<TopicQuizQuestionChoice>()
                                 };
+
+                                // LOG: New question feedback
+                                _logger.LogInformation("NEW QUESTION {QuestionId}: FeedbackOfTrue='{FeedbackTrue}', FeedbackOfFalse='{FeedbackFalse}'",
+                                    question.Id, question.FeedbackOfTrue, question.FeedbackOfFalse);
+
                                 // Tạo choices
                                 foreach (var c in q.Choices)
                                 {
-                                    question.Choices.Add(new TopicQuizQuestionChoice
+                                    var newChoice = new TopicQuizQuestionChoice
                                     {
                                         Id = Guid.NewGuid(),
                                         QuizQuestionId = question.Id,
                                         Text = c.Text,
                                         GradePercent = c.GradePercent,
                                         Feedback = c.Feedback
-                                    });
+                                    };
+
+                                    // LOG: New choice feedback
+                                    _logger.LogInformation("NEW CHOICE {ChoiceId}: Text='{Text}', Feedback='{Feedback}'",
+                                        newChoice.Id, newChoice.Text, newChoice.Feedback);
+
+                                    question.Choices.Add(newChoice);
                                 }
 
                                 await _unitOfWork.TopicQuizQuestions.AddAsync(question);
@@ -385,6 +433,11 @@ namespace LetsLearn.UseCases.Services
 
                         await _unitOfWork.TopicQuizzes.UpdateAsync(quiz);
                         topicData = quiz;
+
+                        // LOG: Final quiz data
+                        _logger.LogInformation("Quiz update completed. Final question count: {QuestionCount}",
+                            quiz.Questions.Count);
+
                         break;
                     }
 
@@ -431,15 +484,27 @@ namespace LetsLearn.UseCases.Services
         // D = 1 => Minimum Test Cases = 2
         private void UpdateTopicQuizQuestionChoices(TopicQuizQuestion question, UpdateTopicQuizQuestionRequest q)
         {
+            _logger.LogInformation("Updating choices for question {QuestionId}. Current choice count: {CurrentCount}, Incoming choice count: {IncomingCount}",
+                question.Id, question.Choices.Count, q.Choices.Count);
+
             var existing = question.Choices.ToDictionary(c => c.Id);
             var incoming = q.Choices.Where(c => c.Id != null)
                                     .Select(c => c.Id!.Value)
                                     .ToHashSet();
 
+            // LOG: Choice operations
+            _logger.LogInformation("Existing choice IDs: [{ExistingIds}]",
+                string.Join(", ", existing.Keys));
+            _logger.LogInformation("Incoming choice IDs: [{IncomingIds}]",
+                string.Join(", ", incoming));
+
             // Xóa choice cũ
             var removed = question.Choices.Where(c => !incoming.Contains(c.Id)).ToList();
             foreach (var r in removed)
+            {
+                _logger.LogInformation("Removing choice {ChoiceId}: '{Text}'", r.Id, r.Text);
                 question.Choices.Remove(r);
+            }
 
             // xử lý từng choice
             foreach (var c in q.Choices)
@@ -448,24 +513,43 @@ namespace LetsLearn.UseCases.Services
 
                 if (c.Id != null && existing.TryGetValue(c.Id.Value, out choice))
                 {
+                    // LOG: Before update choice
+                    _logger.LogInformation("BEFORE UPDATE CHOICE {ChoiceId}: Text='{OldText}', Feedback='{OldFeedback}', GradePercent={OldGrade}",
+                        choice.Id, choice.Text, choice.Feedback, choice.GradePercent);
+
                     // Update
                     choice.Text = c.Text;
                     choice.GradePercent = c.GradePercent;
                     choice.Feedback = c.Feedback;
+
+                    // LOG: After update choice
+                    _logger.LogInformation("AFTER UPDATE CHOICE {ChoiceId}: Text='{NewText}', Feedback='{NewFeedback}', GradePercent={NewGrade}",
+                        choice.Id, choice.Text, choice.Feedback, choice.GradePercent);
                 }
                 else
                 {
+                    _logger.LogInformation("Adding new choice: Text='{Text}', Feedback='{Feedback}', GradePercent={GradePercent}",
+                        c.Text, c.Feedback, c.GradePercent);
+
                     // Add new
-                    question.Choices.Add(new TopicQuizQuestionChoice
+                    var newChoice = new TopicQuizQuestionChoice
                     {
                         Id = Guid.NewGuid(),
                         QuizQuestionId = question.Id,
                         Text = c.Text,
                         GradePercent = c.GradePercent,
                         Feedback = c.Feedback
-                    });
+                    };
+
+                    _logger.LogInformation("NEW CHOICE CREATED {ChoiceId}: Text='{Text}', Feedback='{Feedback}'",
+                        newChoice.Id, newChoice.Text, newChoice.Feedback);
+
+                    question.Choices.Add(newChoice);
                 }
             }
+
+            _logger.LogInformation("Choice update completed for question {QuestionId}. Final choice count: {FinalCount}",
+                question.Id, question.Choices.Count);
         }
 
         // Test Case Estimation:

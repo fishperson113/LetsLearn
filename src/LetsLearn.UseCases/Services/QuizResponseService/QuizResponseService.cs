@@ -58,7 +58,7 @@ namespace LetsLearn.UseCases.Services.QuizResponseService
             };
 
             // Handle different question types with specific data structures
-            switch (questionEntity.Type?.ToLower())
+            switch (questionEntity.Type?.ToLower()?.Trim())
             {
                 case "choices answer":
                 case "choice":
@@ -103,7 +103,6 @@ namespace LetsLearn.UseCases.Services.QuizResponseService
                     break;
 
                 default:
-                    // Fallback to choices format
                     questionDto.Data = new QuestionDataDTO
                     {
                         Multiple = questionEntity.Multiple,
@@ -142,37 +141,79 @@ namespace LetsLearn.UseCases.Services.QuizResponseService
 
             foreach (var a in dto.Data.Answers)
             {
-                // Load câu hỏi từ DB bằng ID FE gửi
-                var questionEntity = await _unitOfWork.TopicQuizQuestions.GetByIdAsync(a.TopicQuizQuestionId);
-                if (questionEntity == null)
+                // Load câu hỏi từ TopicQuizQuestion
+                var topicQuestionEntity = await _unitOfWork.TopicQuizQuestions.GetByIdAsync(a.TopicQuizQuestionId);
+                if (topicQuestionEntity == null)
                     throw new Exception($"TopicQuizQuestion {a.TopicQuizQuestionId} not found");
 
-                // Convert sang Question entity để serialize (cho ToDto)
-                var fullQuestion = new Question
+                // 🔥 THÊM: Load từ Question Bank để có feedback đầy đủ
+                Question fullQuestion = null;
+
+                // Try to find the original question in Question Bank by matching content
+                var allQuestions = await _unitOfWork.Questions.FindAsync(q =>
+                    q.QuestionText == topicQuestionEntity.QuestionText &&
+                    q.Type == topicQuestionEntity.Type);
+
+                var originalQuestion = allQuestions.FirstOrDefault();
+
+                if (originalQuestion != null)
                 {
-                    Id = questionEntity.Id,
-                    QuestionName = questionEntity.QuestionName,
-                    QuestionText = questionEntity.QuestionText,
-                    Status = null,
-                    Type = questionEntity.Type,
-                    DefaultMark = questionEntity.DefaultMark,
-                    Usage = 0,
-                    FeedbackOfTrue = questionEntity.FeedbackOfTrue,
-                    FeedbackOfFalse = questionEntity.FeedbackOfFalse,
-                    CorrectAnswer = questionEntity.CorrectAnswer ?? false,
-                    Multiple = questionEntity.Multiple ?? false,
-                    CreatedById = Guid.Empty,
-                    ModifiedById = null,
-                    CourseId = "",
-                    Choices = questionEntity.Choices.Select(c => new QuestionChoice
+                    // Use data from Question Bank (has feedback)
+                    fullQuestion = new Question
                     {
-                        Id = c.Id,
-                        QuestionId = questionEntity.Id,
-                        Text = c.Text,
-                        GradePercent = c.GradePercent,
-                        Feedback = c.Feedback
-                    }).ToList()
-                };
+                        Id = topicQuestionEntity.Id,  // Keep TopicQuizQuestion ID for reference
+                        QuestionName = originalQuestion.QuestionName,
+                        QuestionText = originalQuestion.QuestionText,
+                        Status = originalQuestion.Status,
+                        Type = originalQuestion.Type,
+                        DefaultMark = originalQuestion.DefaultMark,
+                        Usage = originalQuestion.Usage ?? 0,
+                        FeedbackOfTrue = originalQuestion.FeedbackOfTrue,      // ✅ From Question Bank
+                        FeedbackOfFalse = originalQuestion.FeedbackOfFalse,    // ✅ From Question Bank
+                        CorrectAnswer = originalQuestion.CorrectAnswer,
+                        Multiple = originalQuestion.Multiple,
+                        CreatedById = originalQuestion.CreatedById,
+                        ModifiedById = originalQuestion.ModifiedById,
+                        CourseId = originalQuestion.CourseId,
+                        Choices = originalQuestion.Choices.Select(c => new QuestionChoice
+                        {
+                            Id = c.Id,
+                            QuestionId = topicQuestionEntity.Id,
+                            Text = c.Text,
+                            GradePercent = c.GradePercent,
+                            Feedback = c.Feedback                              // ✅ From Question Bank
+                        }).ToList()
+                    };
+                }
+                else
+                {
+                    // Fallback to TopicQuizQuestion data if no match found
+                    fullQuestion = new Question
+                    {
+                        Id = topicQuestionEntity.Id,
+                        QuestionName = topicQuestionEntity.QuestionName,
+                        QuestionText = topicQuestionEntity.QuestionText,
+                        Status = null,
+                        Type = topicQuestionEntity.Type,
+                        DefaultMark = topicQuestionEntity.DefaultMark,
+                        Usage = 0,
+                        FeedbackOfTrue = topicQuestionEntity.FeedbackOfTrue,
+                        FeedbackOfFalse = topicQuestionEntity.FeedbackOfFalse,
+                        CorrectAnswer = topicQuestionEntity.CorrectAnswer ?? false,
+                        Multiple = topicQuestionEntity.Multiple ?? false,
+                        CreatedById = Guid.Empty,
+                        ModifiedById = null,
+                        CourseId = "",
+                        Choices = topicQuestionEntity.Choices.Select(c => new QuestionChoice
+                        {
+                            Id = c.Id,
+                            QuestionId = topicQuestionEntity.Id,
+                            Text = c.Text,
+                            GradePercent = c.GradePercent,
+                            Feedback = c.Feedback
+                        }).ToList()
+                    };
+                }
 
                 entity.Answers.Add(new QuizResponseAnswer
                 {
