@@ -7,7 +7,7 @@ using System.Security.Claims;
 namespace LetsLearn.API.Controllers
 {
     [ApiController]
-    [Route("[controller]")]
+    [Route("course/{courseId}/topic/{topicId}/comments")]
 
     [Authorize]
     public class CommentController : ControllerBase
@@ -19,8 +19,13 @@ namespace LetsLearn.API.Controllers
             _commentService = commentService;
         }
 
-        [HttpPost("addComment")]
-        public async Task<ActionResult> AddComment([FromBody] CreateCommentRequest createcommentDTO, CancellationToken ct = default)
+        // POST: /course/{courseId}/topic/{topicId}/comments
+        [HttpPost]
+        public async Task<ActionResult> AddComment(
+            string courseId,
+            Guid topicId,
+            [FromBody] CreateCommentRequest createcommentDTO,
+            CancellationToken ct = default)
         {
             var userId = Guid.Parse(User.Claims.First(c => c.Type == "userID").Value);
 
@@ -28,18 +33,28 @@ namespace LetsLearn.API.Controllers
             return Ok();
         }
 
-        [HttpGet("getComment/{topicId}")]
-        public async Task<ActionResult<List<GetCommentResponse>>> GetComments([FromRoute] Guid topicId, CancellationToken ct = default)
+        // GET: /course/{courseId}/topic/{topicId}/comments
+        [HttpGet]
+        public async Task<ActionResult<List<GetCommentResponse>>> GetComments(
+            string courseId,
+            Guid topicId,
+            CancellationToken ct = default)
         {
             var comments = await _commentService.GetCommentsByTopicAsync(topicId, ct);
             return Ok(comments);
         }
 
-        [HttpDelete("deleteComment/{commentId}")]
-        public async Task<ActionResult> DeleteComment([FromRoute] Guid commentId,CancellationToken ct = default)
+        // DELETE: /course/{courseId}/topic/{topicId}/comments/{commentId}
+        [HttpDelete("{commentId:guid}")]
+        public async Task<ActionResult> DeleteComment(
+            string courseId,
+            Guid topicId,
+            Guid commentId,
+            CancellationToken ct = default)
         {
             await _commentService.DeleteCommentAsync(commentId, ct);
             return NoContent();
         }
     }
 }
+

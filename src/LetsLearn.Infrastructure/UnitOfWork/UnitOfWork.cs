@@ -42,6 +42,7 @@ namespace LetsLearn.Infrastructure.UnitOfWork
         public IRepository<TopicQuizQuestion> TopicQuizQuestions { get; private set; }
         public IRepository<TopicQuizQuestionChoice> TopicQuizQuestionChoices { get; private set; }
         public IEnrollmentRepository Enrollments { get; private set; }
+        public INotificationRepository Notifications { get; }
         public UnitOfWork(LetsLearnContext context, ILogger<QuestionRepository> questionLogger)
         {
             _context = context;
@@ -69,6 +70,7 @@ namespace LetsLearn.Infrastructure.UnitOfWork
             Enrollments = new EnrollmentRepository(_context);
             TopicQuizQuestions = new TopicQuizQuestionRepository(_context);
             TopicQuizQuestionChoices = new TopicQuizQuestionChoiceRepository(_context);
+            Notifications = new NotificationRepository(_context);
         }
 
         public async Task<int> CommitAsync() =>

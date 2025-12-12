@@ -1,27 +1,28 @@
+using LetsLearn.API.Middleware;
 using LetsLearn.Core.Interfaces;
 using LetsLearn.Infrastructure.Data;
 using LetsLearn.Infrastructure.Redis;
 using LetsLearn.Infrastructure.Repository;
 using LetsLearn.Infrastructure.UnitOfWork;
+using LetsLearn.UseCases.ServiceInterfaces;
+using LetsLearn.UseCases.Services;
+using LetsLearn.UseCases.Services.AssignmentResponseService;
 using LetsLearn.UseCases.Services.Auth;
-using LetsLearn.UseCases.Services.MessageService;
+using LetsLearn.UseCases.Services.CommentService;
 using LetsLearn.UseCases.Services.ConversationService;
 using LetsLearn.UseCases.Services.CourseSer;
+using LetsLearn.UseCases.Services.MessageService;
+using LetsLearn.UseCases.Services.Notifications;
 using LetsLearn.UseCases.Services.QuestionSer;
+using LetsLearn.UseCases.Services.QuizResponseService;
 using LetsLearn.UseCases.Services.SectionSer;
-using LetsLearn.UseCases.Services;
+using LetsLearn.UseCases.Services.UserSer;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using StackExchange.Redis;
 using System.Text;
-using LetsLearn.UseCases.ServiceInterfaces;
-using LetsLearn.UseCases.Services.CommentService;
-using LetsLearn.UseCases.Services.AssignmentResponseService;
-using LetsLearn.UseCases.Services.QuizResponseService;
-using LetsLearn.API.Middleware;
-using LetsLearn.UseCases.Services.UserSer;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -91,6 +92,7 @@ builder.Services.AddScoped<IAssignmentResponseRepository, AssignmentResponseRepo
 builder.Services.AddScoped<IQuizResponseRepository, QuizResponseRepository>();
 builder.Services.AddScoped<IQuizResponseAnswerRepository, QuizResponseAnswerRepository>();
 builder.Services.AddScoped<IEnrollmentRepository, EnrollmentRepository>();
+builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 
 //DI for custom services
 builder.Services.AddSingleton<ITokenService, TokenService>();
@@ -106,6 +108,8 @@ builder.Services.AddScoped<IAssignmentResponseService, AssignmentResponseService
 builder.Services.AddScoped<IQuizResponseService, QuizResponseService>();
 builder.Services.AddScoped<ISectionService, SectionService>();
 builder.Services.AddScoped<ITopicService, TopicService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+
 
 var jwtSettings = builder.Configuration.GetSection("Jwt");
 var key = Encoding.UTF8.GetBytes(jwtSettings["Secret"]);
