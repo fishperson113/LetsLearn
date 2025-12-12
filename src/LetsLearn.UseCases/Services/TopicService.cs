@@ -139,8 +139,28 @@ namespace LetsLearn.UseCases.Services
                                 Close = assignReq?.Close,
                                 MaximumFile = assignReq?.MaximumFile,
                                 MaximumFileSize = assignReq?.MaximumFileSize,
-                                RemindToGrade = assignReq?.RemindToGrade
+                                RemindToGrade = assignReq?.RemindToGrade,
+                                Files = new List<CloudinaryFile>()
                             };
+
+                            // Handle files if provided
+                            if (assignReq?.CloudinaryFiles != null && assignReq.CloudinaryFiles.Any())
+                            {
+                                foreach (var fileData in assignReq.CloudinaryFiles)
+                                {
+                                    var cloudinaryFile = new CloudinaryFile
+                                    {
+                                        Id = fileData.Id ?? Guid.NewGuid(),
+                                        Name = fileData.Name,
+                                        DisplayUrl = fileData.DisplayUrl,
+                                        DownloadUrl = fileData.DownloadUrl,
+                                        TopicAssignmentId = topic.Id
+                                    };
+
+                                    assignment.Files.Add(cloudinaryFile);
+                                    await _unitOfWork.CloudinaryFiles.AddAsync(cloudinaryFile);
+                                }
+                            }
 
                             await _unitOfWork.TopicAssignments.AddAsync(assignment);
                             topicData = assignment;
@@ -351,6 +371,34 @@ namespace LetsLearn.UseCases.Services
                         assignment.MaximumFile = assignmentReq.MaximumFile ?? assignment.MaximumFile;
                         assignment.MaximumFileSize = assignmentReq.MaximumFileSize ?? assignment.MaximumFileSize;
                         assignment.RemindToGrade = assignmentReq.RemindToGrade ?? assignment.RemindToGrade;
+
+                        // Update files
+                        if (assignmentReq.CloudinaryFiles != null)
+                        {
+                            // Remove existing files
+                            var existingFiles = await _unitOfWork.CloudinaryFiles.FindAsync(cf => cf.TopicAssignmentId == topic.Id, ct);
+                            if (existingFiles.Any())
+                            {
+                                assignment.Files.Clear();
+                                await _unitOfWork.CloudinaryFiles.DeleteRangeAsync(existingFiles);
+                            }
+
+                            // Add new files
+                            foreach (var fileData in assignmentReq.CloudinaryFiles)
+                            {
+                                var cloudinaryFile = new CloudinaryFile
+                                {
+                                    Id = fileData.Id ?? Guid.NewGuid(),
+                                    Name = fileData.Name,
+                                    DisplayUrl = fileData.DisplayUrl,
+                                    DownloadUrl = fileData.DownloadUrl,
+                                    TopicAssignmentId = topic.Id
+                                };
+
+                                assignment.Files.Add(cloudinaryFile);
+                                await _unitOfWork.CloudinaryFiles.AddAsync(cloudinaryFile);
+                            }
+                        }
 
                         await _unitOfWork.TopicAssignments.UpdateAsync(assignment);
                         topicData = assignment;
@@ -669,7 +717,12 @@ namespace LetsLearn.UseCases.Services
                     case "assignment":
                         var assignment = (await _unitOfWork.TopicAssignments.FindAsync(a => a.TopicId == topic.Id, ct)).FirstOrDefault();
                         if (assignment != null)
+                        {
+                            // Load associated files
+                            var files = await _unitOfWork.CloudinaryFiles.FindAsync(cf => cf.TopicAssignmentId == topic.Id, ct);
+                            assignment.Files = files.ToList();
                             topicData = assignment;
+                        }
                         break;
 
                     case "file":

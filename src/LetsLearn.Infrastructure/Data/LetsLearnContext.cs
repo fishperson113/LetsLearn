@@ -127,6 +127,12 @@ namespace LetsLearn.Infrastructure.Data
                 .HasForeignKey<TopicAssignment>(ta => ta.TopicId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            modelBuilder.Entity<TopicAssignment>()
+                .HasMany(ta => ta.Files)
+                .WithOne()
+                .HasForeignKey(cf => cf.TopicAssignmentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             modelBuilder.Entity<TopicQuiz>()
                 .HasKey(tq => tq.TopicId);
             modelBuilder.Entity<TopicQuiz>()

@@ -83,6 +83,8 @@ namespace LetsLearn.Core.Entities
         public int? MaximumFile { get; set; }
         public string? MaximumFileSize { get; set; }
         public DateTime? RemindToGrade { get; set; }
+        public ICollection<CloudinaryFile> Files { get; set; } = new List<CloudinaryFile>();
+
     }
 
     public class AssignmentResponse
@@ -107,6 +109,7 @@ namespace LetsLearn.Core.Entities
         public string? DownloadUrl { get; set; }
         public Guid? AssignmentResponseId { get; set; }
         public Guid? TopicFileId { get; set; }
+        public Guid? TopicAssignmentId { get; set; }
 
     }
 }

@@ -65,6 +65,9 @@ namespace LetsLearn.UseCases.DTOs
         public int? MaximumFile { get; set; }
         public string? MaximumFileSize { get; set; }
         public DateTime? RemindToGrade { get; set; }
+
+        // Add files collection to match frontend data
+        public List<TopicFileData> CloudinaryFiles { get; set; } = new List<TopicFileData>();
     }
 
     public class CreateTopicQuizRequest
@@ -180,6 +183,9 @@ namespace LetsLearn.UseCases.DTOs
         public int? MaximumFile { get; set; }
         public string? MaximumFileSize { get; set; }
         public DateTime? RemindToGrade { get; set; }
+
+        // Add files collection to match frontend data
+        public List<TopicFileData> CloudinaryFiles { get; set; } = new List<TopicFileData>();
     }
 
     // File - INHERITANCE PRESERVED, just added File property
