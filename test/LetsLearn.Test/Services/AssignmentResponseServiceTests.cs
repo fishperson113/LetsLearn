@@ -74,7 +74,10 @@ namespace LetsLearn.Test.Services
             uow.Setup(x => x.CloudinaryFiles).Returns(fileRepo.Object);
             uow.Setup(x => x.CommitAsync()).ReturnsAsync(1);
 
+            AssignmentResponse? savedEntity = null;
+
             repo.Setup(x => x.AddAsync(It.IsAny<AssignmentResponse>()))
+                .Callback<AssignmentResponse>(e => savedEntity = e)
                 .Returns(Task.CompletedTask);
 
             fileRepo.Setup(x => x.AddRangeAsync(It.IsAny<IEnumerable<CloudinaryFile>>()))
@@ -82,33 +85,50 @@ namespace LetsLearn.Test.Services
 
             var service = new AssignmentResponseService(uow.Object);
 
+            var topicId = Guid.NewGuid();
+            var studentId = Guid.NewGuid();
+            var submittedAt = DateTime.UtcNow;
+
             var request = new CreateAssignmentResponseRequest
             {
-                TopicId = Guid.NewGuid(),
-                Data = new AssignmentResponseData
+                TopicId = topicId,
+                SubmittedAt = submittedAt,
+                Note = "Test note",
+                Mark = 8,
+                CloudinaryFiles = new List<CreateCloudinaryFileRequest>
                 {
-                    SubmittedAt = DateTime.UtcNow,
-                    Note = "Test note",
-                    Mark = 8,
-                    Files = new List<CloudinaryFile>
-            {
-                new CloudinaryFile
-                {
-                    Name = "file1.png",
-                    DisplayUrl = "http://img.com/1",
-                    DownloadUrl = "http://dl.com/1"
-                }
-            }
+                    new CreateCloudinaryFileRequest
+                    {
+                        Name = "file1.png",
+                        DisplayUrl = "http://img.com/1",
+                        DownloadUrl = "http://dl.com/1"
+                    }
                 }
             };
 
             // Act
-            var result = await service.CreateAssigmentResponseAsync(request, Guid.NewGuid());
+            var result = await service.CreateAssigmentResponseAsync(request, studentId);
 
             // Assert
-            Assert.Equal(request.TopicId, result.TopicId);
+            Assert.Equal(topicId, result.TopicId);
+            Assert.Equal(studentId, result.StudentId);
+            Assert.Equal(submittedAt, result.Data.SubmittedAt);
+            Assert.Equal("Test note", result.Data.Note);
+            Assert.Equal(8, result.Data.Mark);
+
             Assert.Single(result.Data.Files);
             Assert.Equal("file1.png", result.Data.Files.First().Name);
+
+            repo.Verify(x => x.AddAsync(It.IsAny<AssignmentResponse>()), Times.Once);
+            fileRepo.Verify(x => x.AddRangeAsync(It.IsAny<IEnumerable<CloudinaryFile>>()), Times.Once);
+            uow.Verify(x => x.CommitAsync(), Times.Once);
+
+            Assert.NotNull(savedEntity);
+            Assert.Equal(topicId, savedEntity!.TopicId);
+            Assert.Equal(studentId, savedEntity.StudentId);
+            Assert.Single(savedEntity.Files);
+            Assert.Equal("file1.png", savedEntity.Files.First().Name);
+            Assert.NotEqual(Guid.Empty, savedEntity.Files.First().Id);
         }
 
 
