@@ -52,6 +52,5 @@ namespace LetsLearn.UseCases.DTOs
         public string? DisplayUrl { get; set; }
         public string? DownloadUrl { get; set; }
     }
-
 }
 
