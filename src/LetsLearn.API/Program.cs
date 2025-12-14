@@ -4,6 +4,7 @@ using LetsLearn.Infrastructure.Data;
 using LetsLearn.Infrastructure.Redis;
 using LetsLearn.Infrastructure.Repository;
 using LetsLearn.Infrastructure.UnitOfWork;
+using LetsLearn.UseCases.DTOs;
 using LetsLearn.UseCases.ServiceInterfaces;
 using LetsLearn.UseCases.Services;
 using LetsLearn.UseCases.Services.AssignmentResponseService;
@@ -143,11 +144,43 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 //Only uncomment this if you want to auto apply migrations in dev environment
-using (var scope = app.Services.CreateScope())
+await using (var scope = app.Services.CreateAsyncScope())
 {
     var services = scope.ServiceProvider;
     var dbContext = services.GetRequiredService<LetsLearnContext>();
     dbContext.Database.EnsureCreated();
+
+    // Seed admin user
+    var authService = services.GetRequiredService<IAuthService>();
+    var userRepo = services.GetRequiredService<IUserRepository>();
+    
+    var adminEmail = "admin@letslearn.com";
+    var existingAdmin = await userRepo.GetByEmailAsync(adminEmail);
+    
+    if (existingAdmin == null)
+    {
+        var adminRequest = new SignUpRequest
+        {
+            Email = adminEmail,
+            Password = "admin",
+            Username = "admin",
+            Role = LetsLearn.Core.Shared.AppRoles.Admin
+        };
+        
+        try
+        {
+            // Create a minimal HttpContext for the registration
+            var httpContext = new DefaultHttpContext();
+            await authService.RegisterAsync(adminRequest, httpContext);
+            Console.WriteLine("Admin user created successfully!");
+            Console.WriteLine($"Email: {adminEmail}");
+            Console.WriteLine("Password: admin");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to create admin user: {ex.Message}");
+        }
+    }
 }
 
 app.UseCors("AllowFrontend");
