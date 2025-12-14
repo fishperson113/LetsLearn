@@ -158,6 +158,148 @@ app.UseJwtAuth();
 
 app.UseAuthorization();
 
+// ========== DEBUG ENDPOINTS FOR K6 TESTING (NO AUTH) ==========
+if (app.Environment.IsDevelopment())
+{
+    // Student workflow endpoints
+    app.MapGet("/debug/courses", () => Results.Ok(new[]
+    {
+        new { id = "CS101", title = "Introduction to Programming", instructor = "John Doe" },
+        new { id = "CS102", title = "Data Structures", instructor = "Jane Smith" }
+    }));
+
+    app.MapGet("/debug/course/{courseId}", (string courseId) => Results.Ok(new
+    {
+        id = courseId,
+        title = "Sample Course",
+        description = "Course description",
+        instructor = "Test Teacher",
+        sections = new[] { new { id = Guid.NewGuid(), title = "Section 1" } }
+    }));
+
+    app.MapGet("/debug/course/{courseId}/work", (string courseId, string? type) => Results.Ok(new[]
+    {
+        new { id = Guid.NewGuid(), title = "Assignment 1", type = "assignment", dueDate = DateTime.UtcNow.AddDays(7) },
+        new { id = Guid.NewGuid(), title = "Quiz 1", type = "quiz", dueDate = DateTime.UtcNow.AddDays(3) }
+    }));
+
+    app.MapGet("/debug/topic/{topicId}", (Guid topicId) => Results.Ok(new
+    {
+        id = topicId,
+        title = "Sample Topic",
+        type = "quiz",
+        content = "Topic content here",
+        questions = new[] { new { id = Guid.NewGuid(), text = "Sample question?" } }
+    }));
+
+    app.MapPost("/debug/topic/{topicId}/quiz-response", (Guid topicId) => Results.Ok(new
+    {
+        id = Guid.NewGuid(),
+        topicId = topicId,
+        score = 85.5,
+        submittedAt = DateTime.UtcNow
+    }));
+
+    app.MapGet("/debug/topic/{topicId}/quiz-response", (Guid topicId) => Results.Ok(new[]
+    {
+        new { id = Guid.NewGuid(), topicId = topicId, score = 85.5, submittedAt = DateTime.UtcNow }
+    }));
+
+    app.MapPost("/debug/topic/{topicId}/assignment-response", (Guid topicId) => Results.Ok(new
+    {
+        id = Guid.NewGuid(),
+        topicId = topicId,
+        status = "submitted",
+        submittedAt = DateTime.UtcNow
+    }));
+
+    app.MapGet("/debug/notifications", () => Results.Ok(new[]
+    {
+        new { id = Guid.NewGuid(), title = "New Assignment", message = "Assignment posted", isRead = false },
+        new { id = Guid.NewGuid(), title = "Quiz Graded", message = "Your quiz has been graded", isRead = true }
+    }));
+
+    app.MapGet("/debug/user/me/report", (string courseId) => Results.Ok(new
+    {
+        courseId = courseId,
+        quizzesTaken = 5,
+        averageQuizScore = 87.5,
+        assignmentsSubmitted = 3,
+        averageAssignmentScore = 92.0
+    }));
+
+    app.MapPost("/debug/course/{courseId}/topic/{topicId}/comments", (string courseId, Guid topicId) => Results.Ok(new
+    {
+        id = Guid.NewGuid(),
+        topicId = topicId,
+        text = "Sample comment",
+        createdAt = DateTime.UtcNow
+    }));
+
+    // Teacher workflow endpoints
+    app.MapGet("/debug/users", () => Results.Ok(new[]
+    {
+        new { id = Guid.NewGuid(), name = "Student One", email = "student1@test.com", role = "Student" },
+        new { id = Guid.NewGuid(), name = "Student Two", email = "student2@test.com", role = "Student" }
+    }));
+
+    app.MapGet("/debug/topic/{topicId}/quiz-report", (Guid topicId) => Results.Ok(new
+    {
+        topicId = topicId,
+        totalResponses = 25,
+        averageScore = 82.5,
+        highestScore = 100,
+        lowestScore = 45
+    }));
+
+    app.MapGet("/debug/topic/{topicId}/assignment-report", (Guid topicId) => Results.Ok(new
+    {
+        topicId = topicId,
+        totalSubmissions = 20,
+        graded = 15,
+        pending = 5,
+        averageScore = 88.0
+    }));
+
+    app.MapGet("/debug/topic/{topicId}/quiz-response/getAll", (Guid topicId) => Results.Ok(new[]
+    {
+        new { id = Guid.NewGuid(), studentId = Guid.NewGuid(), score = 90, submittedAt = DateTime.UtcNow },
+        new { id = Guid.NewGuid(), studentId = Guid.NewGuid(), score = 75, submittedAt = DateTime.UtcNow }
+    }));
+
+    app.MapPut("/debug/topic/{topicId}/assignment-response/{id}", (Guid topicId, Guid id) => Results.Ok(new
+    {
+        id = id,
+        topicId = topicId,
+        grade = 95,
+        feedback = "Excellent work!",
+        gradedAt = DateTime.UtcNow
+    }));
+
+    app.MapGet("/debug/course/{courseId}/quiz-report", (string courseId) => Results.Ok(new
+    {
+        courseId = courseId,
+        totalQuizzes = 10,
+        totalResponses = 150,
+        averageScore = 83.2
+    }));
+
+    app.MapGet("/debug/course/{courseId}/assignment-report", (string courseId) => Results.Ok(new
+    {
+        courseId = courseId,
+        totalAssignments = 8,
+        totalSubmissions = 120,
+        averageScore = 86.5
+    }));
+
+    app.MapGet("/debug/questions", (string courseId) => Results.Ok(new[]
+    {
+        new { id = Guid.NewGuid(), courseId = courseId, text = "What is polymorphism?", type = "multiple_choice" },
+        new { id = Guid.NewGuid(), courseId = courseId, text = "Explain inheritance", type = "essay" }
+    }));
+}
+// ========== END DEBUG ENDPOINTS ==========
+
 app.MapControllers();
 
 app.Run();

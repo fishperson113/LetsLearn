@@ -25,7 +25,8 @@ namespace LetsLearn.API.Middleware
             "/swagger",
             "/swagger-ui",
             "/v3/api-docs",
-            "/ws"
+            "/ws",
+            "/debug"
         };
 
         public JwtAuthMiddleware(RequestDelegate next, ILogger<JwtAuthMiddleware> logger, IConfiguration config)
