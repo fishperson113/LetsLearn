@@ -370,31 +370,80 @@ namespace LetsLearn.Test.Services
         {
             var topicId = Guid.NewGuid();
 
-            _uow.Setup(x => x.Topics.GetByIdAsync(
-                    topicId,
-                    It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new Topic { Id = topicId, Type = "assignment" });
-            _uow.Setup(x => x.TopicAssignments.FindAsync(
-                    It.IsAny<Expression<Func<TopicAssignment, bool>>>(),
-                    It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new List<TopicAssignment> { new TopicAssignment { TopicId = topicId } });
+            var topic = new Topic
+            {
+                Id = topicId,
+                Type = "assignment"
+            };
+
+            var assignment = new TopicAssignment
+            {
+                TopicId = topicId,
+                Files = new List<CloudinaryFile>()
+            };
+
+            var topicAssignmentRepo = new Mock<ITopicAssignmentRepository>();
+            var cloudinaryRepo = new Mock<IRepository<CloudinaryFile>>();
+
+            _uow.Setup(x => x.Topics.GetByIdAsync(topicId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(topic);
+
+            _uow.Setup(x => x.Topics.UpdateAsync(It.IsAny<Topic>()))
+                .Returns(Task.CompletedTask);
+
+            _uow.Setup(x => x.TopicAssignments)
+                .Returns(topicAssignmentRepo.Object);
+
+            topicAssignmentRepo.Setup(x =>
+                    x.FindAsync(It.IsAny<Expression<Func<TopicAssignment, bool>>>(),
+                                It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<TopicAssignment> { assignment });
+
+            topicAssignmentRepo.Setup(x => x.UpdateAsync(It.IsAny<TopicAssignment>()))
+                .Returns(Task.CompletedTask);
+
+            _uow.Setup(x => x.CloudinaryFiles)
+                .Returns(cloudinaryRepo.Object);
+
+            cloudinaryRepo.Setup(x =>
+                    x.FindAsync(It.IsAny<Expression<Func<CloudinaryFile, bool>>>(),
+                                It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<CloudinaryFile>());
+
+            cloudinaryRepo.Setup(x => x.AddAsync(It.IsAny<CloudinaryFile>()))
+                .Returns(Task.CompletedTask);
 
             SetupCommit();
+
+            var assignmentData = new
+            {
+                Description = "new",
+                MaximumFile = 5,
+                CloudinaryFiles = new[]
+                {
+                    new
+                    {
+                        Name = "file1.png",
+                        DisplayUrl = "url",
+                        DownloadUrl = "dl"
+                    }
+                }
+            };
 
             var req = new UpdateTopicRequest
             {
                 Id = topicId,
                 Type = "assignment",
-                Data = JsonSerializer.Serialize(new UpdateTopicAssignmentRequest
-                {
-                    Description = "new",
-                    MaximumFile = 5
-                })
+                Data = JsonSerializer.Serialize(assignmentData)
             };
 
             var res = await _svc.UpdateTopicAsync(req);
 
             Assert.Equal("assignment", res.Type);
+
+            var updated = Assert.IsType<TopicAssignment>(res.Data);
+            Assert.Equal("new", updated.Description);
+            Assert.Single(updated.Files);
         }
 
         [Fact]
