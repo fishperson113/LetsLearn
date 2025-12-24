@@ -1,6 +1,7 @@
 ﻿using LetsLearn.Core.Entities;
 using LetsLearn.UseCases.DTOs;
 using LetsLearn.UseCases.ServiceInterfaces;
+using LetsLearn.UseCases.Services.CourseClone;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -11,9 +12,9 @@ using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Text.Json;
 
 namespace LetsLearn.API.Controllers
 {
@@ -25,13 +26,16 @@ namespace LetsLearn.API.Controllers
         private readonly ICourseService _courseService;
         private readonly ILogger<CourseController> _logger;
         private readonly IConfiguration _configuration;
+        private readonly ICourseCloneService _courseCloneService;
 
-        public CourseController(ICourseService courseService, ILogger<CourseController> logger, IConfiguration configuration)
+        public CourseController(ICourseService courseService, ILogger<CourseController> logger, IConfiguration configuration, ICourseCloneService courseCloneService)
         {
             _courseService = courseService;
             _logger = logger;
             _configuration = configuration;
+            _courseCloneService = courseCloneService;
         }
+
         [HttpGet("{courseId}/meeting/{topicId}/token")]
         public async Task<ActionResult> GetMeetingToken(string courseId, string topicId, CancellationToken ct)
         {
@@ -309,5 +313,42 @@ namespace LetsLearn.API.Controllers
             return Ok(report);
         }
 
+        [HttpPost("{sourceCourseId}/clone")]
+        public async Task<ActionResult<CloneCourseResponse>> CloneCourse(
+            [FromRoute] string sourceCourseId,
+            [FromBody] CloneCourseRequest request,
+            CancellationToken ct)
+        {
+            if (!ModelState.IsValid)
+                return ValidationProblem(ModelState);
+
+            var userId = Guid.Parse(User.Claims.First(c => c.Type == "userID").Value);
+            if (userId == Guid.Empty)
+                return Unauthorized(new { message = "Invalid or missing user identity." });
+
+            try
+            {
+                var result = await _courseCloneService.CloneAsync(sourceCourseId, request, userId, ct);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new { message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Clone course failed. sourceCourseId={SourceCourseId}, newCourseId={NewCourseId}",
+                    sourceCourseId, request.NewCourseId);
+                return BadRequest(new { message = "Failed to clone course" });
+            }
+        }
     }
 }

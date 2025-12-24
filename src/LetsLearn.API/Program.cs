@@ -11,6 +11,7 @@ using LetsLearn.UseCases.Services.AssignmentResponseService;
 using LetsLearn.UseCases.Services.Auth;
 using LetsLearn.UseCases.Services.CommentService;
 using LetsLearn.UseCases.Services.ConversationService;
+using LetsLearn.UseCases.Services.CourseClone;
 using LetsLearn.UseCases.Services.CourseSer;
 using LetsLearn.UseCases.Services.MessageService;
 using LetsLearn.UseCases.Services.QuestionSer;
@@ -109,7 +110,9 @@ builder.Services.AddScoped<IQuizResponseService, QuizResponseService>();
 builder.Services.AddScoped<ISectionService, SectionService>();
 builder.Services.AddScoped<ITopicService, TopicService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<ICourseCloneService, CourseCloneService>();
 
+builder.Services.AddSingleton<CourseFactory>();
 
 var jwtSettings = builder.Configuration.GetSection("Jwt");
 var key = Encoding.UTF8.GetBytes(jwtSettings["Secret"]);

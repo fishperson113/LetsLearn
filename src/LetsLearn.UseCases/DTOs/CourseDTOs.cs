@@ -1,4 +1,5 @@
-﻿using System;
+﻿using LetsLearn.Core.Entities;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -135,5 +136,34 @@ namespace LetsLearn.UseCases.DTOs
         public int TrueFalseQuestionCount { get; set; }
         public int MultipleChoiceQuestionCount { get; set; }
         public int ShortAnswerQuestionCount { get; set; }
+    }
+
+    public class CloneCourseRequest
+    {
+        public required string NewCourseId { get; set; }
+        public string? Title { get; set; }
+        public string? Description { get; set; }
+        public string? ImageUrl { get; set; }
+        public string? Category { get; set; }
+        public string? Level { get; set; }
+        public decimal? Price { get; set; }
+        public bool? IsPublished { get; set; }
+    }
+
+    public class CloneCourseResponse
+    {
+        public string Id { get; set; }
+        public string SourceCourseId { get; set; }
+        public int SectionCount { get; set; }
+        public int TopicCount { get; set; }
+    }
+
+    public class CourseCloneResult
+    {
+        public Course Course { get; set; }
+        public Dictionary<Guid, Guid> SectionIdMap { get; set; } = new();
+        public Dictionary<Guid, Guid> TopicIdMap { get; set; } = new();
+        public int SectionCount { get; set; }
+        public int TopicCount { get; set; }
     }
 }
