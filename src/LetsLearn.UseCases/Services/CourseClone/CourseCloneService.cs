@@ -55,10 +55,13 @@ namespace LetsLearn.UseCases.Services.CourseClone
             // 5) Persist skeleton
             await _uow.Course.AddAsync(clone.Course);
 
-            // 6) Clone topic data snapshot (quiz/assignment/page/link/file)
+            // 6) Auto enroll creator as student
+            await AddCreatorEnrollmentAsync(clone.Course.Id, userId, ct);
+
+            // 7) Clone topic data snapshot (quiz/assignment/page/link/file)
             await CloneTopicDataAsync(source, clone.TopicIdMap, ct);
 
-            // 7) Commit
+            // 8) Commit
             try
             {
                 await _uow.CommitAsync();
@@ -75,6 +78,26 @@ namespace LetsLearn.UseCases.Services.CourseClone
                 SectionCount = clone.SectionCount,
                 TopicCount = clone.TopicCount
             };
+        }
+
+        private async Task AddCreatorEnrollmentAsync(
+            string courseId,
+            Guid userId,
+            CancellationToken ct)
+        {
+            // GMT+7 giống CreateCourseAsync
+            var utcNow = DateTime.UtcNow;
+            var gmtPlus7 = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+            var joinDate = TimeZoneInfo.ConvertTimeFromUtc(utcNow, gmtPlus7);
+
+            var enrollment = new Enrollment
+            {
+                StudentId = userId,
+                CourseId = courseId,
+                JoinDate = DateTime.SpecifyKind(joinDate, DateTimeKind.Utc)
+            };
+
+            await _uow.Enrollments.AddAsync(enrollment);
         }
 
         private async Task EnsureCanCloneAsync(Course source, Guid userId, CancellationToken ct)
