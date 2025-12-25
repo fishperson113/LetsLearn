@@ -27,13 +27,15 @@ namespace LetsLearn.API.Controllers
         private readonly ILogger<CourseController> _logger;
         private readonly IConfiguration _configuration;
         private readonly ICourseCloneService _courseCloneService;
+        private readonly IUserService _userService;
 
-        public CourseController(ICourseService courseService, ILogger<CourseController> logger, IConfiguration configuration, ICourseCloneService courseCloneService)
+        public CourseController(ICourseService courseService, ILogger<CourseController> logger, IConfiguration configuration, ICourseCloneService courseCloneService, IUserService userService)
         {
             _courseService = courseService;
             _logger = logger;
             _configuration = configuration;
             _courseCloneService = courseCloneService;
+            _userService = userService;
         }
 
         [HttpGet("{courseId}/meeting/{topicId}/token")]
@@ -43,26 +45,61 @@ namespace LetsLearn.API.Controllers
             {
                 var userId = Guid.Parse(User.Claims.First(c => c.Type == "userID").Value);
 
-                // Verify user has access to this course by checking if they have any work in it
-                // This uses existing service method as a simple access check
-                var userWorks = await _courseService.GetAllWorksOfCourseAndUserAsync(courseId, userId, null, null, null, ct);
-                if (userWorks == null)
+                // 1. Fetch Course to determine Role
+                // We use GetCourseByIdAsync to get creator info
+                var course = await _courseService.GetCourseByIdAsync(courseId, ct);
+                
+                // Verify access (re-using existing logic or refining it)
+                // If user is creator -> Teacher. If user is in students -> Student.
+                // The previous check strictly used GetAllWorksOfCourseAndUser which acted as a gate. 
+                // We should keep the gate or ensure GetCourseById + filtering provides security.
+                // However, GetCourseById returns the course detail. 
+                // Detailed access check:
+                bool isTeacher = course.Creator != null && course.Creator.Id == userId;
+                bool isStudent = course.Students != null && course.Students.Any(s => s.Id == userId);
+
+                if (!isTeacher && !isStudent)
                 {
-                    return Forbid("Access denied to course");
+                     // Fallback check using work items if they are not explicitly in lists (edge case?)
+                     // Or just return Forbid if strictly not in lists.
+                     // Original code used GetAllWorksOfCourseAndUserAsync as access check.
+                     var userWorks = await _courseService.GetAllWorksOfCourseAndUserAsync(courseId, userId, null, null, null, ct);
+                     if (userWorks == null) return Forbid("Access denied to course");
+                     // If they have work, assume student if not teacher??
+                     isStudent = true; 
                 }
+
+                string role = isTeacher ? "teacher" : "student";
+
+                // 2. Fetch User to get Avatar
+                var user = await _userService.GetByIdAsync(userId, ct);
+                string avatarUrl = user.Avatar ?? "";
 
                 // Generate LiveKit JWT token
                 var liveKitApiKey = _configuration["LiveKit:ApiKey"] ?? "devkey";
                 var liveKitApiSecret = _configuration["LiveKit:ApiSecret"] ?? "thisisaverylongsecretstring1234567890";
                 var liveKitWsUrl = _configuration["LiveKit:WsUrl"] ?? "ws://45.128.222.24:7880";
 
-                var token = CreateLiveKitToken(userId.ToString(), User.Identity?.Name ?? $"User-{userId}", topicId, liveKitApiKey, liveKitApiSecret);
+                // 3. Create Metadata
+                var metadata = new Dictionary<string, string>
+                {
+                    { "userId", userId.ToString() },
+                    { "role", role },
+                    { "courseId", courseId },
+                    { "topicId", topicId },
+                    { "avatarUrl", avatarUrl }
+                };
+                string metadataJson = JsonSerializer.Serialize(metadata);
+
+                var token = CreateLiveKitToken(userId.ToString(), User.Identity?.Name ?? user.Username, topicId, liveKitApiKey, liveKitApiSecret, metadataJson);
 
                 return Ok(new
                 {
                     token = token,
                     roomName = topicId,
-                    wsUrl = liveKitWsUrl
+                    wsUrl = liveKitWsUrl,
+                    role = role,
+                    avatarUrl = avatarUrl
                 });
             }
             catch (KeyNotFoundException ex)
@@ -76,7 +113,7 @@ namespace LetsLearn.API.Controllers
             }
         }
 
-        private string CreateLiveKitToken(string userId, string userName, string roomName, string apiKey, string apiSecret)
+        private string CreateLiveKitToken(string userId, string userName, string roomName, string apiKey, string apiSecret, string metadataJson)
         {
             var now = DateTimeOffset.UtcNow;
             var nbf = now; // Not before - token is valid immediately
@@ -103,7 +140,8 @@ namespace LetsLearn.API.Controllers
                 new Claim(JwtRegisteredClaimNames.Nbf, nbf.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64),
                 new Claim(JwtRegisteredClaimNames.Exp, exp.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64),
                 new Claim("name", userName),
-                new Claim("video", videoJson, JsonClaimValueTypes.Json)
+                new Claim("video", videoJson, JsonClaimValueTypes.Json),
+                new Claim("metadata", metadataJson)
             };
 
             var key = Encoding.UTF8.GetBytes(apiSecret);
