@@ -99,7 +99,8 @@ namespace LetsLearn.API.Controllers
                     roomName = topicId,
                     wsUrl = liveKitWsUrl,
                     role = role,
-                    avatarUrl = avatarUrl
+                    avatarUrl = avatarUrl,
+                    name = User.Identity?.Name ?? user.Username
                 });
             }
             catch (KeyNotFoundException ex)
