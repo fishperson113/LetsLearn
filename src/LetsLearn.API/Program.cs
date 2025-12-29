@@ -333,6 +333,27 @@ if (app.Environment.IsDevelopment())
         new { id = Guid.NewGuid(), courseId = courseId, text = "What is polymorphism?", type = "multiple_choice" },
         new { id = Guid.NewGuid(), courseId = courseId, text = "Explain inheritance", type = "essay" }
     }));
+
+    app.MapPost("/debug/question/bulk-import", async (
+        IFormFile file,
+        string courseId,
+        IQuestionService _service,
+        CancellationToken ct) =>
+    {
+        if (file == null || file.Length == 0) return Results.BadRequest("File empty.");
+
+        var adminId = Guid.Parse("3fa85f64-5717-4562-b3fc-2c963f66afa6");
+
+        try
+        {
+            var resultCount = await _service.ImportBulkQuestionsAsync(file, courseId, adminId, ct);
+            return Results.Ok(new { message = $"[DEBUG] Import {resultCount} questions successfully!" });
+        }
+        catch (Exception ex)
+        {
+            return Results.BadRequest(new { message = ex.Message });
+        }
+    }).DisableAntiforgery();
 }
 // ========== END DEBUG ENDPOINTS ==========
 
