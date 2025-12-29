@@ -211,5 +211,35 @@ namespace LetsLearn.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, "Failed to fetch assignment report");
             }
         }
+
+        // POST /course/{courseId}/topic/{id}/meeting-history
+        [HttpPost("{id:guid}/meeting-history")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> SaveMeetingHistory(
+            [FromRoute] string courseId,
+            [FromRoute] Guid id,
+            [FromBody] SaveMeetingHistoryRequest request,
+            CancellationToken ct)
+        {
+            try
+            {
+                _logger.LogInformation("Saving meeting history for topic {TopicId} in course {CourseId}", id, courseId);
+
+                var result = await _topicService.SaveMeetingHistoryAsync(id, request, ct);
+                if (!result)
+                {
+                    _logger.LogWarning("Topic meeting {TopicId} not found", id);
+                    return NotFound();
+                }
+
+                return Ok(new { message = "History saved successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error saving meeting history for topic {TopicId}", id);
+                return StatusCode(StatusCodes.Status500InternalServerError, "Failed to save meeting history");
+            }
+        }
     }
 }

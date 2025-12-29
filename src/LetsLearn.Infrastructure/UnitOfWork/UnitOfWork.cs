@@ -39,6 +39,7 @@ namespace LetsLearn.Infrastructure.UnitOfWork
         public ITopicQuizRepository TopicQuizzes { get; private set; }
         public ITopicAssignmentRepository TopicAssignments { get; private set; }
         public ITopicMeetingRepository TopicMeetings { get; private set; }
+        public IRepository<TopicMeetingHistory> TopicMeetingHistories { get; private set; }
         public IRepository<TopicQuizQuestion> TopicQuizQuestions { get; private set; }
         public IRepository<TopicQuizQuestionChoice> TopicQuizQuestionChoices { get; private set; }
         public IEnrollmentRepository Enrollments { get; private set; }
@@ -61,6 +62,7 @@ namespace LetsLearn.Infrastructure.UnitOfWork
             TopicQuizzes = new TopicQuizRepository(_context);
             TopicAssignments = new TopicAssignmentRepository(_context);
             TopicMeetings = new TopicMeetingRepository(_context);
+            TopicMeetingHistories = new GenericRepository<TopicMeetingHistory>(_context);
             Questions = new QuestionRepository(_context, questionLogger);
             QuestionChoices = new QuestionChoiceRepository(_context);
             Comments = new CommentRepository(context);

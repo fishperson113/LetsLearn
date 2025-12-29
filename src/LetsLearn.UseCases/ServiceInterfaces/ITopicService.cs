@@ -15,6 +15,7 @@ namespace LetsLearn.UseCases.ServiceInterfaces
         Task<TopicResponse> GetTopicByIdAsync(Guid id, CancellationToken ct = default);
         Task<SingleQuizReportDTO> GetSingleQuizReportAsync(String courseId, Guid topicId, CancellationToken ct = default);
         Task<SingleAssignmentReportDTO> GetSingleAssignmentReportAsync(String courseId, Guid topicId, CancellationToken ct = default);
+        Task<bool> SaveMeetingHistoryAsync(Guid topicId, SaveMeetingHistoryRequest request, CancellationToken ct = default);
 
     }
 }

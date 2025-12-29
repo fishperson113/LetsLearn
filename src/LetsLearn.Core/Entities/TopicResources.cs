@@ -33,6 +33,17 @@ namespace LetsLearn.Core.Entities
         public string? Description { get; set; }
         public DateTime? Open { get; set; }
         public DateTime? Close { get; set; }
+        public ICollection<TopicMeetingHistory> Histories { get; set; } = new List<TopicMeetingHistory>();
+    }
+
+    public class TopicMeetingHistory
+    {
+        public Guid Id { get; set; }
+        public Guid TopicMeetingId { get; set; }
+        public DateTime StartTime { get; set; }
+        public DateTime? EndTime { get; set; }
+        public int AttendeeCount { get; set; }
+        public string? AttendanceCsvUrl { get; set; }
     }
 
     public class TopicQuiz

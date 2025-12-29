@@ -29,6 +29,7 @@ namespace LetsLearn.Core.Interfaces
         ITopicQuizRepository TopicQuizzes { get; }
         ITopicAssignmentRepository TopicAssignments { get; }
         ITopicMeetingRepository TopicMeetings { get; }
+        IRepository<TopicMeetingHistory> TopicMeetingHistories { get; }
         IRepository<TopicQuizQuestion> TopicQuizQuestions { get; }
         IRepository<TopicQuizQuestionChoice> TopicQuizQuestionChoices { get; }
         IEnrollmentRepository Enrollments { get; }

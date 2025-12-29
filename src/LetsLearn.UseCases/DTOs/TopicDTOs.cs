@@ -217,6 +217,14 @@ namespace LetsLearn.UseCases.DTOs
         public DateTime? Close { get; set; }
     }
 
+    public class SaveMeetingHistoryRequest
+    {
+        public DateTime StartTime { get; set; }
+        public DateTime? EndTime { get; set; }
+        public int AttendeeCount { get; set; }
+        public string? AttendanceCsvUrl { get; set; }
+    }
+
     // New helper class for file data structure
     public class TopicFileData
     {

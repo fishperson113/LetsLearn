@@ -24,6 +24,7 @@ namespace LetsLearn.Infrastructure.Data
         public DbSet<TopicFile> TopicFiles { get; set; }
         public DbSet<TopicLink> TopicLinks { get; set; }
         public DbSet<TopicMeeting> TopicMeetings { get; set; }
+        public DbSet<TopicMeetingHistory> TopicMeetingHistories { get; set; }
         public DbSet<TopicQuiz> TopicQuizzes { get; set; }
         public DbSet<TopicQuizQuestion> TopicQuizQuestions { get; set; }
         public DbSet<TopicQuizQuestionChoice> TopicQuizQuestionChoices { get; set; }
@@ -117,6 +118,15 @@ namespace LetsLearn.Infrastructure.Data
                 .HasOne<Topic>().WithOne()
                 .HasForeignKey<TopicMeeting>(tm => tm.TopicId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<TopicMeeting>()
+                .HasMany(tm => tm.Histories)
+                .WithOne()
+                .HasForeignKey(h => h.TopicMeetingId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<TopicMeetingHistory>()
+                .HasKey(h => h.Id);
 
             modelBuilder.Entity<TopicAssignment>()
                 .HasKey(ta => ta.TopicId);

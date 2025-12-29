@@ -680,6 +680,40 @@ namespace LetsLearn.UseCases.Services
             return true;
         }
 
+        public async Task<bool> SaveMeetingHistoryAsync(Guid topicId, SaveMeetingHistoryRequest request, CancellationToken ct = default)
+        {
+            try 
+            {
+                var meeting = await _unitOfWork.TopicMeetings.FindAsync(m => m.TopicId == topicId, ct);
+                if (!meeting.Any())
+                {
+                    _logger.LogWarning("Topic meeting not found for topic {TopicId}", topicId);
+                    return false;
+                }
+
+                var history = new TopicMeetingHistory
+                {
+                    Id = Guid.NewGuid(),
+                    TopicMeetingId = topicId,
+                    StartTime = request.StartTime,
+                    EndTime = request.EndTime,
+                    AttendeeCount = request.AttendeeCount,
+                    AttendanceCsvUrl = request.AttendanceCsvUrl
+                };
+
+                await _unitOfWork.TopicMeetingHistories.AddAsync(history);
+                await _unitOfWork.CommitAsync();
+                
+                _logger.LogInformation("Saved meeting history for topic {TopicId}", topicId);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error saving meeting history for topic {TopicId}", topicId);
+                throw;
+            }
+        }
+
         // Test Case Estimation:
         // Decision points (D):
         // - if topic == null: +1
@@ -754,7 +788,12 @@ namespace LetsLearn.UseCases.Services
                     case "meeting":
                         var meeting = (await _unitOfWork.TopicMeetings.FindAsync(p => p.TopicId == topic.Id, ct)).FirstOrDefault();
                         if (meeting != null)
+                        {
+                            // Load history
+                            var histories = await _unitOfWork.TopicMeetingHistories.FindAsync(h => h.TopicMeetingId == topic.Id, ct);
+                            meeting.Histories = histories.OrderByDescending(h => h.StartTime).ToList();
                             topicData = meeting;
+                        }
                         break;
 
                     default:
