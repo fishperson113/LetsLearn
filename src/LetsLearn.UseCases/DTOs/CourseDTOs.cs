@@ -163,7 +163,9 @@ namespace LetsLearn.UseCases.DTOs
         public Course Course { get; set; }
         public Dictionary<Guid, Guid> SectionIdMap { get; set; } = new();
         public Dictionary<Guid, Guid> TopicIdMap { get; set; } = new();
+        public Dictionary<Guid, Guid> QuestionIdMap { get; set; } = new();
         public int SectionCount { get; set; }
         public int TopicCount { get; set; }
+        public int QuestionCount { get; set; }
     }
 }
