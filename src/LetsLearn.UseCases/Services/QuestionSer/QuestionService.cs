@@ -284,34 +284,66 @@ namespace LetsLearn.UseCases.Services.QuestionSer
         {
             var questionsToAdd = new List<Question>();
 
-            foreach (var req in requests)
+            // Group by CourseId to fetch existing questions efficiently
+            var requestsByCourse = requests.GroupBy(r => r.CourseId ?? string.Empty);
+
+            foreach (var group in requestsByCourse)
             {
-                var questionId = Guid.NewGuid();
-                var question = new Question
+                var courseId = group.Key;
+                
+                // Get existing questions to check for duplicates
+                // Using a HashSet for faster lookup of QuestionText
+                var existingQuestions = await _uow.Questions.GetAllByCourseIdAsync(courseId, ct);
+                var existingTexts = existingQuestions
+                    .Select(q => q.QuestionText?.Trim().ToLower() ?? string.Empty)
+                    .ToHashSet();
+
+                foreach (var req in group)
                 {
-                    Id = questionId,
-                    QuestionName = req.QuestionName,
-                    QuestionText = req.QuestionText,
-                    Type = req.Type,
-                    CourseId = req.CourseId ?? string.Empty,
-                    CreatedById = userId,
-                    CreatedAt = DateTime.UtcNow,
-                    Status = "active",
-                    Choices = req.Choices?.Select(c => new QuestionChoice
+                    // Skip if duplicate found (case-insensitive check)
+                    var reqTextNormalized = req.QuestionText?.Trim().ToLower() ?? string.Empty;
+                    if (string.IsNullOrEmpty(reqTextNormalized) || existingTexts.Contains(reqTextNormalized))
                     {
-                        Id = Guid.NewGuid(),
-                        QuestionId = questionId, 
-                        Text = c.Text,
-                        GradePercent = c.GradePercent,
-                        Feedback = c.Feedback
-                    }).ToList() ?? new List<QuestionChoice>()
-                };
-                questionsToAdd.Add(question);
+                        continue;
+                    }
+
+                    var questionId = Guid.NewGuid();
+                    var question = new Question
+                    {
+                        Id = questionId,
+                        QuestionName = req.QuestionName,
+                        QuestionText = req.QuestionText,
+                        Type = req.Type,
+                        CourseId = req.CourseId ?? string.Empty,
+                        CreatedById = userId,
+                        CreatedAt = DateTime.UtcNow,
+                        Status = "active",
+                        Multiple = req.Type == "choice" ? true : req.Multiple,
+                        DefaultMark = (req.DefaultMark == null || req.DefaultMark == 0) ? 1 : (decimal)req.DefaultMark,
+                        Choices = req.Choices?.Select(c => new QuestionChoice
+                        {
+                            Id = Guid.NewGuid(),
+                            QuestionId = questionId, 
+                            Text = c.Text,
+                            GradePercent = c.GradePercent,
+                            Feedback = c.Feedback
+                        }).ToList() ?? new List<QuestionChoice>()
+                    };
+                    questionsToAdd.Add(question);
+                    
+                    // Add to the set so we also detect duplicates within the upload batch
+                    existingTexts.Add(reqTextNormalized);
+                }
             }
 
-            await _uow.Questions.AddRangeAsync(questionsToAdd);
+            if (questionsToAdd.Count > 0)
+            {
+                await _uow.Questions.AddRangeAsync(questionsToAdd);
+                await _uow.CommitAsync();
+            }
 
-            return await _uow.CommitAsync();
+            // Return the count of questions added, not the database rows affected
+            return questionsToAdd.Count;
         }
 
         // Test Case Estimation:
@@ -341,7 +373,12 @@ namespace LetsLearn.UseCases.Services.QuestionSer
                 CourseId = courseId,
                 QuestionName = item.QuestionName ?? $"Q_{Guid.NewGuid().ToString().Substring(0, 8)}",
                 QuestionText = item.QuestionText,
-                Type = item.Type,
+                Type = item.Type switch
+                {
+                    "Multiple Choice" => "Choices Answer",
+                    "Choice" => "Choices Answer",
+                    _ => item.Type
+                },
                 DefaultMark = item.DefaultMark,
                 CorrectAnswer = item.CorrectAnswer,
                 Multiple = item.Multiple,
