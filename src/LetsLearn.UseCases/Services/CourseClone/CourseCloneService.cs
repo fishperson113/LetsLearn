@@ -58,10 +58,13 @@ namespace LetsLearn.UseCases.Services.CourseClone
             // 6) Auto enroll creator as student
             await AddCreatorEnrollmentAsync(clone.Course.Id, userId, ct);
 
-            // 7) Clone topic data snapshot (quiz/assignment/page/link/file)
+            // 7) Clone question bank from old course to new course
+            await CloneQuestionBankAsync(sourceCourseId, clone.Course.Id, clone.QuestionIdMap, userId, ct);
+
+            // 8) Clone topic data snapshot (quiz/assignment/page/link/file)
             await CloneTopicDataAsync(source, clone.TopicIdMap, ct);
 
-            // 8) Commit
+            // 9) Commit
             try
             {
                 await _uow.CommitAsync();
@@ -306,6 +309,61 @@ namespace LetsLearn.UseCases.Services.CourseClone
             };
 
             await _uow.TopicFiles.AddAsync(newTopicFile);
+        }
+
+        private async Task CloneQuestionBankAsync(
+            string oldCourseId,
+            string newCourseId,
+            Dictionary<Guid, Guid> questionIdMap,
+            Guid userId,
+            CancellationToken ct)
+        {
+            var oldQuestions = await _uow.Questions.GetAllByCourseIdAsync(oldCourseId, ct);
+            if (oldQuestions == null || !oldQuestions.Any()) return;
+
+            var utcNow = DateTime.UtcNow;
+
+            foreach (var oldQ in oldQuestions)
+            {
+                var newQuestionId = Guid.NewGuid();
+                questionIdMap[oldQ.Id] = newQuestionId;
+
+                var newQuestion = new Question
+                {
+                    Id = newQuestionId,
+                    CreatedAt = utcNow,
+                    UpdatedAt = null,
+                    DeletedAt = null,
+                    QuestionName = oldQ.QuestionName,
+                    QuestionText = oldQ.QuestionText,
+                    Status = oldQ.Status,
+                    Type = oldQ.Type,
+                    DefaultMark = oldQ.DefaultMark,
+                    Usage = 0,
+                    FeedbackOfTrue = oldQ.FeedbackOfTrue,
+                    FeedbackOfFalse = oldQ.FeedbackOfFalse,
+                    CorrectAnswer = oldQ.CorrectAnswer,
+                    Multiple = oldQ.Multiple,
+                    CreatedById = userId,
+                    ModifiedById = null,
+                    CourseId = newCourseId,
+                    Choices = new List<QuestionChoice>()
+                };
+
+                foreach (var oldChoice in oldQ.Choices ?? new List<QuestionChoice>())
+                {
+                    newQuestion.Choices.Add(new QuestionChoice
+                    {
+                        Id = Guid.NewGuid(),
+                        QuestionId = newQuestionId,
+                        Text = oldChoice.Text,
+                        GradePercent = oldChoice.GradePercent,
+                        Feedback = oldChoice.Feedback
+                    });
+                }
+
+                await _uow.Questions.AddAsync(newQuestion);
+            }
         }
     } 
 }

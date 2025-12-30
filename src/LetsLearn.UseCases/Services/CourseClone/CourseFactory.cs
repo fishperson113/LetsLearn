@@ -73,6 +73,7 @@ namespace LetsLearn.UseCases.Services.CourseClone
 
             result.SectionCount = newCourse.Sections.Count;
             result.TopicCount = newCourse.Sections.Sum(x => x.Topics?.Count ?? 0);
+            result.QuestionCount = 0;
 
             return result;
         }
