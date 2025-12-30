@@ -2,6 +2,7 @@
 using LetsLearn.UseCases.ServiceInterfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Security.Claims;
@@ -138,6 +139,25 @@ namespace LetsLearn.WebApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating question {QuestionId}", questionId);
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        // POST: api/question/bulk-import
+        [HttpPost("bulk-import")]
+        [AllowAnonymous]
+        public async Task<ActionResult> BulkImport(IFormFile file, [FromQuery] string courseId, CancellationToken ct)
+        {
+            var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "userID")?.Value;
+            Guid userId = string.IsNullOrEmpty(userIdClaim) ? Guid.Parse("3fa85f64-5717-4562-b3fc-2c963f66afa6") : Guid.Parse(userIdClaim);
+
+            try
+            {
+                var resultCount = await _service.ImportBulkQuestionsAsync(file, courseId, userId, ct);
+                return Ok(new { message = $"Import {resultCount} questions successfully!" });
+            }
+            catch (Exception ex)
+            {
                 return BadRequest(new { message = ex.Message });
             }
         }

@@ -2,8 +2,10 @@
 using LetsLearn.Core.Interfaces;
 using LetsLearn.UseCases.DTOs;
 using LetsLearn.UseCases.ServiceInterfaces;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -271,6 +273,86 @@ namespace LetsLearn.UseCases.Services.QuestionSer
                     GradePercent = c.GradePercent
                 }).ToList()
             };
+        }
+
+        // Test Case Estimation:
+        // Decision points (D):
+        // - foreach loop": +1
+        // - null-coalescing cho Choices (req.Choices?.Select... ?? new List<QuestionChoice>()): +1
+        // D = 2 => Minimum Test Cases = D + 1 = 3
+        public async Task<int> BulkCreateAsync(List<CreateQuestionRequest> requests, Guid userId, CancellationToken ct = default)
+        {
+            var questionsToAdd = new List<Question>();
+
+            foreach (var req in requests)
+            {
+                var questionId = Guid.NewGuid();
+                var question = new Question
+                {
+                    Id = questionId,
+                    QuestionName = req.QuestionName,
+                    QuestionText = req.QuestionText,
+                    Type = req.Type,
+                    CourseId = req.CourseId ?? string.Empty,
+                    CreatedById = userId,
+                    CreatedAt = DateTime.UtcNow,
+                    Status = "active",
+                    Choices = req.Choices?.Select(c => new QuestionChoice
+                    {
+                        Id = Guid.NewGuid(),
+                        QuestionId = questionId, 
+                        Text = c.Text,
+                        GradePercent = c.GradePercent,
+                        Feedback = c.Feedback
+                    }).ToList() ?? new List<QuestionChoice>()
+                };
+                questionsToAdd.Add(question);
+            }
+
+            await _uow.Questions.AddRangeAsync(questionsToAdd);
+
+            return await _uow.CommitAsync();
+        }
+
+        // Test Case Estimation:
+        // Decision points (D):
+        // - Check response (!response.IsSuccessStatusCode): +1
+        // - Deserialize JSON (parsedQuestions == null): +1
+        // - BulkCreateAsync: (D has been calculated separately)
+        // D = 2 => Minimum Test Cases = D + 1 = 3
+        public async Task<int> ImportBulkQuestionsAsync(IFormFile file, string courseId, Guid userId, CancellationToken ct)
+        {
+            using var httpClient = new HttpClient();
+            httpClient.Timeout = TimeSpan.FromMinutes(3);
+            using var multipartContent = new MultipartFormDataContent();
+            using var fileStream = file.OpenReadStream();
+            var fileContent = new StreamContent(fileStream);
+            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
+            multipartContent.Add(fileContent, "data", file.FileName);
+
+            var response = await httpClient.PostAsync("https://plastics-discover-message-judicial.trycloudflare.com/webhook/parse-gemini", multipartContent);
+            if (!response.IsSuccessStatusCode) throw new Exception("Fail API Parser call.");
+
+            var jsonResult = await response.Content.ReadAsStringAsync();
+            var parsedQuestions = JsonConvert.DeserializeObject<List<ListQuestionParserResponse>>(jsonResult);
+
+            var requests = parsedQuestions.Select(item => new CreateQuestionRequest
+            {
+                CourseId = courseId,
+                QuestionName = item.QuestionName ?? $"Q_{Guid.NewGuid().ToString().Substring(0, 8)}",
+                QuestionText = item.QuestionText,
+                Type = item.Type,
+                DefaultMark = item.DefaultMark,
+                CorrectAnswer = item.CorrectAnswer,
+                Multiple = item.Multiple,
+                Choices = item.Choices?.Select(c => new CreateQuestionChoiceRequest
+                {
+                    Text = c.Text,
+                    GradePercent = c.GradePercent
+                }).ToList()
+            }).ToList();
+
+            return await BulkCreateAsync(requests, userId, ct);
         }
     }
 }
