@@ -313,6 +313,44 @@ namespace LetsLearn.API.Controllers
             }
         }
 
+        /// <summary>
+        /// POST /api/course/{id}/student
+        /// Add a student to a course (Teacher only).
+        /// </summary>
+        [HttpPost("{id}/student")]
+        public async Task<IActionResult> AddStudentToCourse(String id, [FromBody] AddStudentRequest request, CancellationToken ct)
+        {
+            try
+            {
+                var teacherId = Guid.Parse(User.Claims.First(c => c.Type == "userID").Value);
+
+                // Verify that the current user is the course creator
+                var course = await _courseService.GetCourseByIdAsync(id, ct);
+                if (course.Creator?.Id != teacherId)
+                {
+                    return Forbid("Only the course creator can add students to this course.");
+                }
+
+                // Add the student to the course
+                var studentId = Guid.Parse(request.StudentId);
+                await _courseService.AddUserToCourseAsync(id, studentId, ct);
+
+                return NoContent();
+            }
+            catch (KeyNotFoundException knfEx)
+            {
+                return NotFound(new { message = knfEx.Message });
+            }
+            catch (InvalidOperationException ioEx)
+            {
+                return Conflict(new { message = ioEx.Message });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
         [HttpGet("{id}/work")]
         public async Task<ActionResult<TopicDTO>> GetWorksOfCourseAndUser(String id,
             [FromQuery] string? type,
