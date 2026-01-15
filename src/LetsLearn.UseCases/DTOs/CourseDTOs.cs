@@ -8,6 +8,12 @@ using System.Threading.Tasks;
 
 namespace LetsLearn.UseCases.DTOs
 {
+    public class AddStudentRequest
+    {
+        [Required]
+        public string StudentId { get; set; } = string.Empty;
+    }
+
     public class CreateCourseRequest
     {
         public required String Id { get; set; }
