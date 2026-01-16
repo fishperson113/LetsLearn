@@ -13,6 +13,7 @@ namespace LetsLearn.UseCases.ServiceInterfaces
         Task<UpdateCourseResponse> UpdateCourseAsync(UpdateCourseRequest dto, CancellationToken ct = default);
         Task<IEnumerable<GetCourseResponse>> GetAllCoursesByUserIdAsync(Guid userId, CancellationToken ct = default);
         Task<IEnumerable<GetCourseResponse>> GetAllCoursesAsync(CancellationToken ct = default);
+        Task<IEnumerable<GetCourseResponse>> GetAllCoursesForAdminAsync(CancellationToken ct = default);
         Task<GetCourseResponse> GetCourseByIdAsync(string id, CancellationToken ct = default);
         Task AddUserToCourseAsync(string courseId, Guid userId, CancellationToken ct = default);
         Task<IEnumerable<TopicDTO>> GetAllWorksOfCourseAndUserAsync(string courseId, Guid userId, string type, DateTime? start, DateTime? end, CancellationToken ct = default);

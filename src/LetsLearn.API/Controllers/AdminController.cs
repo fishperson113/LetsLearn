@@ -32,7 +32,7 @@ namespace LetsLearn.API.Controllers
         {
             var adminId = Guid.Parse(User.Claims.First(c => c.Type == "userID").Value);
             var allUsers = (await _userService.GetAllAsync(adminId)).ToList();
-            var allCourses = (await _courseService.GetAllCoursesAsync(ct)).ToList();
+            var allCourses = (await _courseService.GetAllCoursesForAdminAsync(ct)).ToList();
 
             var dashboard = new AdminDashboardDTO
             {
@@ -138,7 +138,7 @@ namespace LetsLearn.API.Controllers
             [FromQuery] string? search = null,
             CancellationToken ct = default)
         {
-            var courses = await _courseService.GetAllCoursesAsync(ct);
+            var courses = await _courseService.GetAllCoursesForAdminAsync(ct);
 
             if (isPublished.HasValue)
             {
@@ -226,7 +226,7 @@ namespace LetsLearn.API.Controllers
             [FromQuery] DateTime? endDate = null,
             CancellationToken ct = default)
         {
-            var courses = (await _courseService.GetAllCoursesAsync(ct)).ToList();
+            var courses = (await _courseService.GetAllCoursesForAdminAsync(ct)).ToList();
 
             var stats = new CourseStatisticsDTO
             {

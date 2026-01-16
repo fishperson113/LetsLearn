@@ -163,6 +163,16 @@ namespace LetsLearn.UseCases.Services.CourseSer
 
         // Test Case Estimation:
         // Decision points (D):
+        // - Pure retrieval: +0
+        // D = 0 => Minimum Test Cases = D + 1 = 1
+        public async Task<IEnumerable<GetCourseResponse>> GetAllCoursesForAdminAsync(CancellationToken ct = default)
+        {
+            var courses = await _uow.Course.GetAllAsync(ct);
+            return courses.Where(c => c != null).Select(c => MapToResponse(c!)).ToList();
+        }
+
+        // Test Case Estimation:
+        // Decision points (D):
         // - if userExists is false: +1
         // D = 1 => Minimum Test Cases = D + 1 = 2
         public async Task<IEnumerable<GetCourseResponse>> GetAllCoursesByUserIdAsync(Guid userId, CancellationToken ct = default)
